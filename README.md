@@ -1,30 +1,80 @@
-# KT
+<h1 align="center">🚀 Personal Portfolio</h1>
+<p align="center">
+  <b>Designed & developed by Krish (KT) — showcasing a journey through code, creativity, and cybersecurity.</b>
+</p>
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+<br/>
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/kjt/kt)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/oFXuabrmpT9)
+<p align="center">
+  <img src="https://media.giphy.com/media/qgQUggAC3Pfv687qPC/giphy.gif" width="400"/>
+</p>
 
-## Overview
+---
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+## 🌟 About the Project
 
-## Deployment
+Welcome aboard Krish's Personal Portfolio — a meticulously engineered webspace blending technology, personality, and security, all themed around flight and forward momentum.
 
-Your project is live at:
+---
 
-**[https://vercel.com/kjt/kt](https://vercel.com/kjt/kt)**
+## 🛠️ Tech Stack
 
-## Build your app
+| Frontend        | Backend       | Styling         | Tools & Hosting          |
+|-----------------|---------------|------------------|---------------------------|
+| React.js        | Node.js       | Tailwind CSS     | Vercel / Render           |
+| Next.js         | Express.js    | Framer Motion    | Git & GitHub              |
+| TypeScript      |               |                  | Figma                     |
 
-Continue building your app on:
+---
 
-**[https://v0.dev/chat/projects/oFXuabrmpT9](https://v0.dev/chat/projects/oFXuabrmpT9)**
+## ✨ Features
 
-## How It Works
+- 🎨 Beautiful animations with Framer Motion
+- 📱 Fully responsive design for all devices
+- 📜 Dynamic Projects & Certifications
+- 🧠 Skill-based categorization with custom icons
+- 🔐 Cybersecurity section to showcase skills & certs
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+---
+
+## 📁 Sections Included
+
+- **Hero** — Brief intro with social links  
+- **About** — Who I am & what I do  
+- **Skills** — My tech stack with categories  
+- **Projects** — Featured works with descriptions  
+- **Certifications** — Visual proof of learning  
+- **Stats** — Total projects, tech used, and live count  
+- **Contact** — Let’s collaborate!
+
+---
+
+## 🧠 Philosophy
+
+> I believe in shipping smart, secure, and elegant solutions — combining design, functionality, and purpose. This portfolio is not just a website, but a reflection of that mindset.
+
+---
+
+## 🏗️ Status
+
+🚧 Constantly improving. New features, micro-interactions, and integrations are on the way.
+
+---
+
+## 📸 Preview
+
+<p align="center">
+  <img src="https://i.imgur.com/FtYzhfX.png" width="800" alt="Portfolio Screenshot"/>
+</p>
+
+---
+
+## 📬 Contact
+
+Feel free to reach out via [LinkedIn](https://www.linkedin.com/in/krishkkt) or [Email](mailto:krishkkt@protonmail.com). Always open to collaboration and meaningful connections.
+
+---
+
+<p align="center">
+  Built with ❤️ by <b>KT</b> — Code-driven, cyber-bound, coffee-fueled, and always shipping something smarter.
+</p>
