@@ -19,11 +19,11 @@ Welcome aboard Krish's Personal Portfolio — a meticulously engineered webspace
 
 ## 🛠️ Tech Stack
 
-| Frontend        | Backend       | Styling         | Tools & Hosting          |
+| Frontend        | Backend       | Styling          | Tools & Hosting           |
 |-----------------|---------------|------------------|---------------------------|
-| React.js        | Node.js       | Tailwind CSS     | Vercel / Render           |
+| React.js        | Node.js       | Tailwind CSS     | Vercel                    |
 | Next.js         | Express.js    | Framer Motion    | Git & GitHub              |
-| TypeScript      |               |                  | Figma                     |
+| TypeScript      |               |                  |                           |
 
 ---
 
@@ -33,7 +33,7 @@ Welcome aboard Krish's Personal Portfolio — a meticulously engineered webspace
 - 📱 Fully responsive design for all devices
 - 📜 Dynamic Projects & Certifications
 - 🧠 Skill-based categorization with custom icons
-- 🔐 Cybersecurity section to showcase skills & certs
+- 🔐 Section to showcase skills & certs
 
 ---
 
@@ -71,7 +71,7 @@ Welcome aboard Krish's Personal Portfolio — a meticulously engineered webspace
 
 ## 📬 Contact
 
-Feel free to reach out via [LinkedIn](https://www.linkedin.com/in/krishkkt) or [Email](mailto:krishkkt@protonmail.com). Always open to collaboration and meaningful connections.
+Feel free to reach out via [LinkedIn](https://www.linkedin.com/in/krishthakker08) or [Email](mailto:kjthakker8@gmail.com). Always open to collaboration and meaningful connections.
 
 ---
 
