@@ -254,7 +254,7 @@ export default function HeroSection() {
               transition={{ delay: 0.9, duration: 0.8 }}
               itemProp="jobTitle"
             >
-              Cybersecurity Specialist & Full Stack Developer
+              Cybersecurity, Artificial Intelligence & Full Stack Developer Enthusiast
             </motion.h3>
           </motion.div>
 
