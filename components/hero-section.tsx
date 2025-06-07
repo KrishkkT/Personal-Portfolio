@@ -220,7 +220,7 @@ export default function HeroSection() {
                 transition={{ duration: 0.3 }}
                 itemProp="headline"
               >
-                <span className="gradient-text">KT</span>
+                <span className="gradient-text"></span>
               </motion.h1>
               <motion.div
                 animate={{

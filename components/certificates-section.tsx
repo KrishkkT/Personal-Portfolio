@@ -35,19 +35,6 @@ const certificates = [
     level: "Virtual Internship",
   },
   {
-    title: "AWS Academy Cloud Foundations",
-    issuer: "Amazon Web Services Training and Certification)",
-    date: "2025",
-    description:
-      "Successfully completed the foundational AWS certification, demonstrating a solid understanding of cloud concepts, AWS core services, security, pricing, and support. This certification validates my ability to effectively leverage AWS cloud technology in practical scenarios.",
-    skills: ["AWS Cloud", "AWS Core Services", "AWS Architecture", "AWS Foundations"],
-    verified: true,
-    status: "Active",
-    image:
-      "https://images.unsplash.com/photo-1749281348848-ae1e7215005d?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8MXx8fGVufDB8fHx8fA%3D%3D",
-    level: "Cloud Computing",
-  },
-  {
     title: "DSA using Java",
     issuer: "Government-certified (AICTE + NPTEL course)",
     date: "2024",
