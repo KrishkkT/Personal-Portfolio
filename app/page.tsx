@@ -12,6 +12,7 @@ import ProjectsSection from "@/components/projects-section"
 import ContactSection from "@/components/contact-section"
 import Footer from "@/components/footer"
 import ClientWrapper from "@/components/client-wrapper"
+import BlogSection from "@/components/blog-section"
 
 export default function Home() {
   useEffect(() => {
@@ -32,6 +33,7 @@ export default function Home() {
       <AboutSection />
       <SkillsSection />
       <InteractiveCLI />
+      <BlogSection />
       <CertificatesSection />
       <TimelineSection />
       <ProjectsSection />

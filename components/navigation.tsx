@@ -11,6 +11,7 @@ const navItems = [
   { name: "Home", href: "#home" },
   { name: "About", href: "#about" },
   { name: "Skills", href: "#skills" },
+  { name: "Blog", href: "/blog" },
   { name: "Certificates", href: "#certificates" },
   { name: "Projects", href: "#projects" },
   { name: "Contact", href: "#contact" },
@@ -46,6 +47,12 @@ export default function Navigation() {
   const handleNavClick = (href: string, e: React.MouseEvent) => {
     e.preventDefault()
     setIsOpen(false)
+
+    // Handle external navigation (like /blog)
+    if (href.startsWith("/")) {
+      window.location.href = href
+      return
+    }
 
     // Only allow smooth scrolling after initial load is complete
     if (!isInitialLoad && href.startsWith("#")) {
