@@ -1,0 +1,9 @@
+.git
+node_modules
+.next
+.vercel
+.env
+.env.local
+.env.development
+.env.production
+README.md
