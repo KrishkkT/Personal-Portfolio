@@ -1,9 +1,13 @@
 .git
-node_modules
-.next
-.vercel
+.gitignore
+README.md
 .env
 .env.local
 .env.development
 .env.production
-README.md
+node_modules
+.next
+.vercel
+*.log
+.DS_Store
+Thumbs.db
