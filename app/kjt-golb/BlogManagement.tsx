@@ -19,7 +19,6 @@ import {
   Clock,
   Search,
   Filter,
-  RefreshCw,
   AlertCircle,
   CheckCircle,
   Loader2,
@@ -35,6 +34,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useBlogUpdates } from "@/hooks/use-blog-updates"
+
+// Declare triggerGlobalRefresh function
+// Remove: declare function triggerGlobalRefresh(): void
 
 export default function BlogManagement() {
   // State for posts list
@@ -75,24 +77,43 @@ export default function BlogManagement() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [postToDelete, setPostToDelete] = useState<BlogPostSummary | null>(null)
 
-  const { refresh: triggerGlobalRefresh, isConnected } = useBlogUpdates({
+  const { isConnected } = useBlogUpdates({
+    autoRefresh: false, // Disable auto-refresh
     onUpdate: (eventType, data) => {
       console.log(`Management received update: ${eventType}`, data)
-      // Automatically refresh the posts list when changes occur
-      fetchPosts()
+
+      // Handle different event types appropriately
+      if (eventType === "post-created") {
+        // Add new post to the beginning of the list
+        setPosts((prev) => [data.post, ...prev])
+      } else if (eventType === "post-updated") {
+        // Update existing post in the list
+        setPosts((prev) => prev.map((post) => (post.id === data.post.id ? data.post : post)))
+      } else if (eventType === "post-deleted") {
+        // Immediately remove deleted post
+        setPosts((prev) => prev.filter((post) => post.id !== data.post.id && post.slug !== data.post.slug))
+      }
+    },
+    onPermanentDeletion: (data) => {
+      // Ensure immediate removal and prevent resurrection
+      setPosts((prev) => prev.filter((post) => post.id !== data.deletedId && post.slug !== data.deletedSlug))
+      console.log(`Post permanently deleted from UI: ${data.deletedSlug}`)
     },
   })
 
   // Fetch posts with error handling
   const fetchPosts = useCallback(async () => {
+    // Only fetch if not already loading
+    if (loading) return
+
     setLoading(true)
-    setSubmitStatus({ message: "Loading posts...", type: "loading" })
+    setSubmitStatus({ message: "", type: "" }) // Clear status instead of showing loading
 
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: "10",
-        _t: Date.now().toString(), // Cache busting
+        _t: Date.now().toString(),
       })
 
       if (searchTerm) params.append("search", searchTerm)
@@ -112,27 +133,27 @@ export default function BlogManagement() {
 
       const data = await response.json()
 
-      setPosts(data.posts)
-      setTotalPages(data.pagination.totalPages)
+      setPosts(data.posts || [])
+      setTotalPages(data.pagination?.totalPages || 1)
 
       // Extract all unique tags
       const tags = new Set<string>()
-      data.posts.forEach((post: BlogPostSummary) => {
+      ;(data.posts || []).forEach((post: BlogPostSummary) => {
         post.tags.forEach((tag) => tags.add(tag))
       })
       setAllTags(Array.from(tags))
-      setSubmitStatus({ message: "", type: "" })
     } catch (error) {
       console.error("Error fetching posts:", error)
       setSubmitStatus({
         message: `Failed to fetch blog posts: ${error instanceof Error ? error.message : "Unknown error"}`,
         type: "error",
       })
-      setPosts([]) // Set empty array on error
+      setPosts([])
+      setAllTags([])
     } finally {
       setLoading(false)
     }
-  }, [currentPage, searchTerm, selectedTag])
+  }, [currentPage, searchTerm, selectedTag, loading])
 
   // Initial load and when filters change
   useEffect(() => {
@@ -323,8 +344,10 @@ export default function BlogManagement() {
       resetForm()
 
       // After successful save, trigger global refresh
-      triggerGlobalRefresh()
-      await fetchPosts()
+      // triggerGlobalRefresh()
+      // Remove: await fetchPosts()
+      // The event system will handle the updates automatically
+      // No manual refresh needed
 
       // Clear success message after a delay
       setTimeout(() => {
@@ -350,7 +373,7 @@ export default function BlogManagement() {
     if (!postToDelete) return
 
     setDeleteDialogOpen(false)
-    setSubmitStatus({ message: "Deleting post...", type: "loading" })
+    setSubmitStatus({ message: "Permanently deleting post...", type: "loading" })
 
     try {
       const response = await fetch(`/api/blog/${postToDelete.slug}`, {
@@ -362,21 +385,16 @@ export default function BlogManagement() {
         throw new Error(errorData.error || "Failed to delete post")
       }
 
-      // Refresh posts
-
-      // After successful deletion, trigger global refresh
-      triggerGlobalRefresh()
-      await fetchPosts()
-
+      // Don't trigger manual refresh - the event system will handle updates
       setSubmitStatus({
-        message: `Post "${postToDelete.title}" deleted successfully!`,
+        message: `Post "${postToDelete.title}" has been permanently deleted from the website!`,
         type: "success",
       })
 
       // Clear success message after a delay
       setTimeout(() => {
         setSubmitStatus({ message: "", type: "" })
-      }, 3000)
+      }, 5000) // Longer delay for deletion confirmation
     } catch (error) {
       console.error("Error deleting post:", error)
       setSubmitStatus({
@@ -733,14 +751,6 @@ export default function BlogManagement() {
                       className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400"
                     />
                   </div>
-                  <Button
-                    onClick={() => fetchPosts()}
-                    className="bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                    disabled={loading}
-                  >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                    Refresh
-                  </Button>
                 </div>
 
                 {/* Tag Filter */}
@@ -896,7 +906,8 @@ export default function BlogManagement() {
           <DialogHeader>
             <DialogTitle className="text-white">Confirm Deletion</DialogTitle>
             <DialogDescription className="text-gray-300">
-              Are you sure you want to delete the post "{postToDelete?.title}"? This action cannot be undone.
+              Are you sure you want to permanently delete the post "{postToDelete?.title}"? This action cannot be undone
+              and the post will be removed from the entire website immediately.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-end">
