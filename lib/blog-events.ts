@@ -1,81 +1,94 @@
-type EventCallback = (data: any) => void
+// Event system for real-time blog updates
+type BlogEventType = "post-created" | "post-updated" | "post-deleted" | "posts-refreshed"
 
-interface EventSubscription {
-  unsubscribe: () => void
+interface BlogEvent {
+  type: BlogEventType
+  data: any
+  timestamp: number
 }
 
 class BlogEventEmitter {
-  private events: Map<string, EventCallback[]> = new Map()
-  private deletedItems: Set<string> = new Set()
+  private listeners: Map<BlogEventType, Set<(data: any) => void>> = new Map()
+  private eventHistory: BlogEvent[] = []
 
-  subscribe(eventType: string, callback: EventCallback): () => void {
-    if (!this.events.has(eventType)) {
-      this.events.set(eventType, [])
+  subscribe(eventType: BlogEventType, callback: (data: any) => void) {
+    if (!this.listeners.has(eventType)) {
+      this.listeners.set(eventType, new Set())
     }
-
-    const callbacks = this.events.get(eventType)!
-    callbacks.push(callback)
+    this.listeners.get(eventType)!.add(callback)
 
     // Return unsubscribe function
     return () => {
-      const index = callbacks.indexOf(callback)
-      if (index > -1) {
-        callbacks.splice(index, 1)
+      this.listeners.get(eventType)?.delete(callback)
+    }
+  }
+
+  emit(eventType: BlogEventType, data: any) {
+    const event: BlogEvent = {
+      type: eventType,
+      data,
+      timestamp: Date.now(),
+    }
+
+    // Store event in history
+    this.eventHistory.push(event)
+
+    // Keep only last 100 events
+    if (this.eventHistory.length > 100) {
+      this.eventHistory = this.eventHistory.slice(-100)
+    }
+
+    // Notify all listeners
+    const listeners = this.listeners.get(eventType)
+    if (listeners) {
+      listeners.forEach((callback) => {
+        try {
+          callback(data)
+        } catch (error) {
+          console.error(`Error in blog event listener for ${eventType}:`, error)
+        }
+      })
+    }
+
+    // Also emit to 'posts-refreshed' for general updates
+    if (eventType !== "posts-refreshed") {
+      const refreshListeners = this.listeners.get("posts-refreshed")
+      if (refreshListeners) {
+        refreshListeners.forEach((callback) => {
+          try {
+            callback({ eventType, data })
+          } catch (error) {
+            console.error("Error in posts-refreshed listener:", error)
+          }
+        })
       }
     }
   }
 
-  emit(eventType: string, data: any): void {
-    // Track deletions
-    if (eventType === "post-deleted" && data.permanent) {
-      if (data.deletedId) this.deletedItems.add(data.deletedId)
-      if (data.deletedSlug) this.deletedItems.add(data.deletedSlug)
-    }
-
-    const callbacks = this.events.get(eventType) || []
-    callbacks.forEach((callback) => {
-      try {
-        callback(data)
-      } catch (error) {
-        console.error(`Error in event callback for ${eventType}:`, error)
-      }
-    })
-
-    // Also emit as window event for cross-tab communication
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("blog-update", {
-          detail: {
-            eventType,
-            data,
-            permanent: eventType === "post-deleted" && data.permanent,
-            deletedIds: Array.from(this.deletedItems),
-          },
-        }),
-      )
-    }
+  getRecentEvents(since?: number): BlogEvent[] {
+    if (!since) return this.eventHistory.slice(-10)
+    return this.eventHistory.filter((event) => event.timestamp > since)
   }
 
-  isDeleted(id: string): boolean {
-    return this.deletedItems.has(id)
-  }
-
-  getDeletedItems(): string[] {
-    return Array.from(this.deletedItems)
-  }
-
-  clearDeletedItems(): void {
-    this.deletedItems.clear()
+  clear() {
+    this.listeners.clear()
+    this.eventHistory = []
   }
 }
 
-// Create singleton instance
+// Global event emitter instance
 export const blogEvents = new BlogEventEmitter()
 
-// Helper function to trigger blog refresh
-export function triggerBlogRefresh(eventType: string, data: any): void {
+// Helper function to trigger UI updates
+export function triggerBlogRefresh(eventType: BlogEventType, data?: any) {
   blogEvents.emit(eventType, data)
-}
 
-// Export for use in components
-export default blogEvents
+  // Also trigger a custom event for any listening components
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("blog-update", {
+        detail: { eventType, data, timestamp: Date.now() },
+      }),
+    )
+  }
+}

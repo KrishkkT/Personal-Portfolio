@@ -8,17 +8,20 @@ interface UseBlogUpdatesOptions {
   autoRefresh?: boolean
   refreshInterval?: number
   onUpdate?: (eventType: string, data: any) => void
-  onPermanentDeletion?: (data: any) => void
 }
 
 export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
-  const { autoRefresh = false, refreshInterval = 30000, onUpdate, onPermanentDeletion } = options
+  const {
+    autoRefresh = true,
+    refreshInterval = 30000, // 30 seconds
+    onUpdate,
+  } = options
 
   const [lastUpdate, setLastUpdate] = useState<number>(Date.now())
   const [isConnected, setIsConnected] = useState(true)
   const [updateCount, setUpdateCount] = useState(0)
-  const [deletedItems, setDeletedItems] = useState<Set<string>>(new Set())
   const intervalRef = useRef<NodeJS.Timeout>()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
 
   // Handle blog events
   const handleBlogEvent = useCallback(
@@ -27,25 +30,11 @@ export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
       setUpdateCount((prev) => prev + 1)
       setIsConnected(true)
 
-      // Track permanent deletions
-      if (eventType === "post-deleted" && data?.permanent) {
-        setDeletedItems((prev) => {
-          const newSet = new Set(prev)
-          if (data.deletedId) newSet.add(data.deletedId)
-          if (data.deletedSlug) newSet.add(data.deletedSlug)
-          return newSet
-        })
-
-        if (onPermanentDeletion) {
-          onPermanentDeletion(data)
-        }
-      }
-
       if (onUpdate) {
         onUpdate(eventType, data)
       }
     },
-    [onUpdate, onPermanentDeletion],
+    [onUpdate],
   )
 
   // Subscribe to blog events
@@ -54,14 +43,73 @@ export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
       blogEvents.subscribe("post-created", (data) => handleBlogEvent("post-created", data)),
       blogEvents.subscribe("post-updated", (data) => handleBlogEvent("post-updated", data)),
       blogEvents.subscribe("post-deleted", (data) => handleBlogEvent("post-deleted", data)),
-      blogEvents.subscribe("post-permanently-deleted", (data) => handleBlogEvent("post-permanently-deleted", data)),
       blogEvents.subscribe("posts-refreshed", (data) => handleBlogEvent("posts-refreshed", data)),
     ]
 
+    // Listen for custom window events (for cross-tab communication)
+    const handleWindowEvent = (event: CustomEvent) => {
+      const { eventType, data } = event.detail
+      handleBlogEvent(eventType, data)
+    }
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("blog-update", handleWindowEvent as EventListener)
+    }
+
     return () => {
       unsubscribers.forEach((unsubscribe) => unsubscribe())
+      if (typeof window !== "undefined") {
+        window.removeEventListener("blog-update", handleWindowEvent as EventListener)
+      }
     }
   }, [handleBlogEvent])
+
+  // Auto-refresh mechanism
+  useEffect(() => {
+    if (!autoRefresh) return
+
+    const startInterval = () => {
+      intervalRef.current = setInterval(() => {
+        // Trigger a refresh event
+        blogEvents.emit("posts-refreshed", { source: "auto-refresh" })
+      }, refreshInterval)
+    }
+
+    startInterval()
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
+  }, [autoRefresh, refreshInterval])
+
+  // Connection monitoring
+  useEffect(() => {
+    const checkConnection = () => {
+      const now = Date.now()
+      const timeSinceLastUpdate = now - lastUpdate
+
+      // If no updates for 2 minutes, consider disconnected
+      if (timeSinceLastUpdate > 120000) {
+        setIsConnected(false)
+
+        // Try to reconnect
+        reconnectTimeoutRef.current = setTimeout(() => {
+          blogEvents.emit("posts-refreshed", { source: "reconnect" })
+        }, 5000)
+      }
+    }
+
+    const connectionInterval = setInterval(checkConnection, 30000)
+
+    return () => {
+      clearInterval(connectionInterval)
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current)
+      }
+    }
+  }, [lastUpdate])
 
   // Manual refresh function
   const refresh = useCallback(() => {
@@ -74,26 +122,16 @@ export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
     setUpdateCount((prev) => prev + 1)
   }, [])
 
-  // Check if item is deleted
-  const isDeleted = useCallback(
-    (id: string) => {
-      return deletedItems.has(id)
-    },
-    [deletedItems],
-  )
-
   return {
     lastUpdate,
     isConnected,
     updateCount,
-    deletedItems: Array.from(deletedItems),
     refresh,
     forceUpdate,
-    isDeleted,
   }
 }
 
-// Hook specifically for fetching blog posts with real-time updates and permanent deletion support
+// Hook specifically for fetching blog posts with real-time updates
 export function useBlogPosts(limit?: number) {
   const [posts, setPosts] = useState<BlogPostSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -123,15 +161,11 @@ export function useBlogPosts(limit?: number) {
         }
 
         const data = await response.json()
-
-        // Ensure we have a valid posts array
-        const postsArray = Array.isArray(data.posts) ? data.posts : []
-        setPosts(postsArray)
+        setPosts(data.posts)
         setLastFetch(Date.now())
       } catch (err) {
         console.error("Error fetching blog posts:", err)
         setError(err instanceof Error ? err.message : "Failed to fetch posts")
-        // Don't clear posts on error, keep showing cached data
       } finally {
         setLoading(false)
       }
@@ -139,22 +173,11 @@ export function useBlogPosts(limit?: number) {
     [limit, lastFetch],
   )
 
-  // Use blog updates hook with permanent deletion handling
-  const { isDeleted } = useBlogUpdates({
-    autoRefresh: false,
+  // Use blog updates hook
+  useBlogUpdates({
     onUpdate: (eventType, data) => {
-      // Only refresh for relevant events
-      if (["post-created", "post-updated", "post-deleted"].includes(eventType)) {
-        fetchPosts(true)
-      }
-    },
-    onPermanentDeletion: (data) => {
-      // Immediately remove deleted post from state
-      if (data?.deletedId || data?.deletedSlug) {
-        setPosts((prevPosts) =>
-          prevPosts.filter((post) => post.id !== data.deletedId && post.slug !== data.deletedSlug),
-        )
-      }
+      // Refresh posts when any blog event occurs
+      fetchPosts(true)
     },
   })
 
@@ -163,11 +186,8 @@ export function useBlogPosts(limit?: number) {
     fetchPosts(true)
   }, [fetchPosts])
 
-  // Filter out deleted posts from current state
-  const activePosts = posts.filter((post) => !isDeleted(post.id) && !isDeleted(post.slug))
-
   return {
-    posts: activePosts,
+    posts,
     loading,
     error,
     refresh: () => fetchPosts(true),

@@ -42,17 +42,7 @@ export class NotFoundError extends BlogError {
   }
 }
 
-export class DeletionError extends BlogError {
-  constructor(
-    message: string,
-    public resourceId: string,
-    public reason?: string,
-  ) {
-    super(message, "DELETION_ERROR", { resourceId, reason })
-  }
-}
-
-// Enhanced blog posts storage with backup and deletion tracking
+// Enhanced blog posts storage with backup
 let blogPosts: BlogPost[] = [
   {
     id: "1",
@@ -384,10 +374,6 @@ AWS provides a robust platform for building scalable, secure, and cost-effective
   },
 ]
 
-// Track deleted posts to prevent resurrection
-const deletedPostIds: Set<string> = new Set()
-const deletedPostSlugs: Set<string> = new Set()
-
 // Backup mechanism
 let blogPostsBackup: BlogPost[] = []
 
@@ -396,12 +382,10 @@ function createBackup() {
   blogPostsBackup = JSON.parse(JSON.stringify(blogPosts))
 }
 
-// Restore from backup (but exclude deleted posts)
+// Restore from backup
 function restoreFromBackup() {
   if (blogPostsBackup.length > 0) {
-    blogPosts = JSON.parse(JSON.stringify(blogPostsBackup)).filter(
-      (post) => !deletedPostIds.has(post.id) && !deletedPostSlugs.has(post.slug),
-    )
+    blogPosts = JSON.parse(JSON.stringify(blogPostsBackup))
     return true
   }
   return false
@@ -426,23 +410,18 @@ export function calculateReadingTime(content: string): number {
   return Math.ceil(wordCount / wordsPerMinute)
 }
 
-// Enhanced CRUD operations with permanent deletion
+// Enhanced CRUD operations with comprehensive error handling
 export function getAllPosts(): BlogPost[] {
   try {
-    // Filter out any deleted posts that might have been restored
-    const activePosts = blogPosts.filter((post) => !deletedPostIds.has(post.id) && !deletedPostSlugs.has(post.slug))
-
-    // Update the main array if any deleted posts were found
-    if (activePosts.length !== blogPosts.length) {
-      blogPosts = activePosts
-    }
-
     // Validate data integrity before returning
     const integrity = validateDataIntegrity(blogPosts)
     if (!integrity.isValid) {
       console.warn("Data integrity issues detected:", integrity.issues)
+      // Attempt to restore from backup if data is corrupted
+      if (restoreFromBackup()) {
+        console.log("Restored from backup due to data integrity issues")
+      }
     }
-
     return [...blogPosts] // Return a copy to prevent direct mutation
   } catch (error) {
     console.error("Error getting all posts:", error)
@@ -456,12 +435,7 @@ export function getPostBySlug(slug: string): BlogPost | null {
       throw new ValidationError("Invalid slug provided", { slug: ["Slug must be a non-empty string"] })
     }
 
-    // Check if this post has been deleted
-    if (deletedPostSlugs.has(slug)) {
-      return null
-    }
-
-    const post = blogPosts.find((post) => post.slug === slug && !deletedPostIds.has(post.id))
+    const post = blogPosts.find((post) => post.slug === slug)
     return post || null
   } catch (error) {
     console.error("Error getting post by slug:", error)
@@ -478,13 +452,8 @@ export function createPost(postData: Omit<BlogPost, "id" | "createdAt" | "update
       throw new ValidationError("Post validation failed", validation.errors)
     }
 
-    // Check if this slug was previously deleted
-    if (deletedPostSlugs.has(postData.slug)) {
-      throw new DuplicateError("Cannot create post with a previously deleted slug", "slug", postData.slug)
-    }
-
-    // Check for duplicate slug among active posts
-    const existingPost = blogPosts.find((post) => post.slug === postData.slug && !deletedPostIds.has(post.id))
+    // Check for duplicate slug
+    const existingPost = blogPosts.find((post) => post.slug === postData.slug)
     if (existingPost) {
       throw new DuplicateError("A post with this slug already exists", "slug", postData.slug)
     }
@@ -504,7 +473,7 @@ export function createPost(postData: Omit<BlogPost, "id" | "createdAt" | "update
     // Trigger real-time update
     triggerBlogRefresh("post-created", {
       post: newPost,
-      totalPosts: blogPosts.filter((p) => !deletedPostIds.has(p.id)).length,
+      totalPosts: blogPosts.length,
     })
 
     return newPost
@@ -521,12 +490,7 @@ export function updatePost(slug: string, postData: Partial<BlogPost>): BlogPost 
       throw new ValidationError("Invalid slug provided", { slug: ["Slug must be a non-empty string"] })
     }
 
-    // Check if this post has been deleted
-    if (deletedPostSlugs.has(slug)) {
-      throw new NotFoundError("Cannot update a deleted post", slug)
-    }
-
-    const postIndex = blogPosts.findIndex((post) => post.slug === slug && !deletedPostIds.has(post.id))
+    const postIndex = blogPosts.findIndex((post) => post.slug === slug)
     if (postIndex === -1) {
       throw new NotFoundError("Blog post not found", slug)
     }
@@ -549,14 +513,7 @@ export function updatePost(slug: string, postData: Partial<BlogPost>): BlogPost 
 
     // Check for slug conflicts if slug is being changed
     if (postData.slug && postData.slug !== oldPost.slug) {
-      // Check if new slug was previously deleted
-      if (deletedPostSlugs.has(postData.slug)) {
-        throw new DuplicateError("Cannot use a previously deleted slug", "slug", postData.slug)
-      }
-
-      const conflictingPost = blogPosts.find(
-        (post) => post.slug === postData.slug && post.id !== oldPost.id && !deletedPostIds.has(post.id),
-      )
+      const conflictingPost = blogPosts.find((post) => post.slug === postData.slug && post.id !== oldPost.id)
       if (conflictingPost) {
         throw new DuplicateError("A post with this slug already exists", "slug", postData.slug)
       }
@@ -585,61 +542,28 @@ export function deletePost(slug: string): boolean {
       throw new ValidationError("Invalid slug provided", { slug: ["Slug must be a non-empty string"] })
     }
 
-    // Check if already deleted
-    if (deletedPostSlugs.has(slug)) {
-      throw new DeletionError("Post has already been deleted", slug, "already_deleted")
-    }
-
-    const postIndex = blogPosts.findIndex((post) => post.slug === slug && !deletedPostIds.has(post.id))
+    const postIndex = blogPosts.findIndex((post) => post.slug === slug)
     if (postIndex === -1) {
       throw new NotFoundError("Blog post not found", slug)
     }
 
-    const deletedPost = blogPosts[postIndex]
-
     // Create backup before modification
     createBackup()
 
-    // Mark as permanently deleted
-    deletedPostIds.add(deletedPost.id)
-    deletedPostSlugs.add(deletedPost.slug)
-
-    // Remove from active posts
+    const deletedPost = blogPosts[postIndex]
     blogPosts.splice(postIndex, 1)
 
-    // Trigger real-time update with permanent deletion flag
+    // Trigger real-time update
     triggerBlogRefresh("post-deleted", {
       post: deletedPost,
       totalPosts: blogPosts.length,
-      permanent: true,
-      deletedId: deletedPost.id,
-      deletedSlug: deletedPost.slug,
     })
 
-    console.log(`Post permanently deleted: ${deletedPost.slug} (ID: ${deletedPost.id})`)
     return true
   } catch (error) {
     console.error("Error deleting post:", error)
     if (error instanceof BlogError) throw error
     throw new BlogError("Failed to delete blog post", "DELETION_ERROR", error)
-  }
-}
-
-// Function to check if a post is deleted
-export function isPostDeleted(slug: string): boolean {
-  return deletedPostSlugs.has(slug)
-}
-
-// Function to get deletion stats
-export function getDeletionStats(): {
-  deletedPostCount: number
-  deletedSlugs: string[]
-  lastDeletionTime: number | null
-} {
-  return {
-    deletedPostCount: deletedPostIds.size,
-    deletedSlugs: Array.from(deletedPostSlugs),
-    lastDeletionTime: Date.now(),
   }
 }
 
@@ -652,45 +576,30 @@ export function performHealthCheck(): {
     totalPosts: number
     publishedPosts: number
     draftPosts: number
-    deletedPosts: number
     averageReadingTime: number
   }
 } {
   try {
-    const activePosts = blogPosts.filter((post) => !deletedPostIds.has(post.id) && !deletedPostSlugs.has(post.slug))
-
-    const integrity = validateDataIntegrity(activePosts)
-    const publishedPosts = activePosts.filter((post) => post.published)
-    const draftPosts = activePosts.filter((post) => !post.published)
-    const averageReadingTime = activePosts.reduce((sum, post) => sum + post.readingTime, 0) / activePosts.length || 0
+    const integrity = validateDataIntegrity(blogPosts)
+    const publishedPosts = blogPosts.filter((post) => post.published)
+    const draftPosts = blogPosts.filter((post) => !post.published)
+    const averageReadingTime = blogPosts.reduce((sum, post) => sum + post.readingTime, 0) / blogPosts.length || 0
 
     let status: "healthy" | "warning" | "error" = "healthy"
-    const issues: string[] = [...integrity.issues]
-    const recommendations: string[] = [...integrity.recommendations]
-
-    // Check for resurrection issues
-    const foundDeletedPosts = blogPosts.filter((post) => deletedPostIds.has(post.id) || deletedPostSlugs.has(post.slug))
-
-    if (foundDeletedPosts.length > 0) {
-      issues.push(`Found ${foundDeletedPosts.length} deleted posts that should not exist`)
+    if (integrity.issues.length > 0) {
       status = "error"
-    }
-
-    if (issues.length > 0) {
-      status = "error"
-    } else if (recommendations.length > 0) {
+    } else if (integrity.recommendations.length > 0) {
       status = "warning"
     }
 
     return {
       status,
-      issues,
-      recommendations,
+      issues: integrity.issues,
+      recommendations: integrity.recommendations,
       stats: {
-        totalPosts: activePosts.length,
+        totalPosts: blogPosts.length,
         publishedPosts: publishedPosts.length,
         draftPosts: draftPosts.length,
-        deletedPosts: deletedPostIds.size,
         averageReadingTime: Math.round(averageReadingTime),
       },
     }
@@ -704,7 +613,6 @@ export function performHealthCheck(): {
         totalPosts: 0,
         publishedPosts: 0,
         draftPosts: 0,
-        deletedPosts: 0,
         averageReadingTime: 0,
       },
     }
