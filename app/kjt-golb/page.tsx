@@ -141,12 +141,6 @@ export default function BlogManagementPage() {
                 {loading ? "Authenticating..." : "Login"}
               </Button>
             </form>
-
-            <div className="mt-6 text-center text-xs text-gray-400">
-              <p>Demo Credentials:</p>
-              <p>Username: thekjt</p>
-              <p>Password: passissecret</p>
-            </div>
           </CardContent>
         </Card>
       </motion.div>

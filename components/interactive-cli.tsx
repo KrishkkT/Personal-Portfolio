@@ -131,20 +131,6 @@ export default function InteractiveCLI() {
           output = await fetchIPAddress()
           break
 
-        case trimmedInput.startsWith("ip address --format="):
-          const format = trimmedInput.split("--format=")[1]
-          if (["text", "json", "jsonp"].includes(format)) {
-            output = await fetchIPAddress(format)
-          } else {
-            output = ["Error: Invalid format. Use: text, json, or jsonp"]
-          }
-          break
-
-        case trimmedInput.startsWith("ip address --format=jsonp --callback="):
-          const parts = trimmedInput.split("--callback=")
-          const callbackName = parts[1]
-          output = await fetchIPAddress("jsonp", callbackName)
-          break
 
         case trimmedInput === "device information" || trimmedInput === "device":
           const deviceInfo = getDeviceInfo()
