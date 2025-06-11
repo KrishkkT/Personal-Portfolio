@@ -2,52 +2,49 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { ArrowUp } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { ChevronUp } from "lucide-react"
+import { AnimationUtils } from "@/lib/animation-utils"
 
 export default function BackToTop() {
   const [isVisible, setIsVisible] = useState(false)
 
-  useEffect(() => {
-    const toggleVisibility = () => {
-      if (window.pageYOffset > 300) {
-        setIsVisible(true)
-      } else {
-        setIsVisible(false)
-      }
+  const toggleVisibility = () => {
+    if (window.scrollY > 300) {
+      setIsVisible(true)
+    } else {
+      setIsVisible(false)
     }
-
-    window.addEventListener("scroll", toggleVisibility)
-    return () => window.removeEventListener("scroll", toggleVisibility)
-  }, [])
+  }
 
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     })
+
+    // Add a pulse animation when clicked
+    AnimationUtils.pulse(".back-to-top-button", {
+      scale: [1, 1.2, 1],
+      duration: 600,
+      loop: false,
+    })
   }
 
+  useEffect(() => {
+    window.addEventListener("scroll", toggleVisibility)
+    return () => window.removeEventListener("scroll", toggleVisibility)
+  }, [])
+
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          className="back-to-top"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.8 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Button
-            onClick={scrollToTop}
-            size="lg"
-            className="btn-royal rounded-full w-14 h-14 shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center"
-            aria-label="Back to top"
-          >
-            <ArrowUp className="h-6 w-6 text-gray-900" />
-          </Button>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <div className={`back-to-top ${isVisible ? "visible" : ""}`}>
+      <Button
+        onClick={scrollToTop}
+        size="icon"
+        className="back-to-top-button h-10 w-10 rounded-full bg-primary hover:bg-primary/90 shadow-lg"
+        aria-label="Scroll to top"
+      >
+        <ChevronUp className="h-5 w-5 text-background" />
+      </Button>
+    </div>
   )
 }

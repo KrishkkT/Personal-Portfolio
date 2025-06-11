@@ -1,51 +1,25 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, ArrowRight, BookOpen } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import type { BlogPostSummary } from "@/types/blog"
+import { useBlogPosts } from "@/hooks/use-blog-updates"
 
 export default function BlogSection() {
-  const [recentPosts, setRecentPosts] = useState<BlogPostSummary[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchRecentPosts = async () => {
-      try {
-        const response = await fetch("/api/blog?limit=3")
-        const data = await response.json()
-        setRecentPosts(data.posts)
-      } catch (error) {
-        console.error("Error fetching recent posts:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchRecentPosts()
-  }, [])
+  const { posts: recentPosts, loading, error } = useBlogPosts(3)
 
   if (loading) {
     return (
       <section id="blog" className="py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
         <div className="royal-container">
           <div className="text-center mb-16">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">Latest Blog Posts</h2>
-              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                Insights, tutorials, and thoughts on technology, development, and cybersecurity
-              </p>
-            </motion.div>
+            <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">Latest Blog Posts</h2>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              Insights, tutorials, and thoughts on technology, development, and cybersecurity
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -65,37 +39,58 @@ export default function BlogSection() {
     )
   }
 
+  if (error) {
+    return (
+      <section id="blog" className="py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="royal-container">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">Latest Blog Posts</h2>
+            <p className="text-xl text-red-400 mb-4">Unable to load blog posts at this time.</p>
+            <p className="text-sm text-gray-400">{error}</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  if (!recentPosts || recentPosts.length === 0) {
+    return (
+      <section id="blog" className="py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="royal-container">
+          <div className="text-center">
+            <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">Latest Blog Posts</h2>
+            <p className="text-xl text-gray-300">No blog posts available at the moment.</p>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section id="blog" className="py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <div className="royal-container">
         <div className="text-center mb-16">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">Latest Blog Posts</h2>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              Insights, tutorials, and thoughts on technology, development, and cybersecurity
-            </p>
-          </motion.div>
+          <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">Latest Blog Posts</h2>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Insights, tutorials, and thoughts on technology, development, and cybersecurity
+          </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {recentPosts.map((post, index) => (
-            <motion.div
+            <div
               key={post.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              viewport={{ once: true }}
+              className="opacity-0 animate-fade-in-up"
+              style={{
+                animationDelay: `${index * 150}ms`,
+                animationFillMode: "forwards",
+              }}
             >
               <Card className="midnight-glass border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 group h-full">
                 <CardHeader className="p-0">
                   <div className="relative h-48 overflow-hidden rounded-t-xl">
                     <Image
-                      src={post.imageUrls[0] || "/placeholder.svg?height=200&width=400&text=Blog+Post"}
+                      src={post.imageUrls?.[0] || "/placeholder.svg?height=200&width=400&text=Blog+Post"}
                       alt={post.title}
                       fill
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -122,7 +117,7 @@ export default function BlogSection() {
                   <p className="text-gray-300 mb-4 line-clamp-3">{post.intro}</p>
 
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {post.tags.slice(0, 3).map((tag) => (
+                    {post.tags?.slice(0, 3).map((tag) => (
                       <Badge
                         key={tag}
                         variant="secondary"
@@ -144,16 +139,13 @@ export default function BlogSection() {
                   </Link>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
 
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          viewport={{ once: true }}
+        <div
+          className="text-center opacity-0 animate-fade-in-up"
+          style={{ animationDelay: "600ms", animationFillMode: "forwards" }}
         >
           <Link href="/blog">
             <Button
@@ -165,7 +157,7 @@ export default function BlogSection() {
               <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
-        </motion.div>
+        </div>
       </div>
     </section>
   )

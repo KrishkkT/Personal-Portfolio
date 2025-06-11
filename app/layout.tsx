@@ -3,6 +3,8 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import Script from "next/script"
+import EnhancedPreloader from "@/components/enhanced-preloader"
+import { Toaster } from "sonner"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -32,7 +34,7 @@ const keywords = [
 export const metadata: Metadata = {
   metadataBase: new URL("https://kjt.vercel.app"),
   title: {
-    default: "KT - Full Stack Developer & Cybersecurity Enthusiasts and Specialist",
+    default: "KT - Full Stack Developer & Cybersecurity Enthusiast and Specialist",
     template: "%s | KT Portfolio",
   },
   description:
@@ -101,7 +103,7 @@ export const metadata: Metadata = {
     google: "google-site-verification-code", // Replace with actual verification code when available
   },
   category: "technology",
-    generator: 'v0.dev'
+  generator: "Next.js",
 }
 
 export default function RootLayout({
@@ -124,22 +126,6 @@ export default function RootLayout({
                   window.scrollTo(0, 0);
                   document.documentElement.scrollTop = 0;
                   if (document.body) document.body.scrollTop = 0;
-                  
-                  // Prevent any automatic scrolling
-                  var originalScrollTo = window.scrollTo;
-                  window.scrollTo = function(x, y) {
-                    if (typeof x === 'object') {
-                      originalScrollTo.call(this, { ...x, top: x.top || 0, left: x.left || 0, behavior: 'auto' });
-                    } else {
-                      originalScrollTo.call(this, x || 0, y || 0);
-                    }
-                  };
-                  
-                  // Remove hash from URL if present
-                  if (window.location.hash) {
-                    var newUrl = window.location.pathname + window.location.search;
-                    window.history.replaceState(null, '', newUrl);
-                  }
                 }
               })();
             `,
@@ -150,7 +136,18 @@ export default function RootLayout({
         <link rel="preload" href="/fonts/Inter-Bold.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
       </head>
       <body className={`${inter.className} antialiased`}>
-        {children}
+        <EnhancedPreloader />
+        <div data-barba="wrapper">{children}</div>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "rgb(31 41 55)",
+              color: "rgb(243 244 246)",
+              border: "1px solid rgb(75 85 99)",
+            },
+          }}
+        />
 
         {/* Structured data for Person */}
         <Script

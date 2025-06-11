@@ -19,7 +19,7 @@ const projects = [
     technologies: ["HTML5", "CSS3", "Tailwind CSS", "Vercel"],
     category: "Web App",
     featured: false,
-    liveUrl: "https://spicesafari.vercel.app",
+    liveUrl: "https://spice-safari.vercel.app",
     githubUrl: "https://github.com/KrishkkT/SpiceSafari",
     status: "Live",
   },

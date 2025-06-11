@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { blogEvents } from "@/lib/blog-events"
-import type { BlogPostSummary } from "@/types/blog"
+import { useState, useEffect, useCallback } from "react"
+import type { BlogPostSummary, BlogPost } from "@/types/blog"
 
 interface UseBlogUpdatesOptions {
   autoRefresh?: boolean
@@ -10,20 +9,28 @@ interface UseBlogUpdatesOptions {
   onUpdate?: (eventType: string, data: any) => void
 }
 
+interface UseBlogPostsReturn {
+  posts: BlogPostSummary[]
+  loading: boolean
+  error: string | null
+  refetch: () => void
+}
+
+interface UseBlogPostReturn {
+  post: BlogPost | null
+  loading: boolean
+  error: string | null
+  refetch: () => void
+}
+
+// Blog updates hook
 export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
-  const {
-    autoRefresh = true,
-    refreshInterval = 30000, // 30 seconds
-    onUpdate,
-  } = options
+  const { autoRefresh = false, refreshInterval = 30000, onUpdate } = options
 
   const [lastUpdate, setLastUpdate] = useState<number>(Date.now())
   const [isConnected, setIsConnected] = useState(true)
   const [updateCount, setUpdateCount] = useState(0)
-  const intervalRef = useRef<NodeJS.Timeout>()
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Handle blog events
   const handleBlogEvent = useCallback(
     (eventType: string, data: any) => {
       setLastUpdate(Date.now())
@@ -37,90 +44,25 @@ export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
     [onUpdate],
   )
 
-  // Subscribe to blog events
-  useEffect(() => {
-    const unsubscribers = [
-      blogEvents.subscribe("post-created", (data) => handleBlogEvent("post-created", data)),
-      blogEvents.subscribe("post-updated", (data) => handleBlogEvent("post-updated", data)),
-      blogEvents.subscribe("post-deleted", (data) => handleBlogEvent("post-deleted", data)),
-      blogEvents.subscribe("posts-refreshed", (data) => handleBlogEvent("posts-refreshed", data)),
-    ]
-
-    // Listen for custom window events (for cross-tab communication)
-    const handleWindowEvent = (event: CustomEvent) => {
-      const { eventType, data } = event.detail
-      handleBlogEvent(eventType, data)
-    }
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("blog-update", handleWindowEvent as EventListener)
-    }
-
-    return () => {
-      unsubscribers.forEach((unsubscribe) => unsubscribe())
-      if (typeof window !== "undefined") {
-        window.removeEventListener("blog-update", handleWindowEvent as EventListener)
-      }
-    }
+  const refresh = useCallback(() => {
+    handleBlogEvent("posts-refreshed", { source: "manual" })
   }, [handleBlogEvent])
+
+  const forceUpdate = useCallback(() => {
+    setLastUpdate(Date.now())
+    setUpdateCount((prev) => prev + 1)
+  }, [])
 
   // Auto-refresh mechanism
   useEffect(() => {
     if (!autoRefresh) return
 
-    const startInterval = () => {
-      intervalRef.current = setInterval(() => {
-        // Trigger a refresh event
-        blogEvents.emit("posts-refreshed", { source: "auto-refresh" })
-      }, refreshInterval)
-    }
+    const interval = setInterval(() => {
+      handleBlogEvent("posts-refreshed", { source: "auto-refresh" })
+    }, refreshInterval)
 
-    startInterval()
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
-    }
-  }, [autoRefresh, refreshInterval])
-
-  // Connection monitoring
-  useEffect(() => {
-    const checkConnection = () => {
-      const now = Date.now()
-      const timeSinceLastUpdate = now - lastUpdate
-
-      // If no updates for 2 minutes, consider disconnected
-      if (timeSinceLastUpdate > 120000) {
-        setIsConnected(false)
-
-        // Try to reconnect
-        reconnectTimeoutRef.current = setTimeout(() => {
-          blogEvents.emit("posts-refreshed", { source: "reconnect" })
-        }, 5000)
-      }
-    }
-
-    const connectionInterval = setInterval(checkConnection, 30000)
-
-    return () => {
-      clearInterval(connectionInterval)
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current)
-      }
-    }
-  }, [lastUpdate])
-
-  // Manual refresh function
-  const refresh = useCallback(() => {
-    blogEvents.emit("posts-refreshed", { source: "manual" })
-  }, [])
-
-  // Force update function
-  const forceUpdate = useCallback(() => {
-    setLastUpdate(Date.now())
-    setUpdateCount((prev) => prev + 1)
-  }, [])
+    return () => clearInterval(interval)
+  }, [autoRefresh, refreshInterval, handleBlogEvent])
 
   return {
     lastUpdate,
@@ -131,65 +73,222 @@ export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
   }
 }
 
-// Hook specifically for fetching blog posts with real-time updates
-export function useBlogPosts(limit?: number) {
+// Blog posts hook
+export function useBlogPosts(limit?: number): UseBlogPostsReturn {
   const [posts, setPosts] = useState<BlogPostSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [lastFetch, setLastFetch] = useState<number>(0)
 
-  const fetchPosts = useCallback(
-    async (force = false) => {
-      // Avoid too frequent fetches unless forced
-      if (!force && Date.now() - lastFetch < 1000) return
+  const fetchPosts = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError(null)
 
-      try {
-        setError(null)
-        const params = new URLSearchParams()
-        if (limit) params.append("limit", limit.toString())
-        params.append("_t", Date.now().toString()) // Cache busting
+      const params = new URLSearchParams()
+      if (limit) params.append("limit", limit.toString())
+      params.append("_t", Date.now().toString()) // Cache busting
 
-        const response = await fetch(`/api/blog?${params}`, {
-          cache: "no-store",
-          headers: {
-            "Cache-Control": "no-cache",
-          },
-        })
+      const response = await fetch(`/api/blog?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+        },
+        cache: "no-store",
+      })
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch posts: ${response.status}`)
-        }
-
-        const data = await response.json()
-        setPosts(data.posts)
-        setLastFetch(Date.now())
-      } catch (err) {
-        console.error("Error fetching blog posts:", err)
-        setError(err instanceof Error ? err.message : "Failed to fetch posts")
-      } finally {
-        setLoading(false)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
-    },
-    [limit, lastFetch],
-  )
 
-  // Use blog updates hook
+      const data = await response.json()
+
+      if (data.posts && Array.isArray(data.posts)) {
+        setPosts(data.posts)
+      } else {
+        throw new Error("Invalid response format")
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch blog posts"
+      setError(errorMessage)
+      setPosts([]) // Set empty array on error to prevent UI issues
+    } finally {
+      setLoading(false)
+    }
+  }, [limit])
+
+  // Use blog updates hook for real-time updates
   useBlogUpdates({
-    onUpdate: (eventType, data) => {
-      // Refresh posts when any blog event occurs
-      fetchPosts(true)
+    onUpdate: () => {
+      fetchPosts()
     },
   })
 
-  // Initial fetch
   useEffect(() => {
-    fetchPosts(true)
+    fetchPosts()
   }, [fetchPosts])
 
   return {
     posts,
     loading,
     error,
-    refresh: () => fetchPosts(true),
+    refetch: fetchPosts,
+  }
+}
+
+// Single blog post hook
+export function useBlogPost(slug: string): UseBlogPostReturn {
+  const [post, setPost] = useState<BlogPost | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchPost = useCallback(async () => {
+    if (!slug) return
+
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch(`/api/blog/${slug}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+        },
+        cache: "no-store",
+      })
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Blog post not found")
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+
+      if (data && typeof data === "object") {
+        setPost(data)
+      } else {
+        throw new Error("Invalid response format")
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch blog post"
+      setError(errorMessage)
+      setPost(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [slug])
+
+  useEffect(() => {
+    fetchPost()
+  }, [fetchPost])
+
+  return {
+    post,
+    loading,
+    error,
+    refetch: fetchPost,
+  }
+}
+
+// Blog management hook for admin operations
+export function useBlogManagement() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const createPost = useCallback(async (postData: any) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch("/api/blog", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(postData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to create post")
+      }
+
+      const data = await response.json()
+      return data
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to create post"
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const updatePost = useCallback(async (slug: string, postData: any) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch(`/api/blog/${slug}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(postData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update post")
+      }
+
+      const data = await response.json()
+      return data
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to update post"
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const deletePost = useCallback(async (slug: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const response = await fetch(`/api/blog/${slug}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to delete post")
+      }
+
+      const data = await response.json()
+      return data
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete post"
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  return {
+    loading,
+    error,
+    createPost,
+    updatePost,
+    deletePost,
   }
 }

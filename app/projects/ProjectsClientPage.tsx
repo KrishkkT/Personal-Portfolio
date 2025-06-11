@@ -1,14 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Github, Eye, Star, Diamond, ArrowLeft } from "lucide-react"
-import Image from "next/image"
-import { motion } from "framer-motion"
-import Link from "next/link"
-import Script from "next/script"
+import { ExternalLink, Github } from "lucide-react"
+import PageTransitionWrapper from "@/components/page-transition-wrapper"
+import { AnimationUtils } from "@/lib/animation-utils"
+import anime from "animejs"
 
 const allProjects = [
   {
@@ -20,7 +18,7 @@ const allProjects = [
     technologies: ["HTML5", "CSS3", "Tailwind CSS", "Vercel"],
     category: "Web App",
     featured: false,
-    liveUrl: "https://spicesafari.vercel.app",
+    liveUrl: "https://spice-safari.vercel.app",
     githubUrl: "https://github.com/KrishkkT/SpiceSafari",
     status: "Live",
   },
@@ -95,6 +93,13 @@ export default function ProjectsClientPage() {
         document.body.scrollTop = 0
       }, 100)
     }
+
+    // Apply animations when component mounts
+    AnimationUtils.textReveal(".projects-page-title", { delay: 200 })
+    AnimationUtils.staggered(".project-item", "scaleIn", {
+      delay: anime.stagger(100, { start: 300 }),
+      duration: 800,
+    })
   }, [])
 
   const filteredProjects =
@@ -113,334 +118,50 @@ export default function ProjectsClientPage() {
   }
 
   return (
-    <div className="min-h-screen royal-gradient" itemScope itemType="https://schema.org/CollectionPage">
-      <div className="royal-container py-20">
-        {/* Header */}
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 mb-8 mt-3"
-            aria-label="Back to Portfolio Home"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Portfolio
-          </Link>
+    <PageTransitionWrapper namespace="projects">
+      <div className="royal-container royal-spacing py-20">
+        <h1 className="projects-page-title text-4xl font-bold mb-2 text-center">All Projects</h1>
+        <p className="text-center text-gray-400 mb-12">
+          Explore my complete collection of projects, from web applications to educational tools, showcasing technical
+          expertise and creative problem-solving in cybersecurity and full stack development.
+        </p>
 
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <motion.div
-              animate={{
-                rotate: [0, 180, 360],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              }}
-              aria-hidden="true"
-            >
-              <Diamond className="h-6 w-6 text-yellow-400" />
-            </motion.div>
-            <h1 className="text-6xl font-bold text-white" itemProp="name">
-              All <span className="gradient-text">Projects</span>
-            </h1>
-            <motion.div
-              animate={{
-                rotate: [0, -180, -360],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              }}
-              aria-hidden="true"
-            >
-              <Diamond className="h-6 w-6 text-yellow-400" />
-            </motion.div>
-          </div>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed" itemProp="description">
-            Explore my complete collection of projects, from web applications to educational tools, showcasing technical
-            expertise and creative problem-solving in cybersecurity and full stack development.
-          </p>
-        </motion.div>
-
-        {/* Category Filter */}
-        <motion.div
-          className="flex flex-wrap justify-center gap-4 mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          role="tablist"
-          aria-label="Project categories"
-        >
-          {categories.map((category, index) => (
-            <motion.button
-              key={category}
-              className={`px-6 py-3 rounded-full font-medium transition-all duration-300 ${
-                activeCategory === category
-                  ? "btn-royal text-black"
-                  : "midnight-glass text-gray-300 hover:text-white border border-yellow-400/20 hover:border-yellow-400/40"
-              }`}
-              onClick={() => setActiveCategory(category)}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
-              role="tab"
-              aria-selected={activeCategory === category}
-              aria-controls={`${category.toLowerCase()}-projects`}
-              id={`${category.toLowerCase()}-tab`}
-            >
-              {category}
-            </motion.button>
-          ))}
-        </motion.div>
-
-        {/* Projects Grid */}
-        <div
-          className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
-          id={`${activeCategory.toLowerCase()}-projects`}
-          role="tabpanel"
-          aria-labelledby={`${activeCategory.toLowerCase()}-tab`}
-          itemScope
-          itemType="https://schema.org/ItemList"
-        >
-          {filteredProjects.map((project, index) => (
-            <motion.div
-              key={project.title}
-              className="group"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
-              whileHover={{ scale: 1.02, y: -5 }}
-              onMouseEnter={() => setHoveredProject(index)}
-              onMouseLeave={() => setHoveredProject(null)}
-              itemScope
-              itemType="https://schema.org/SoftwareApplication"
-              itemProp="itemListElement"
-            >
-              <Card className="royal-card overflow-hidden h-full transition-all duration-500 group-hover:shadow-2xl">
-                <div className="relative overflow-hidden">
-                  <Image
-                    src={project.image || "/placeholder.svg"}
-                    alt={`${project.title} - Project Screenshot`}
-                    width={400}
-                    height={250}
-                    className={`w-full h-48 object-cover transition-transform duration-500 ${
-                      hoveredProject === index ? "scale-110" : "scale-100"
-                    }`}
-                    itemProp="image"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
-
-                  {/* Status Badge */}
-                  <div className="absolute top-4 left-4">
-                    <Badge
-                      className={`${
-                        project.status === "Live"
-                          ? "bg-green-500/20 text-green-400 border-green-400/30"
-                          : project.status === "Development"
-                            ? "bg-yellow-500/20 text-yellow-400 border-yellow-400/30"
-                            : "bg-gray-500/20 text-gray-400 border-gray-400/30"
-                      } backdrop-blur-sm`}
-                      itemProp="applicationCategory"
-                    >
-                      {project.status}
-                    </Badge>
-                  </div>
-
-                  {/* Featured Badge */}
-                  {project.featured && (
-                    <div className="absolute top-4 right-4">
-                      <Badge className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 backdrop-blur-sm">
-                        <Star className="h-3 w-3 mr-1" />
-                        Featured
-                      </Badge>
-                    </div>
-                  )}
-
-                  {/* Hover Overlay */}
-                  <div
-                    className={`absolute inset-0 bg-black/50 flex items-center justify-center gap-4 transition-opacity duration-300 ${
-                      hoveredProject === index ? "opacity-100" : "opacity-0"
-                    }`}
-                  >
-                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                      <Button
-                        size="sm"
-                        className="midnight-glass text-yellow-400 border-yellow-400/30"
-                        onClick={() => handleLiveDemo(project.liveUrl)}
-                        aria-label={`Preview ${project.title}`}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Preview
-                      </Button>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                      <Button
-                        size="sm"
-                        className="midnight-glass text-yellow-400 border-yellow-400/30"
-                        onClick={() => handleSourceCode(project.githubUrl)}
-                        aria-label={`View source code for ${project.title}`}
-                      >
-                        <Github className="h-4 w-4 mr-2" />
-                        Code
-                      </Button>
-                    </motion.div>
-                  </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {allProjects.map((project, index) => (
+            <Card key={index} className="project-item royal-card overflow-hidden opacity-0">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-xl">{project.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-300 mb-4">{project.description}</p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {project.technologies.map((tech, i) => (
+                    <span key={i} className="text-xs px-2 py-1 rounded-full bg-secondary/50 text-gray-300">
+                      {tech}
+                    </span>
+                  ))}
                 </div>
-
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <CardTitle
-                      className="text-lg text-white group-hover:text-yellow-400 transition-colors"
-                      itemProp="name"
-                    >
-                      {project.title}
-                    </CardTitle>
-                    <Badge
-                      variant="outline"
-                      className="bg-yellow-400/10 text-yellow-400 border-yellow-400/20"
-                      itemProp="applicationSubCategory"
-                    >
-                      {project.category}
-                    </Badge>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="space-y-4 pt-0">
-                  <p className="text-gray-300 leading-relaxed text-sm" itemProp="description">
-                    {project.description}
-                  </p>
-
-                  <div className="flex flex-wrap gap-1">
-                    {project.technologies.slice(0, 4).map((tech) => (
-                      <Badge
-                        key={tech}
-                        variant="outline"
-                        className="text-xs bg-yellow-400/10 text-yellow-400 border-yellow-400/20 hover:bg-yellow-400/20 transition-colors"
-                        itemProp="keywords"
-                      >
-                        {tech}
-                      </Badge>
-                    ))}
-                    {project.technologies.length > 4 && (
-                      <Badge variant="outline" className="text-xs bg-gray-400/10 text-gray-400 border-gray-400/20">
-                        +{project.technologies.length - 4}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2 pt-4">
-                    <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                      <Button
-                        size="sm"
-                        className="w-full btn-royal text-black font-semibold"
-                        onClick={() => handleLiveDemo(project.liveUrl)}
-                        aria-label={`View live demo of ${project.title}`}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        <span itemProp="url">Live Demo</span>
-                      </Button>
-                    </motion.div>
-                    <motion.div className="flex-1" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full midnight-glass text-yellow-400 border-yellow-400/30 hover:border-yellow-400/50"
-                        onClick={() => handleSourceCode(project.githubUrl)}
-                        aria-label={`View source code for ${project.title}`}
-                      >
-                        <Github className="h-4 w-4 mr-2" />
-                        Source
-                      </Button>
-                    </motion.div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+              </CardContent>
+              <CardFooter className="flex gap-4">
+                {project.liveUrl && (
+                  <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
+                    <Button size="sm" variant="outline" className="flex items-center gap-1">
+                      <ExternalLink className="h-4 w-4" /> Live
+                    </Button>
+                  </a>
+                )}
+                {project.githubUrl && (
+                  <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
+                    <Button size="sm" variant="outline" className="flex items-center gap-1">
+                      <Github className="h-4 w-4" /> Code
+                    </Button>
+                  </a>
+                )}
+              </CardFooter>
+            </Card>
           ))}
         </div>
-
-        {/* Stats Section */}
-        <motion.div
-          className="mt-20 mr-20 grid grid-cols-2 md:grid-cols-4 gap-6"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-        >
-          <Card className="royal-card text-center">
-            <CardContent className="p-6">
-              <div className="text-3xl font-bold text-yellow-400 mb-2">{allProjects.length}</div>
-              <div className="text-sm text-gray-300">Total Projects</div>
-            </CardContent>
-          </Card>
-          <Card className="royal-card text-center">
-            <CardContent className="p-6">
-              <div className="text-3xl font-bold text-yellow-400 mb-2">
-                {allProjects.filter((p) => p.status === "Live").length}
-              </div>
-              <div className="text-sm text-gray-300">Live Projects</div>
-            </CardContent>
-          </Card>
-          <Card className="royal-card text-center">
-            <CardContent className="p-6">
-              <div className="text-3xl font-bold text-yellow-400 mb-2">
-                {new Set(allProjects.flatMap((p) => p.technologies)).size}
-              </div>
-              <div className="text-sm text-gray-300">Technologies Used</div>
-            </CardContent>
-          </Card>
-        </motion.div>
       </div>
-
-      {/* Structured data for ProjectsPage */}
-      <Script
-        id="schema-projects-page"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "CollectionPage",
-            name: "Projects Portfolio | KT - Full Stack Developer & Cybersecurity Specialist",
-            description:
-              "Explore Krish Thakker's web development and cybersecurity projects, featuring Next.js, React, TypeScript, and secure application development.",
-            url: "https://kjt.vercel.app/projects",
-            author: {
-              "@type": "Person",
-              name: "Krish Thakker",
-            },
-            mainEntity: {
-              "@type": "ItemList",
-              itemListElement: allProjects.map((project, index) => ({
-                "@type": "ListItem",
-                position: index + 1,
-                item: {
-                  "@type": "SoftwareApplication",
-                  name: project.title,
-                  description: project.description,
-                  applicationCategory: project.category,
-                  operatingSystem: "Web",
-                  url: project.liveUrl,
-                  offers: {
-                    "@type": "Offer",
-                    price: "0",
-                    priceCurrency: "USD",
-                    availability: "https://schema.org/OnlineOnly",
-                  },
-                },
-              })),
-            },
-          }),
-        }}
-      />
-    </div>
+    </PageTransitionWrapper>
   )
 }

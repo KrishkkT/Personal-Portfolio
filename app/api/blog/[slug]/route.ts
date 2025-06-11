@@ -1,189 +1,90 @@
 import { type NextRequest, NextResponse } from "next/server"
-import type { CreateBlogPostRequest } from "@/types/blog"
-import {
-  getPostBySlug,
-  updatePost,
-  deletePost,
-  generateSlug,
-  calculateReadingTime,
-  getAllPosts,
-  BlogError,
-  ValidationError,
-  DuplicateError,
-  NotFoundError,
-} from "@/lib/blog-store-enhanced"
-import { validateBlogPost, validateSEO } from "@/lib/blog-validation"
+import { blogStore } from "@/lib/blog-store-enhanced"
 
 export const dynamic = "force-dynamic"
-
-// Enhanced error response helper
-function createErrorResponse(error: any, defaultMessage: string, defaultStatus = 500) {
-  console.error("API Error:", error)
-
-  if (error instanceof ValidationError) {
-    return NextResponse.json(
-      {
-        error: error.message,
-        code: error.code,
-        validationErrors: error.validationErrors,
-        timestamp: Date.now(),
-      },
-      { status: 400 },
-    )
-  }
-
-  if (error instanceof DuplicateError) {
-    return NextResponse.json(
-      {
-        error: error.message,
-        code: error.code,
-        conflictingField: error.conflictingField,
-        conflictingValue: error.conflictingValue,
-        timestamp: Date.now(),
-      },
-      { status: 409 },
-    )
-  }
-
-  if (error instanceof NotFoundError) {
-    return NextResponse.json(
-      {
-        error: error.message,
-        code: error.code,
-        resourceId: error.resourceId,
-        timestamp: Date.now(),
-      },
-      { status: 404 },
-    )
-  }
-
-  if (error instanceof BlogError) {
-    return NextResponse.json(
-      {
-        error: error.message,
-        code: error.code,
-        details: error.details,
-        timestamp: Date.now(),
-      },
-      { status: defaultStatus },
-    )
-  }
-
-  return NextResponse.json(
-    {
-      error: defaultMessage,
-      details: error instanceof Error ? error.message : "Unknown error",
-      timestamp: Date.now(),
-    },
-    { status: defaultStatus },
-  )
-}
 
 export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
   try {
     const { slug } = params
 
     if (!slug) {
-      throw new ValidationError("Slug parameter is required", { slug: ["Slug is required"] })
+      return NextResponse.json({ error: "Slug parameter is required" }, { status: 400 })
     }
 
-    const post = getPostBySlug(slug)
+    const post = blogStore.getPostBySlug(slug)
 
     if (!post) {
-      throw new NotFoundError("Blog post not found", slug)
+      return NextResponse.json({ error: "Blog post not found" }, { status: 404 })
     }
 
-    // Generate SEO analysis
-    const seoAnalysis = validateSEO(post)
-
-    return NextResponse.json(
-      {
-        ...post,
-        seoAnalysis,
-        timestamp: Date.now(),
+    return NextResponse.json(post, {
+      status: 200,
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Content-Type": "application/json",
       },
-      {
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate",
-          Pragma: "no-cache",
-          "Last-Modified": new Date(post.updatedAt).toUTCString(),
-          ETag: `"${post.id}-${post.updatedAt}"`,
-        },
-      },
-    )
+    })
   } catch (error) {
-    return createErrorResponse(error, "Failed to fetch blog post")
+    return NextResponse.json({ error: "Failed to fetch blog post" }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest, { params }: { params: { slug: string } }) {
   try {
     const { slug } = params
-    const body: CreateBlogPostRequest = await request.json()
+    const body = await request.json()
 
     if (!slug) {
-      throw new ValidationError("Slug parameter is required", { slug: ["Slug is required"] })
+      return NextResponse.json({ error: "Slug parameter is required" }, { status: 400 })
     }
 
-    // Comprehensive validation
-    const validation = validateBlogPost(body)
-    if (!validation.isValid) {
-      throw new ValidationError("Post validation failed", validation.errors)
+    // Basic validation
+    if (!body.title || !body.content) {
+      return NextResponse.json({ error: "Title and content are required" }, { status: 400 })
     }
 
-    // Find the existing post
-    const existingPost = getPostBySlug(slug)
+    const existingPost = blogStore.getPostBySlug(slug)
     if (!existingPost) {
-      throw new NotFoundError("Blog post not found", slug)
+      return NextResponse.json({ error: "Blog post not found" }, { status: 404 })
     }
 
-    // Check if title changed and new slug would conflict
+    // Generate new slug if title changed
     let newSlug = slug
-    if (body.title.trim() !== existingPost.title) {
-      newSlug = generateSlug(body.title)
-      const allPosts = getAllPosts()
-      const slugExists = allPosts.some((post) => post.slug === newSlug && post.id !== existingPost.id)
-      if (slugExists) {
-        throw new DuplicateError("A post with this title already exists", "slug", newSlug)
+    if (body.title !== existingPost.title) {
+      newSlug = body.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+
+      // Check if new slug conflicts with existing posts
+      if (blogStore.slugExists(newSlug, existingPost.id)) {
+        return NextResponse.json({ error: "A post with this title already exists" }, { status: 409 })
       }
     }
 
-    // Update the post
-    const updatedPost = updatePost(slug, {
-      title: body.title.trim(),
+    const updatedPost = blogStore.updatePost(slug, {
+      title: body.title,
       slug: newSlug,
-      intro: body.intro.trim(),
-      content: body.content.trim(),
-      readingTime: calculateReadingTime(body.content),
-      subheadings: body.subheadings || [],
-      codeSnippets: body.codeSnippets || [],
+      intro: body.intro || body.content.substring(0, 150) + "...",
+      content: body.content,
+      tags: body.tags || [],
       imageUrls: body.imageUrls || [],
-      cta: body.cta || existingPost.cta,
-      conclusion: body.conclusion?.trim() || "",
-      tags: body.tags.map((tag) => tag.trim()).filter(Boolean),
-      published: body.published ?? existingPost.published,
     })
 
-    // Generate SEO analysis
-    const seoAnalysis = validateSEO(updatedPost)
+    if (!updatedPost) {
+      return NextResponse.json({ error: "Failed to update post" }, { status: 500 })
+    }
 
     return NextResponse.json(
       {
-        ...updatedPost,
-        message: "Blog post updated successfully",
-        seoAnalysis,
-        validationWarnings: validation.warnings,
-        timestamp: Date.now(),
+        success: true,
+        post: updatedPost,
+        message: "Post updated successfully",
       },
-      {
-        headers: {
-          "Cache-Control": "no-store",
-          "Last-Modified": new Date(updatedPost.updatedAt).toUTCString(),
-        },
-      },
+      { status: 200 },
     )
   } catch (error) {
-    return createErrorResponse(error, "Failed to update blog post")
+    return NextResponse.json({ error: "Failed to update blog post" }, { status: 500 })
   }
 }
 
@@ -192,37 +93,33 @@ export async function DELETE(request: NextRequest, { params }: { params: { slug:
     const { slug } = params
 
     if (!slug) {
-      throw new ValidationError("Slug parameter is required", { slug: ["Slug is required"] })
+      return NextResponse.json({ error: "Slug parameter is required" }, { status: 400 })
     }
 
-    // Find the post first to confirm it exists
-    const existingPost = getPostBySlug(slug)
+    const existingPost = blogStore.getPostBySlug(slug)
     if (!existingPost) {
-      throw new NotFoundError("Blog post not found", slug)
+      return NextResponse.json({ error: "Blog post not found" }, { status: 404 })
     }
 
-    const success = deletePost(slug)
+    const success = blogStore.deletePost(slug)
+
     if (!success) {
-      throw new BlogError("Failed to delete blog post", "DELETION_ERROR")
+      return NextResponse.json({ error: "Failed to delete post" }, { status: 500 })
     }
 
     return NextResponse.json(
       {
-        message: "Blog post deleted successfully",
+        success: true,
+        message: "Post deleted successfully",
         deletedPost: {
           id: existingPost.id,
           slug: existingPost.slug,
           title: existingPost.title,
         },
-        timestamp: Date.now(),
       },
-      {
-        headers: {
-          "Cache-Control": "no-store",
-        },
-      },
+      { status: 200 },
     )
   } catch (error) {
-    return createErrorResponse(error, "Failed to delete blog post")
+    return NextResponse.json({ error: "Failed to delete blog post" }, { status: 500 })
   }
 }

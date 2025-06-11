@@ -1,0 +1,21 @@
+{
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "functions": {
+    "app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production",
+      "NEXT_TELEMETRY_DISABLED": "1"
+    }
+  }
+}

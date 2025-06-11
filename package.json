@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@barba/core": "latest",
     "@emotion/is-prop-valid": "latest",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
@@ -37,10 +39,7 @@
     "@radix-ui/react-toggle": "latest",
     "@radix-ui/react-toggle-group": "latest",
     "@radix-ui/react-tooltip": "latest",
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "autoprefixer": "^10.4.0",
+    "animejs": "latest",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "latest",
@@ -52,7 +51,6 @@
     "next": "14.2.16",
     "next-themes": "latest",
     "path": "latest",
-    "postcss": "^8.4.0",
     "react": "^18",
     "react-day-picker": "latest",
     "react-dom": "^18",
@@ -62,18 +60,23 @@
     "recharts": "latest",
     "sonner": "latest",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss": "^3.3.0",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.0.0",
     "vaul": "latest"
   },
   "devDependencies": {
+    "@types/animejs": "^3.1.12",
     "@types/node": "^22",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "eslint": "^8.0.0",
-    "eslint-config-next": "14.0.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.54.0",
+    "eslint-config-next": "14.0.3",
     "postcss": "^8.5",
+    "tailwindcss": "^3.3.5",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

@@ -1,24 +1,50 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
+  experimental: {
+    appDir: true,
   },
   images: {
-    domains: ["placeholder.svg", "blob.v0.dev"],
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    unoptimized: true,
+    domains: ["localhost"],
+    formats: ["image/webp", "image/avif"],
   },
-  webpack: (config) => {
-    config.externals.push({
-      "utf-8-validate": "commonjs utf-8-validate",
-      bufferutil: "commonjs bufferutil",
-    })
+  headers: async () => {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+        ],
+      },
+    ]
+  },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      }
+    }
     return config
   },
+  poweredByHeader: false,
+  compress: true,
 }
 
 module.exports = nextConfig
