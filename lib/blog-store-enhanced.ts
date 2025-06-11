@@ -5,6 +5,18 @@ interface BlogStore {
   lastUpdated: number
 }
 
+interface HealthCheckResult {
+  status: "healthy" | "warning" | "error"
+  issues: string[]
+  recommendations: string[]
+  stats: {
+    totalPosts: number
+    publishedPosts: number
+    draftPosts: number
+    averageReadingTime: number
+  }
+}
+
 class BlogStoreManager {
   private static instance: BlogStoreManager
   private store: BlogStore = {
@@ -103,6 +115,77 @@ class BlogStoreManager {
     const wordsPerMinute = 200
     const wordCount = content.trim().split(/\s+/).length
     return Math.ceil(wordCount / wordsPerMinute)
+  }
+
+  // Perform health check - MISSING EXPORT FIXED
+  performHealthCheck(): HealthCheckResult {
+    try {
+      const posts = this.getAllPosts()
+      const publishedPosts = posts.filter((post) => post.published !== false)
+      const draftPosts = posts.filter((post) => post.published === false)
+      const averageReadingTime =
+        posts.length > 0 ? posts.reduce((sum, post) => sum + post.readingTime, 0) / posts.length : 0
+
+      const issues: string[] = []
+      const recommendations: string[] = []
+
+      // Check for potential issues
+      if (posts.length === 0) {
+        issues.push("No blog posts found")
+        recommendations.push("Add some blog posts to get started")
+      }
+
+      if (publishedPosts.length === 0 && posts.length > 0) {
+        issues.push("No published posts found")
+        recommendations.push("Publish some posts to make them visible")
+      }
+
+      // Check for duplicate slugs
+      const slugs = posts.map((post) => post.slug)
+      const duplicateSlugs = slugs.filter((slug, index) => slugs.indexOf(slug) !== index)
+      if (duplicateSlugs.length > 0) {
+        issues.push(`Duplicate slugs found: ${duplicateSlugs.join(", ")}`)
+        recommendations.push("Ensure all blog post slugs are unique")
+      }
+
+      // Check for posts without content
+      const postsWithoutContent = posts.filter((post) => !post.content || post.content.trim().length === 0)
+      if (postsWithoutContent.length > 0) {
+        recommendations.push(`${postsWithoutContent.length} posts have no content`)
+      }
+
+      // Determine overall status
+      let status: "healthy" | "warning" | "error" = "healthy"
+      if (issues.length > 0) {
+        status = "error"
+      } else if (recommendations.length > 0) {
+        status = "warning"
+      }
+
+      return {
+        status,
+        issues,
+        recommendations,
+        stats: {
+          totalPosts: posts.length,
+          publishedPosts: publishedPosts.length,
+          draftPosts: draftPosts.length,
+          averageReadingTime: Math.round(averageReadingTime),
+        },
+      }
+    } catch (error) {
+      return {
+        status: "error",
+        issues: ["Failed to perform health check"],
+        recommendations: ["Check system logs for errors"],
+        stats: {
+          totalPosts: 0,
+          publishedPosts: 0,
+          draftPosts: 0,
+          averageReadingTime: 0,
+        },
+      }
+    }
   }
 
   // Initialize with sample data if empty
@@ -360,6 +443,11 @@ Building scalable cloud applications requires careful planning, proper architect
 
 // Export singleton instance
 export const blogStore = BlogStoreManager.getInstance()
+
+// Export the performHealthCheck function as a named export
+export function performHealthCheck(): HealthCheckResult {
+  return blogStore.performHealthCheck()
+}
 
 // Initialize sample data
 if (typeof window !== "undefined") {
