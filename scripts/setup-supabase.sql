@@ -1,78 +1,76 @@
--- Create blog_posts table if it doesn't exist
+-- Create the blog_posts table
 CREATE TABLE IF NOT EXISTS blog_posts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
+  slug TEXT UNIQUE NOT NULL,
   intro TEXT NOT NULL,
   content TEXT NOT NULL,
-  date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  reading_time INTEGER NOT NULL DEFAULT 5,
+  date TIMESTAMPTZ DEFAULT NOW(),
+  reading_time INTEGER DEFAULT 5,
   tags TEXT[] DEFAULT '{}',
   image_urls TEXT[] DEFAULT '{}',
   author TEXT,
-  published BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+  published BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create index on slug for faster lookups
-CREATE INDEX IF NOT EXISTS blog_posts_slug_idx ON blog_posts(slug);
+-- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
+CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published);
+CREATE INDEX IF NOT EXISTS idx_blog_posts_date ON blog_posts(date DESC);
+CREATE INDEX IF NOT EXISTS idx_blog_posts_tags ON blog_posts USING GIN(tags);
 
--- Create function to create the table if needed
-CREATE OR REPLACE FUNCTION create_blog_posts_table()
-RETURNS BOOLEAN AS $$
-BEGIN
-  -- Check if the table exists
-  IF NOT EXISTS (
-    SELECT FROM pg_tables 
-    WHERE schemaname = 'public' 
-    AND tablename = 'blog_posts'
-  ) THEN
-    -- Create the table
-    CREATE TABLE blog_posts (
-      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      title TEXT NOT NULL,
-      slug TEXT NOT NULL UNIQUE,
-      intro TEXT NOT NULL,
-      content TEXT NOT NULL,
-      date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-      reading_time INTEGER NOT NULL DEFAULT 5,
-      tags TEXT[] DEFAULT '{}',
-      image_urls TEXT[] DEFAULT '{}',
-      author TEXT,
-      published BOOLEAN NOT NULL DEFAULT TRUE,
-      created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-    );
-    
-    -- Create index on slug
-    CREATE INDEX blog_posts_slug_idx ON blog_posts(slug);
-    
-    RETURN TRUE;
-  ELSE
-    RETURN FALSE;
-  END IF;
-END;
-$$ LANGUAGE plpgsql;
+-- Enable Row Level Security (optional, but recommended)
+ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
 
--- Create RLS policies for security
--- Enable RLS on the table
-ALTER TABLE IF EXISTS blog_posts ENABLE ROW LEVEL SECURITY;
+-- Create a policy that allows all operations (you can make this more restrictive)
+CREATE POLICY "Allow all operations on blog_posts" ON blog_posts
+  FOR ALL USING (true);
 
--- Create policies
-DO $$
-BEGIN
-  -- Drop existing policies if they exist
-  DROP POLICY IF EXISTS "Allow anonymous read access" ON blog_posts;
-  DROP POLICY IF EXISTS "Allow authenticated full access" ON blog_posts;
-  
-  -- Create new policies
-  CREATE POLICY "Allow anonymous read access" 
-    ON blog_posts FOR SELECT 
-    USING (published = TRUE);
-    
-  CREATE POLICY "Allow authenticated full access" 
-    ON blog_posts FOR ALL 
-    USING (auth.role() = 'authenticated');
-END
-$$;
+-- Insert a sample blog post
+INSERT INTO blog_posts (
+  title,
+  slug,
+  intro,
+  content,
+  tags,
+  image_urls,
+  published
+) VALUES (
+  'Welcome to Your Blog',
+  'welcome-to-your-blog',
+  'This is your first blog post. You can edit or delete it from the blog management page.',
+  '# Welcome to Your Blog
+
+This is your first blog post! You can edit or delete this post from the blog management page.
+
+## Getting Started
+
+To manage your blog posts:
+
+1. Visit the blog management page at `/kjt-golb`
+2. Use the login credentials you''ve set up
+3. Create, edit, or delete posts as needed
+
+## Features
+
+Your blog system includes:
+
+- **Rich Text Support**: Write in Markdown format
+- **Tag System**: Organize posts with tags
+- **Featured Images**: Add images to make posts more engaging
+- **SEO Friendly**: Automatic slug generation and meta tags
+
+## Next Steps
+
+1. **Customize this post** or delete it
+2. **Create your first real post**
+3. **Add some tags** to organize your content
+4. **Upload featured images** to make posts more visual
+
+Happy blogging! 🎉',
+  ARRAY['Welcome', 'Getting Started'],
+  ARRAY['/placeholder.svg?height=400&width=800&text=Welcome+Post'],
+  true
+) ON CONFLICT (slug) DO NOTHING;

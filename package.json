@@ -62,7 +62,7 @@
     "sonner": "latest",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
-    "uuid": "latest",
+    "uuid": "^9.0.1",
     "vaul": "latest"
   },
   "devDependencies": {
