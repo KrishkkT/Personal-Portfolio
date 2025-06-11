@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import type { CreateBlogPostRequest } from "@/types/blog"
 
 // Webhook secret for n8n integration
-const WEBHOOK_SECRET = process.env.BLOG_WEBHOOK_SECRET || "your-webhook-secret"
+const WEBHOOK_SECRET = process.env.BLOG_WEBHOOK_SECRET || "Kjthakker#8@6$"
 
 export async function POST(request: NextRequest) {
   try {

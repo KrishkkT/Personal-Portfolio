@@ -1,100 +1,298 @@
 "use client"
 
-import { useEffect } from "react"
-import { useBlogPosts } from "@/hooks/use-blog-updates"
-import Link from "next/link"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Clock, Calendar, ArrowRight } from "lucide-react"
-import PageTransitionWrapper from "@/components/page-transition-wrapper"
-import { AnimationUtils } from "@/lib/animation-utils"
-import anime from "animejs"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Calendar, Clock, ArrowRight, Search, Filter } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
+import type { BlogPostSummary } from "@/types/blog"
+
+interface BlogResponse {
+  success: boolean
+  posts: BlogPostSummary[]
+  total: number
+  error?: string
+}
 
 export default function BlogPageClient() {
-  const { posts, isLoading, error } = useBlogPosts()
+  const [blogData, setBlogData] = useState<BlogPostSummary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedTag, setSelectedTag] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [allTags, setAllTags] = useState<string[]>([])
 
-  useEffect(() => {
-    // Apply animations when component mounts
-    if (!isLoading && posts.length > 0) {
-      AnimationUtils.staggered(".blog-post-card", "fadeIn", {
-        delay: anime.stagger(100, { start: 300 }),
-        duration: 800,
+  const fetchBlogPosts = async (page = 1, search = "", tag = "") => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "6",
       })
 
-      AnimationUtils.textReveal(".blog-page-title", { delay: 200 })
+      if (search) params.append("search", search)
+      if (tag) params.append("tag", tag)
+
+      const response = await fetch(`/api/blog?${params}`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data: BlogResponse = await response.json()
+
+      if (data.success && data.posts) {
+        setBlogData(data.posts)
+
+        // Extract unique tags
+        const tags = new Set<string>()
+        data.posts.forEach((post) => {
+          post.tags?.forEach((tag) => tags.add(tag))
+        })
+        setAllTags(Array.from(tags))
+      } else {
+        throw new Error(data.error || "Failed to fetch blog posts")
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to fetch blog posts"
+      setError(errorMessage)
+      setBlogData([])
+    } finally {
+      setLoading(false)
     }
-  }, [isLoading, posts])
+  }
+
+  useEffect(() => {
+    fetchBlogPosts(currentPage, searchTerm, selectedTag)
+  }, [currentPage, searchTerm, selectedTag])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    setCurrentPage(1)
+    fetchBlogPosts(1, searchTerm, selectedTag)
+  }
+
+  const handleTagFilter = (tag: string) => {
+    setSelectedTag(tag === selectedTag ? "" : tag)
+    setCurrentPage(1)
+  }
 
   if (error) {
     return (
-      <PageTransitionWrapper namespace="blog">
-        <div className="royal-container royal-spacing py-20">
-          <h1 className="text-3xl font-bold mb-8 text-center">Blog</h1>
-          <div className="text-center text-red-400 p-8 rounded-lg royal-card">
-            <p>Failed to load blog posts. Please try again later.</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <section className="pt-32 pb-16">
+          <div className="royal-container">
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h1 className="text-5xl md:text-6xl font-bold gradient-text mb-6">Blog</h1>
+              <div className="text-center text-red-400 p-8 rounded-lg midnight-glass">
+                <p className="text-xl mb-4">Unable to load blog posts</p>
+                <p className="text-sm text-gray-400">{error}</p>
+                <Button
+                  onClick={() => fetchBlogPosts()}
+                  className="mt-4 bg-yellow-400 text-gray-900 hover:bg-yellow-300"
+                >
+                  Try Again
+                </Button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      </PageTransitionWrapper>
+        </section>
+      </div>
     )
   }
 
   return (
-    <PageTransitionWrapper namespace="blog">
-      <div className="royal-container royal-spacing py-20">
-        <h1 className="blog-page-title text-4xl font-bold mb-2 text-center">Blog</h1>
-        <p className="text-center text-gray-400 mb-12">Insights, tutorials, and thoughts</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      {/* Hero Section */}
+      <section className="pt-32 pb-16">
+        <div className="royal-container">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h1 className="text-5xl md:text-6xl font-bold gradient-text mb-6">Blog</h1>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              Insights, tutorials, and thoughts on technology, development, and cybersecurity
+            </p>
+          </motion.div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="royal-card overflow-hidden">
-                <CardHeader className="pb-4">
-                  <Skeleton className="h-6 w-3/4 mb-2" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-24 w-full mb-4" />
-                  <div className="flex justify-between text-sm text-gray-400">
-                    <Skeleton className="h-4 w-1/3" />
-                    <Skeleton className="h-4 w-1/3" />
+          {/* Search and Filter */}
+          <motion.div
+            className="max-w-4xl mx-auto mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <form onSubmit={handleSearch} className="flex gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search blog posts..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400"
+                />
+              </div>
+              <Button type="submit" className="bg-yellow-400 text-gray-900 hover:bg-yellow-300">
+                Search
+              </Button>
+            </form>
+
+            {/* Tag Filter */}
+            {allTags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                <span className="flex items-center text-gray-300 mr-2">
+                  <Filter className="h-4 w-4 mr-1" />
+                  Filter by tag:
+                </span>
+                {allTags.map((tag) => (
+                  <Badge
+                    key={tag}
+                    variant={selectedTag === tag ? "default" : "secondary"}
+                    className={`cursor-pointer transition-all duration-200 ${
+                      selectedTag === tag
+                        ? "bg-yellow-400 text-gray-900"
+                        : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
+                    onClick={() => handleTagFilter(tag)}
+                  >
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Blog Posts */}
+      <section className="pb-20">
+        <div className="royal-container">
+          {loading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="midnight-glass rounded-xl p-6 h-96">
+                    <div className="bg-gray-700 h-48 rounded-lg mb-4"></div>
+                    <div className="bg-gray-700 h-4 rounded mb-2"></div>
+                    <div className="bg-gray-700 h-4 rounded w-3/4 mb-4"></div>
+                    <div className="bg-gray-700 h-3 rounded w-1/2"></div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {posts.map((post) => (
-              <Card key={post.slug} className="blog-post-card royal-card overflow-hidden opacity-0">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl">{post.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-300 mb-4 line-clamp-3">{post.excerpt}</p>
-                  <div className="flex justify-between text-sm text-gray-400">
-                    <span className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(post.date).toLocaleDateString()}
-                    </span>
-                    <span className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {post.readingTime || "5 min read"}
-                    </span>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Link href={`/blog/${post.slug}`} passHref>
-                    <Button variant="link" className="text-primary hover:text-primary/80 p-0">
-                      Read More <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-    </PageTransitionWrapper>
+                </div>
+              ))}
+            </div>
+          ) : blogData.length === 0 ? (
+            <motion.div
+              className="text-center py-16"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h3 className="text-2xl font-bold text-white mb-4">No blog posts found</h3>
+              <p className="text-gray-300 mb-6">
+                {searchTerm || selectedTag
+                  ? "Try adjusting your search or filter criteria."
+                  : "Check back soon for new content!"}
+              </p>
+              {(searchTerm || selectedTag) && (
+                <Button
+                  onClick={() => {
+                    setSearchTerm("")
+                    setSelectedTag("")
+                    setCurrentPage(1)
+                  }}
+                  variant="outline"
+                  className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-gray-900"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </motion.div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+              {blogData.map((post, index) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                >
+                  <Card className="midnight-glass border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 group h-full">
+                    <CardHeader className="p-0">
+                      <div className="relative h-48 overflow-hidden rounded-t-xl">
+                        <Image
+                          src={post.imageUrls?.[0] || "/placeholder.svg?height=200&width=400&text=Blog+Post"}
+                          alt={post.title}
+                          fill
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent" />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {new Date(post.date).toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {post.readingTime} min read
+                        </div>
+                      </div>
+
+                      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-yellow-400 transition-colors line-clamp-2">
+                        {post.title}
+                      </h3>
+
+                      <p className="text-gray-300 mb-4 line-clamp-3">{post.intro}</p>
+
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {post.tags?.slice(0, 3).map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className="bg-yellow-400/10 text-yellow-400 border-yellow-400/20"
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      <Link href={`/blog/${post.slug}`}>
+                        <Button
+                          variant="ghost"
+                          className="w-full text-yellow-400 hover:text-gray-900 hover:bg-yellow-400 transition-all duration-300 group"
+                        >
+                          Read More
+                          <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
   )
 }
