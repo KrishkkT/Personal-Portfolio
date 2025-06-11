@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -37,12 +36,19 @@ export default function BlogPageClient() {
       const params = new URLSearchParams({
         page: page.toString(),
         limit: "6",
+        timestamp: Date.now().toString(),
       })
 
       if (search) params.append("search", search)
       if (tag) params.append("tag", tag)
 
-      const response = await fetch(`/api/blog?${params}`)
+      const response = await fetch(`/api/blog?${params}`, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      })
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)

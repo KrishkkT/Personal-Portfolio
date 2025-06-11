@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { blogStore } from "@/lib/blog-store-enhanced"
+import { blogStoreSupabase } from "@/lib/blog-store-supabase"
 
 export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +15,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid limit parameter" }, { status: 400 })
     }
 
-    const posts = blogStore.getPosts(limitNum)
+    const posts = await blogStoreSupabase.getPosts(limitNum)
+
+    console.log(`📖 API: Returning ${posts.length} blog posts`)
 
     return NextResponse.json(
       {
@@ -26,12 +29,15 @@ export async function GET(request: NextRequest) {
       {
         status: 200,
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate",
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
           "Content-Type": "application/json",
         },
       },
     )
   } catch (error) {
+    console.error("❌ API Error fetching posts:", error)
     return NextResponse.json(
       {
         success: false,
@@ -60,18 +66,26 @@ export async function POST(request: NextRequest) {
       .replace(/(^-|-$)/g, "")
 
     // Check if slug already exists
-    if (blogStore.slugExists(slug)) {
+    const slugExists = await blogStoreSupabase.slugExists(slug)
+    if (slugExists) {
       return NextResponse.json({ error: "A post with this title already exists" }, { status: 409 })
     }
 
-    const newPost = blogStore.addPost({
+    const newPost = await blogStoreSupabase.addPost({
       title: body.title,
       slug,
       intro: body.intro || body.content.substring(0, 150) + "...",
       content: body.content,
       tags: body.tags || [],
       imageUrls: body.imageUrls || [],
+      published: body.published !== false, // Default to published
     })
+
+    if (!newPost) {
+      return NextResponse.json({ error: "Failed to create post" }, { status: 500 })
+    }
+
+    console.log(`✅ API: Created new post - ${newPost.title}`)
 
     return NextResponse.json(
       {
@@ -79,9 +93,15 @@ export async function POST(request: NextRequest) {
         post: newPost,
         message: "Post created successfully",
       },
-      { status: 201 },
+      {
+        status: 201,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
     )
   } catch (error) {
+    console.error("❌ API Error creating post:", error)
     return NextResponse.json({ success: false, error: "Failed to create post" }, { status: 500 })
   }
 }

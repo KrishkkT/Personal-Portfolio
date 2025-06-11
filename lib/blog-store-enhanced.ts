@@ -3,6 +3,7 @@ import type { BlogPost, BlogPostSummary, CreateBlogPost, UpdateBlogPost } from "
 interface BlogStore {
   posts: BlogPost[]
   lastUpdated: number
+  version: string
 }
 
 interface HealthCheckResult {
@@ -22,7 +23,11 @@ class BlogStoreManager {
   private store: BlogStore = {
     posts: [],
     lastUpdated: 0,
+    version: "1.0.0",
   }
+  private readonly STORAGE_KEY = "kt_blog_posts"
+  private readonly BACKUP_KEY = "kt_blog_posts_backup"
+  private isInitialized = false
 
   static getInstance(): BlogStoreManager {
     if (!BlogStoreManager.instance) {
@@ -31,8 +36,154 @@ class BlogStoreManager {
     return BlogStoreManager.instance
   }
 
+  constructor() {
+    if (typeof window !== "undefined") {
+      this.loadFromStorage()
+      this.setupAutoSave()
+      this.setupStorageListener()
+    }
+  }
+
+  // Load data from localStorage
+  private loadFromStorage() {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY)
+      if (stored) {
+        const parsedStore = JSON.parse(stored) as BlogStore
+
+        // Validate the stored data structure
+        if (this.validateStoreStructure(parsedStore)) {
+          this.store = {
+            ...parsedStore,
+            version: this.store.version, // Always use current version
+          }
+          console.log(`✅ Loaded ${this.store.posts.length} blog posts from storage`)
+        } else {
+          console.warn("⚠️ Invalid store structure, initializing with sample data")
+          this.initializeSampleData()
+        }
+      } else {
+        console.log("📝 No stored posts found, initializing with sample data")
+        this.initializeSampleData()
+      }
+    } catch (error) {
+      console.error("❌ Error loading from storage:", error)
+      this.loadFromBackup()
+    }
+    this.isInitialized = true
+  }
+
+  // Load from backup if main storage fails
+  private loadFromBackup() {
+    try {
+      const backup = localStorage.getItem(this.BACKUP_KEY)
+      if (backup) {
+        const parsedStore = JSON.parse(backup) as BlogStore
+        if (this.validateStoreStructure(parsedStore)) {
+          this.store = parsedStore
+          console.log("✅ Restored from backup")
+          this.saveToStorage() // Restore main storage
+          return
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error loading from backup:", error)
+    }
+
+    // If backup also fails, initialize with sample data
+    this.initializeSampleData()
+  }
+
+  // Validate store structure
+  private validateStoreStructure(store: any): boolean {
+    return (
+      store &&
+      typeof store === "object" &&
+      Array.isArray(store.posts) &&
+      typeof store.lastUpdated === "number" &&
+      store.posts.every(
+        (post: any) =>
+          post &&
+          typeof post.id === "string" &&
+          typeof post.title === "string" &&
+          typeof post.slug === "string" &&
+          typeof post.content === "string",
+      )
+    )
+  }
+
+  // Save to localStorage with backup
+  private saveToStorage() {
+    if (typeof window === "undefined") return
+
+    try {
+      // Create backup of current data before saving new data
+      const currentData = localStorage.getItem(this.STORAGE_KEY)
+      if (currentData) {
+        localStorage.setItem(this.BACKUP_KEY, currentData)
+      }
+
+      // Save new data
+      const dataToSave = JSON.stringify(this.store)
+      localStorage.setItem(this.STORAGE_KEY, dataToSave)
+
+      console.log(`💾 Saved ${this.store.posts.length} blog posts to storage`)
+    } catch (error) {
+      console.error("❌ Error saving to storage:", error)
+      // Try to clear some space and retry
+      try {
+        localStorage.removeItem(this.BACKUP_KEY)
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.store))
+      } catch (retryError) {
+        console.error("❌ Retry save failed:", retryError)
+      }
+    }
+  }
+
+  // Setup auto-save mechanism
+  private setupAutoSave() {
+    // Save every 30 seconds if there are changes
+    setInterval(() => {
+      if (this.store.lastUpdated > 0) {
+        this.saveToStorage()
+      }
+    }, 30000)
+
+    // Save before page unload
+    window.addEventListener("beforeunload", () => {
+      this.saveToStorage()
+    })
+
+    // Save on visibility change (when tab becomes hidden)
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        this.saveToStorage()
+      }
+    })
+  }
+
+  // Listen for storage changes from other tabs
+  private setupStorageListener() {
+    window.addEventListener("storage", (e) => {
+      if (e.key === this.STORAGE_KEY && e.newValue) {
+        try {
+          const updatedStore = JSON.parse(e.newValue) as BlogStore
+          if (this.validateStoreStructure(updatedStore) && updatedStore.lastUpdated > this.store.lastUpdated) {
+            this.store = updatedStore
+            console.log("🔄 Updated store from another tab")
+          }
+        } catch (error) {
+          console.error("❌ Error syncing from other tab:", error)
+        }
+      }
+    })
+  }
+
   // Get all posts
   getAllPosts(): BlogPost[] {
+    if (!this.isInitialized && typeof window !== "undefined") {
+      this.loadFromStorage()
+    }
     return [...this.store.posts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   }
 
@@ -55,6 +206,9 @@ class BlogStoreManager {
 
   // Get post by slug
   getPostBySlug(slug: string): BlogPost | null {
+    if (!this.isInitialized && typeof window !== "undefined") {
+      this.loadFromStorage()
+    }
     return this.store.posts.find((post) => post.slug === slug) || null
   }
 
@@ -65,10 +219,17 @@ class BlogStoreManager {
       id: this.generateId(),
       date: new Date().toISOString(),
       readingTime: this.calculateReadingTime(post.content),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     this.store.posts.push(newPost)
     this.store.lastUpdated = Date.now()
+
+    // Immediate save for new posts
+    this.saveToStorage()
+
+    console.log(`✅ Added new post: ${newPost.title}`)
     return newPost
   }
 
@@ -83,10 +244,16 @@ class BlogStoreManager {
       readingTime: updates.content
         ? this.calculateReadingTime(updates.content)
         : this.store.posts[postIndex].readingTime,
+      updatedAt: new Date().toISOString(),
     }
 
     this.store.posts[postIndex] = updatedPost
     this.store.lastUpdated = Date.now()
+
+    // Immediate save for updates
+    this.saveToStorage()
+
+    console.log(`✅ Updated post: ${updatedPost.title}`)
     return updatedPost
   }
 
@@ -95,8 +262,14 @@ class BlogStoreManager {
     const postIndex = this.store.posts.findIndex((post) => post.slug === slug)
     if (postIndex === -1) return false
 
+    const deletedPost = this.store.posts[postIndex]
     this.store.posts.splice(postIndex, 1)
     this.store.lastUpdated = Date.now()
+
+    // Immediate save for deletions
+    this.saveToStorage()
+
+    console.log(`🗑️ Deleted post: ${deletedPost.title}`)
     return true
   }
 
@@ -117,7 +290,7 @@ class BlogStoreManager {
     return Math.ceil(wordCount / wordsPerMinute)
   }
 
-  // Perform health check - MISSING EXPORT FIXED
+  // Perform health check
   performHealthCheck(): HealthCheckResult {
     try {
       const posts = this.getAllPosts()
@@ -152,6 +325,18 @@ class BlogStoreManager {
       const postsWithoutContent = posts.filter((post) => !post.content || post.content.trim().length === 0)
       if (postsWithoutContent.length > 0) {
         recommendations.push(`${postsWithoutContent.length} posts have no content`)
+      }
+
+      // Check storage health
+      if (typeof window !== "undefined") {
+        try {
+          const testKey = "storage_test"
+          localStorage.setItem(testKey, "test")
+          localStorage.removeItem(testKey)
+        } catch (error) {
+          issues.push("Local storage is not available or full")
+          recommendations.push("Clear browser storage or use a different browser")
+        }
       }
 
       // Determine overall status
@@ -242,6 +427,7 @@ Stream your UI to provide better user experience with faster initial page loads.
 Next.js 14 represents a significant step forward in React development. With its powerful features and excellent developer experience, it's the perfect choice for modern web applications.`,
           tags: ["Next.js", "React", "Web Development", "JavaScript"],
           imageUrls: ["/placeholder.svg?height=400&width=800&text=Next.js+14"],
+          published: true,
         },
         {
           title: "Cybersecurity Best Practices for Developers",
@@ -321,6 +507,7 @@ Implement essential security headers:
 Security is not a one-time implementation but an ongoing process. Stay updated with the latest security threats and best practices to keep your applications secure.`,
           tags: ["Cybersecurity", "Security", "Web Development", "Best Practices"],
           imageUrls: ["/placeholder.svg?height=400&width=800&text=Cybersecurity"],
+          published: true,
         },
         {
           title: "Building Scalable Cloud Applications",
@@ -433,10 +620,77 @@ Cloud computing has revolutionized how we build and deploy applications. This gu
 Building scalable cloud applications requires careful planning, proper architecture, and continuous optimization. By following these best practices, you can build applications that scale efficiently and cost-effectively in the cloud.`,
           tags: ["Cloud Computing", "Scalability", "Architecture", "DevOps"],
           imageUrls: ["/placeholder.svg?height=400&width=800&text=Cloud+Applications"],
+          published: true,
         },
       ]
 
       samplePosts.forEach((post) => this.addPost(post))
+      console.log("📝 Initialized with sample blog posts")
+    }
+  }
+
+  // Clear all data (for testing/reset purposes)
+  clearAllData() {
+    this.store = {
+      posts: [],
+      lastUpdated: Date.now(),
+      version: this.store.version,
+    }
+
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(this.STORAGE_KEY)
+      localStorage.removeItem(this.BACKUP_KEY)
+    }
+
+    console.log("🧹 Cleared all blog data")
+  }
+
+  // Export data for backup
+  exportData(): string {
+    return JSON.stringify(this.store, null, 2)
+  }
+
+  // Import data from backup
+  importData(jsonData: string): boolean {
+    try {
+      const importedStore = JSON.parse(jsonData) as BlogStore
+      if (this.validateStoreStructure(importedStore)) {
+        this.store = {
+          ...importedStore,
+          lastUpdated: Date.now(),
+          version: this.store.version,
+        }
+        this.saveToStorage()
+        console.log(`✅ Imported ${this.store.posts.length} blog posts`)
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error("❌ Error importing data:", error)
+      return false
+    }
+  }
+
+  // Get storage info
+  getStorageInfo() {
+    if (typeof window === "undefined") {
+      return { available: false, used: 0, total: 0 }
+    }
+
+    try {
+      const data = localStorage.getItem(this.STORAGE_KEY)
+      const backup = localStorage.getItem(this.BACKUP_KEY)
+      const used = (data?.length || 0) + (backup?.length || 0)
+
+      return {
+        available: true,
+        used,
+        total: 5 * 1024 * 1024, // 5MB typical localStorage limit
+        posts: this.store.posts.length,
+        lastUpdated: new Date(this.store.lastUpdated).toLocaleString(),
+      }
+    } catch (error) {
+      return { available: false, used: 0, total: 0 }
     }
   }
 }
@@ -449,7 +703,12 @@ export function performHealthCheck(): HealthCheckResult {
   return blogStore.performHealthCheck()
 }
 
-// Initialize sample data
+// Initialize sample data only if no data exists
 if (typeof window !== "undefined") {
-  blogStore.initializeSampleData()
+  // Small delay to ensure DOM is ready
+  setTimeout(() => {
+    if (blogStore.getAllPosts().length === 0) {
+      blogStore.initializeSampleData()
+    }
+  }, 100)
 }

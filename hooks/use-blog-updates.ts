@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import type { BlogPostSummary, BlogPost } from "@/types/blog"
+import type { BlogPost, BlogPostSummary } from "@/types/blog"
 
 interface UseBlogUpdatesOptions {
   autoRefresh?: boolean
@@ -9,21 +9,21 @@ interface UseBlogUpdatesOptions {
   onUpdate?: (eventType: string, data: any) => void
 }
 
-interface UseBlogPostsReturn {
+interface UseBlogPostsResult {
   posts: BlogPostSummary[]
-  loading: boolean
+  isLoading: boolean
   error: string | null
-  refetch: () => void
+  refetch: () => Promise<void>
 }
 
-interface UseBlogPostReturn {
+interface UseBlogPostResult {
   post: BlogPost | null
-  loading: boolean
+  isLoading: boolean
   error: string | null
-  refetch: () => void
+  refetch: () => Promise<void>
 }
 
-// Blog updates hook
+// Blog updates hook for real-time updates and refresh management
 export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
   const { autoRefresh = false, refreshInterval = 30000, onUpdate } = options
 
@@ -73,49 +73,48 @@ export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
   }
 }
 
-// Blog posts hook
-export function useBlogPosts(limit?: number): UseBlogPostsReturn {
+// Blog posts hook for fetching and managing blog posts
+export function useBlogPosts(limit?: number): UseBlogPostsResult {
   const [posts, setPosts] = useState<BlogPostSummary[]>([])
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchPosts = useCallback(async () => {
+  const fetchPosts = async () => {
     try {
-      setLoading(true)
+      setIsLoading(true)
       setError(null)
 
       const params = new URLSearchParams()
       if (limit) params.append("limit", limit.toString())
-      params.append("_t", Date.now().toString()) // Cache busting
+      params.append("timestamp", Date.now().toString())
 
       const response = await fetch(`/api/blog?${params}`, {
-        method: "GET",
         headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
         },
-        cache: "no-store",
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        throw new Error(`HTTP error! Status: ${response.status}`)
       }
 
       const data = await response.json()
 
-      if (data.posts && Array.isArray(data.posts)) {
+      if (data.success && Array.isArray(data.posts)) {
         setPosts(data.posts)
       } else {
-        throw new Error("Invalid response format")
+        throw new Error(data.error || "Failed to fetch blog posts")
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to fetch blog posts"
-      setError(errorMessage)
-      setPosts([]) // Set empty array on error to prevent UI issues
+      console.error("Error fetching blog posts:", err)
+      setError(err instanceof Error ? err.message : "Failed to fetch blog posts")
+      setPosts([]) // Set empty array on error
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
-  }, [limit])
+  }
 
   // Use blog updates hook for real-time updates
   useBlogUpdates({
@@ -126,71 +125,57 @@ export function useBlogPosts(limit?: number): UseBlogPostsReturn {
 
   useEffect(() => {
     fetchPosts()
-  }, [fetchPosts])
+  }, [limit])
 
-  return {
-    posts,
-    loading,
-    error,
-    refetch: fetchPosts,
-  }
+  return { posts, isLoading, error, refetch: fetchPosts }
 }
 
 // Single blog post hook
-export function useBlogPost(slug: string): UseBlogPostReturn {
+export function useBlogPost(slug: string): UseBlogPostResult {
   const [post, setPost] = useState<BlogPost | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchPost = useCallback(async () => {
+  const fetchPost = async () => {
     if (!slug) return
 
     try {
-      setLoading(true)
+      setIsLoading(true)
       setError(null)
 
-      const response = await fetch(`/api/blog/${slug}`, {
-        method: "GET",
+      const response = await fetch(`/api/blog/${slug}?timestamp=${Date.now()}`, {
         headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-cache",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
         },
-        cache: "no-store",
       })
 
       if (!response.ok) {
         if (response.status === 404) {
           throw new Error("Blog post not found")
         }
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        throw new Error(`HTTP error! Status: ${response.status}`)
       }
 
       const data = await response.json()
-
-      if (data && typeof data === "object") {
-        setPost(data)
-      } else {
-        throw new Error("Invalid response format")
-      }
+      setPost(data)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to fetch blog post"
-      setError(errorMessage)
+      console.error(`Error fetching blog post ${slug}:`, err)
+      setError(err instanceof Error ? err.message : "Failed to fetch blog post")
       setPost(null)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (slug) {
+      fetchPost()
     }
   }, [slug])
 
-  useEffect(() => {
-    fetchPost()
-  }, [fetchPost])
-
-  return {
-    post,
-    loading,
-    error,
-    refetch: fetchPost,
-  }
+  return { post, isLoading, error, refetch: fetchPost }
 }
 
 // Blog management hook for admin operations
