@@ -453,16 +453,16 @@ export default function BlogManagement() {
                       className="bg-gray-800/50 border-gray-600 text-white min-h-[400px] text-lg leading-relaxed font-mono focus:border-yellow-400/50 focus:ring-yellow-400/20 transition-all duration-200"
                       placeholder="Write your post content using Markdown formatting...
 
-## Use headings to structure your content
-### Subheadings help with readability
+                      ## Use headings to structure your content
+                      ### Subheadings help with readability
 
-**Bold text** for emphasis
-*Italic text* for subtle emphasis
-`code snippets` for technical content
+                      **Bold text** for emphasis
+                      *Italic text* for subtle emphasis
+                      `code snippets` for technical content
 
-- Bullet points for lists
-- Keep paragraphs short and scannable
-- Use examples and stories to engage readers"
+                      - Bullet points for lists
+                      - Keep paragraphs short and scannable
+                      - Use examples and stories to engage readers"
                     />
                     <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
                       <p className="text-sm text-gray-300 mb-2 font-medium">📝 Markdown Quick Reference:</p>
