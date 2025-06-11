@@ -18,20 +18,6 @@ export interface BlogPost {
   updatedAt: string
 }
 
-export interface CodeSnippet {
-  id: string
-  language: string
-  code: string
-  title?: string
-  description?: string
-}
-
-export interface CallToAction {
-  text: string
-  link: string
-  type: "internal" | "external"
-}
-
 export interface BlogPostSummary {
   id: string
   slug: string
@@ -53,17 +39,36 @@ export interface PaginatedBlogResponse {
     hasNextPage: boolean
     hasPreviousPage: boolean
   }
+  meta?: {
+    timestamp: number
+    dataIntegrity: boolean
+    totalPublishedPosts: number
+  }
 }
 
 export interface CreateBlogPostRequest {
   title: string
   intro: string
   content: string
-  subheadings: string[]
-  codeSnippets: CodeSnippet[]
-  imageUrls: string[]
-  cta: CallToAction
-  conclusion: string
+  subheadings?: string[]
+  codeSnippets?: CodeSnippet[]
+  imageUrls?: string[]
+  cta?: CallToAction
+  conclusion?: string
   tags: string[]
   published?: boolean
+}
+
+export interface CodeSnippet {
+  id: string
+  language: string
+  code: string
+  title?: string
+  description?: string
+}
+
+export interface CallToAction {
+  text: string
+  link: string
+  type: "internal" | "external"
 }

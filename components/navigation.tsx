@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button"
 import { Menu, X, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
+// Update the navItems array to link to the blog section on the homepage
 const navItems = [
   { name: "Home", href: "#home" },
   { name: "About", href: "#about" },
   { name: "Skills", href: "#skills" },
-  { name: "Blog", href: "/blog" },
+  { name: "Blog", href: "#blog" },
   { name: "Certificates", href: "#certificates" },
   { name: "Projects", href: "#projects" },
   { name: "Contact", href: "#contact" },
