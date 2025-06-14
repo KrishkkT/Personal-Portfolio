@@ -114,6 +114,13 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
+        {/* Google AdSense */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7348769852590520"
+          crossOrigin="anonymous"
+        />
+
         <script
           dangerouslySetInnerHTML={{
             __html: `
