@@ -35,22 +35,49 @@ export function useBlogPosts(limit?: number): UseBlogPostsReturn {
         headers: {
           "Cache-Control": "no-cache",
         },
+        // Add timeout to prevent hanging requests
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       })
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch posts: ${response.status}`)
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
       const data = await response.json()
-      setPosts(data.posts || [])
+
+      // Handle both success and warning cases
+      if (data.success || data.posts) {
+        setPosts(data.posts || [])
+        if (data.warning) {
+          console.warn("Blog API warning:", data.warning)
+        }
+      } else {
+        throw new Error(data.error || "Unknown error occurred")
+      }
     } catch (err) {
       console.error("Error fetching blog posts:", err)
-      setError(err instanceof Error ? err.message : "Failed to fetch posts")
-      setPosts([])
+
+      // Set user-friendly error message
+      if (err instanceof Error) {
+        if (err.name === "TimeoutError") {
+          setError("Request timed out. Please try again.")
+        } else if (err.message.includes("Failed to fetch")) {
+          setError("Network error. Please check your connection.")
+        } else {
+          setError(err.message)
+        }
+      } else {
+        setError("Failed to fetch posts")
+      }
+
+      // Keep existing posts if available
+      if (posts.length === 0) {
+        setPosts([])
+      }
     } finally {
       setLoading(false)
     }
-  }, [limit])
+  }, [limit, posts.length])
 
   useEffect(() => {
     fetchPosts()
@@ -69,10 +96,13 @@ export function useBlogUpdates(config?: BlogUpdatesConfig): UseBlogUpdatesReturn
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
 
   useEffect(() => {
-    // Simulate connection status
+    // Check connection status
     const checkConnection = () => {
       setIsConnected(navigator.onLine)
     }
+
+    // Initial check
+    checkConnection()
 
     window.addEventListener("online", checkConnection)
     window.addEventListener("offline", checkConnection)
@@ -84,14 +114,14 @@ export function useBlogUpdates(config?: BlogUpdatesConfig): UseBlogUpdatesReturn
   }, [])
 
   useEffect(() => {
-    // Simulate periodic updates
+    // Simulate periodic updates only when connected
+    if (!isConnected) return
+
     const interval = setInterval(() => {
-      if (isConnected) {
-        setUpdateCount((prev) => prev + 1)
-        setLastUpdate(new Date())
-        config?.onUpdate?.("refresh", { timestamp: new Date() })
-      }
-    }, 30000) // Update every 30 seconds
+      setUpdateCount((prev) => prev + 1)
+      setLastUpdate(new Date())
+      config?.onUpdate?.("refresh", { timestamp: new Date() })
+    }, 60000) // Update every minute instead of 30 seconds
 
     return () => clearInterval(interval)
   }, [isConnected, config])
@@ -105,7 +135,10 @@ export function useBlogPost(slug: string) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!slug) return
+    if (!slug) {
+      setLoading(false)
+      return
+    }
 
     const fetchPost = async () => {
       try {
@@ -116,20 +149,35 @@ export function useBlogPost(slug: string) {
           headers: {
             "Cache-Control": "no-cache",
           },
+          signal: AbortSignal.timeout(10000),
         })
 
         if (!response.ok) {
           if (response.status === 404) {
             throw new Error("Post not found")
           }
-          throw new Error(`Failed to fetch post: ${response.status}`)
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
 
         const data = await response.json()
-        setPost(data.post)
+
+        if (data.success && data.post) {
+          setPost(data.post)
+        } else {
+          throw new Error(data.error || "Failed to fetch post")
+        }
       } catch (err) {
         console.error("Error fetching blog post:", err)
-        setError(err instanceof Error ? err.message : "Failed to fetch post")
+
+        if (err instanceof Error) {
+          if (err.name === "TimeoutError") {
+            setError("Request timed out. Please try again.")
+          } else {
+            setError(err.message)
+          }
+        } else {
+          setError("Failed to fetch post")
+        }
         setPost(null)
       } finally {
         setLoading(false)
@@ -157,14 +205,20 @@ export function useBlogManagement() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(postData),
+        signal: AbortSignal.timeout(15000), // 15 second timeout for POST
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to create post")
+        throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
       const data = await response.json()
+
+      if (!data.success || !data.post) {
+        throw new Error(data.error || "Failed to create post")
+      }
+
       return data.post
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to create post"
@@ -186,14 +240,20 @@ export function useBlogManagement() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(postData),
+        signal: AbortSignal.timeout(15000),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to update post")
+        throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
       const data = await response.json()
+
+      if (!data.success || !data.post) {
+        throw new Error(data.error || "Failed to update post")
+      }
+
       return data.post
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update post"
@@ -211,11 +271,18 @@ export function useBlogManagement() {
 
       const response = await fetch(`/api/blog/${slug}`, {
         method: "DELETE",
+        signal: AbortSignal.timeout(10000),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to delete post")
+        throw new Error(errorData.error || `HTTP ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to delete post")
       }
 
       return true

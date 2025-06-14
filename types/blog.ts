@@ -15,7 +15,6 @@ export interface BlogPost {
   cta?: {
     text: string
     link: string
-    type: "internal" | "external"
   }
 }
 
@@ -25,33 +24,37 @@ export interface BlogPostSummary {
   slug: string
   intro: string
   date: string
-  readingTime: number
   tags: string[]
   imageUrls: string[]
+  readingTime: number
 }
 
-export interface CreateBlogPostData {
+export interface CreateBlogPost {
   title: string
   slug: string
   intro: string
   content: string
   tags: string[]
+  imageUrls: string[]
+  author?: string
+  published: boolean
+  cta?: {
+    text: string
+    link: string
+  }
+}
+
+export interface UpdateBlogPost {
+  title?: string
+  slug?: string
+  intro?: string
+  content?: string
+  tags?: string[]
   imageUrls?: string[]
   author?: string
   published?: boolean
   cta?: {
     text: string
     link: string
-    type: "internal" | "external"
   }
-}
-
-export interface UpdateBlogPostData extends Partial<CreateBlogPostData> {}
-
-export interface BlogApiResponse {
-  success: boolean
-  posts?: BlogPost[]
-  post?: BlogPost
-  message?: string
-  error?: string
 }

@@ -1,5 +1,5 @@
 import type { BlogPost, BlogPostSummary, CreateBlogPost, UpdateBlogPost } from "@/types/blog"
-import { getSupabaseClient, getServerSupabaseClient } from "./supabase-client"
+import { supabaseAdmin } from "./supabase-client"
 
 interface HealthCheckResult {
   status: "healthy" | "warning" | "error"
@@ -26,23 +26,390 @@ class BlogStoreSupabase {
     return BlogStoreSupabase.instance
   }
 
-  // Get the appropriate Supabase client
-  private getClient() {
-    // Try server client first (for API routes)
-    const serverClient = getServerSupabaseClient()
-    if (serverClient) return serverClient
+  // Get all posts from Supabase
+  async getAllPosts(forceRefresh = false): Promise<BlogPost[]> {
+    try {
+      // Use cache if available and not expired
+      const now = Date.now()
+      if (!forceRefresh && this.cachedPosts.length > 0 && now - this.lastFetched < this.CACHE_TTL) {
+        console.log("Returning cached posts:", this.cachedPosts.length)
+        return [...this.cachedPosts]
+      }
 
-    // Fallback to client-side client
-    const clientClient = getSupabaseClient()
-    if (clientClient) return clientClient
+      console.log("Fetching posts from Supabase...")
 
-    throw new Error("No Supabase client available")
+      const { data, error } = await supabaseAdmin.from("blog_posts").select("*").order("date", { ascending: false })
+
+      if (error) {
+        console.error("Supabase error fetching posts:", error)
+        throw new Error(`Supabase error: ${error.message}`)
+      }
+
+      console.log("Raw Supabase data:", data)
+
+      if (!data) {
+        console.log("No data returned from Supabase")
+        return []
+      }
+
+      // Map Supabase data to BlogPost format
+      const posts: BlogPost[] = data.map((post) => {
+        console.log("Processing post:", post.id, post.title)
+        return {
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          intro: post.intro,
+          content: post.content,
+          date: post.date,
+          readingTime: post.reading_time || 5,
+          tags: Array.isArray(post.tags) ? post.tags : [],
+          imageUrls: Array.isArray(post.image_urls) ? post.image_urls : [],
+          author: post.author || "Admin",
+          published: post.published !== false,
+          createdAt: post.created_at,
+          updatedAt: post.updated_at,
+        }
+      })
+
+      console.log("Processed posts:", posts.length)
+
+      // Update cache
+      this.cachedPosts = posts
+      this.lastFetched = now
+
+      return posts
+    } catch (error) {
+      console.error("Error fetching posts from Supabase:", error)
+      // Return cached posts if available, otherwise empty array
+      return this.cachedPosts.length > 0 ? [...this.cachedPosts] : []
+    }
+  }
+
+  // Get posts with limit (for homepage)
+  async getPosts(limit?: number): Promise<BlogPostSummary[]> {
+    try {
+      console.log("Getting posts with limit:", limit)
+      const posts = await this.getAllPosts()
+      console.log("All posts retrieved:", posts.length)
+
+      // Filter only published posts
+      const publishedPosts = posts.filter((post) => post.published)
+      console.log("Published posts:", publishedPosts.length)
+
+      const limitedPosts = limit ? publishedPosts.slice(0, limit) : publishedPosts
+
+      return limitedPosts.map((post) => ({
+        id: post.id,
+        title: post.title,
+        slug: post.slug,
+        intro: post.intro,
+        date: post.date,
+        tags: post.tags,
+        imageUrls: post.imageUrls,
+        readingTime: post.readingTime,
+      }))
+    } catch (error) {
+      console.error("Error getting posts with limit:", error)
+      return []
+    }
+  }
+
+  // Get post by slug
+  async getPostBySlug(slug: string): Promise<BlogPost | null> {
+    try {
+      console.log("Fetching post by slug:", slug)
+
+      const { data, error } = await supabaseAdmin.from("blog_posts").select("*").eq("slug", slug).single()
+
+      if (error) {
+        if (error.code === "PGRST116") {
+          console.log("Post not found:", slug)
+          return null // No rows returned
+        }
+        console.error(`Error fetching post by slug ${slug}:`, error)
+        throw error
+      }
+
+      if (!data) {
+        console.log("No data for slug:", slug)
+        return null
+      }
+
+      console.log("Found post:", data.id, data.title)
+
+      // Map to BlogPost format
+      return {
+        id: data.id,
+        title: data.title,
+        slug: data.slug,
+        intro: data.intro,
+        content: data.content,
+        date: data.date,
+        readingTime: data.reading_time || 5,
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        imageUrls: Array.isArray(data.image_urls) ? data.image_urls : [],
+        author: data.author || "Admin",
+        published: data.published !== false,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error(`Error fetching post by slug ${slug}:`, error)
+      return null
+    }
+  }
+
+  // Get post by ID
+  async getPostById(id: string): Promise<BlogPost | null> {
+    try {
+      console.log("Fetching post by ID:", id)
+
+      const { data, error } = await supabaseAdmin.from("blog_posts").select("*").eq("id", id).single()
+
+      if (error) {
+        if (error.code === "PGRST116") {
+          console.log("Post not found by ID:", id)
+          return null
+        }
+        console.error(`Error fetching post by ID ${id}:`, error)
+        throw error
+      }
+
+      if (!data) {
+        console.log("No data for ID:", id)
+        return null
+      }
+
+      console.log("Found post by ID:", data.id, data.title)
+
+      return {
+        id: data.id,
+        title: data.title,
+        slug: data.slug,
+        intro: data.intro,
+        content: data.content,
+        date: data.date,
+        readingTime: data.reading_time || 5,
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        imageUrls: Array.isArray(data.image_urls) ? data.image_urls : [],
+        author: data.author || "Admin",
+        published: data.published !== false,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error(`Error fetching post by ID ${id}:`, error)
+      return null
+    }
+  }
+
+  // Add new post
+  async addPost(post: CreateBlogPost): Promise<BlogPost | null> {
+    try {
+      const now = new Date().toISOString()
+      const readingTime = this.calculateReadingTime(post.content)
+
+      const insertData = {
+        title: post.title,
+        slug: post.slug,
+        intro: post.intro,
+        content: post.content,
+        date: now,
+        reading_time: readingTime,
+        tags: post.tags || [],
+        image_urls: post.imageUrls || [],
+        author: post.author || "Admin",
+        published: post.published !== false,
+        created_at: now,
+        updated_at: now,
+      }
+
+      console.log("Inserting post data:", insertData)
+
+      const { data, error } = await supabaseAdmin.from("blog_posts").insert(insertData).select().single()
+
+      if (error) {
+        console.error("Error inserting post:", error)
+        throw error
+      }
+
+      if (!data) {
+        throw new Error("No data returned from insert operation")
+      }
+
+      // Map to BlogPost format
+      const newPost: BlogPost = {
+        id: data.id,
+        title: data.title,
+        slug: data.slug,
+        intro: data.intro,
+        content: data.content,
+        date: data.date,
+        readingTime: data.reading_time || 5,
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        imageUrls: Array.isArray(data.image_urls) ? data.image_urls : [],
+        author: data.author || "Admin",
+        published: data.published !== false,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+
+      // Clear cache to force refresh
+      this.cachedPosts = []
+      this.lastFetched = 0
+
+      console.log("Successfully created post:", newPost.title)
+      return newPost
+    } catch (error) {
+      console.error("Error adding post to Supabase:", error)
+      throw error
+    }
+  }
+
+  // Update existing post
+  async updatePost(slug: string, updates: UpdateBlogPost): Promise<BlogPost | null> {
+    try {
+      const now = new Date().toISOString()
+      const readingTime = updates.content ? this.calculateReadingTime(updates.content) : undefined
+
+      const updateData: any = {
+        updated_at: now,
+      }
+
+      if (updates.title) updateData.title = updates.title
+      if (updates.slug) updateData.slug = updates.slug
+      if (updates.intro) updateData.intro = updates.intro
+      if (updates.content) updateData.content = updates.content
+      if (readingTime) updateData.reading_time = readingTime
+      if (updates.tags) updateData.tags = updates.tags
+      if (updates.imageUrls) updateData.image_urls = updates.imageUrls
+      if (updates.author) updateData.author = updates.author
+      if (updates.published !== undefined) updateData.published = updates.published
+
+      const { data, error } = await supabaseAdmin
+        .from("blog_posts")
+        .update(updateData)
+        .eq("slug", slug)
+        .select()
+        .single()
+
+      if (error) {
+        console.error("Error updating post:", error)
+        throw error
+      }
+
+      if (!data) {
+        throw new Error("No data returned from update operation")
+      }
+
+      // Map to BlogPost format
+      const updatedPost: BlogPost = {
+        id: data.id,
+        title: data.title,
+        slug: data.slug,
+        intro: data.intro,
+        content: data.content,
+        date: data.date,
+        readingTime: data.reading_time || 5,
+        tags: Array.isArray(data.tags) ? data.tags : [],
+        imageUrls: Array.isArray(data.image_urls) ? data.image_urls : [],
+        author: data.author || "Admin",
+        published: data.published !== false,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+
+      // Clear cache to force refresh
+      this.cachedPosts = []
+      this.lastFetched = 0
+
+      return updatedPost
+    } catch (error) {
+      console.error(`Error updating post ${slug}:`, error)
+      throw error
+    }
+  }
+
+  // Delete post
+  async deletePost(slug: string): Promise<boolean> {
+    try {
+      const { error } = await supabaseAdmin.from("blog_posts").delete().eq("slug", slug)
+
+      if (error) {
+        console.error("Error deleting post:", error)
+        throw error
+      }
+
+      // Clear cache to force refresh
+      this.cachedPosts = []
+      this.lastFetched = 0
+
+      return true
+    } catch (error) {
+      console.error(`Error deleting post ${slug}:`, error)
+      throw error
+    }
+  }
+
+  // Check if slug exists
+  async slugExists(slug: string, excludeId?: string): Promise<boolean> {
+    try {
+      let query = supabaseAdmin.from("blog_posts").select("id").eq("slug", slug)
+
+      if (excludeId) {
+        query = query.neq("id", excludeId)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error("Error checking slug existence:", error)
+        throw error
+      }
+
+      return (data || []).length > 0
+    } catch (error) {
+      console.error(`Error checking if slug ${slug} exists:`, error)
+      return false
+    }
+  }
+
+  // Calculate reading time
+  private calculateReadingTime(content: string): number {
+    const wordsPerMinute = 200
+    const wordCount = content.trim().split(/\s+/).length
+    return Math.max(1, Math.ceil(wordCount / wordsPerMinute))
+  }
+
+  // Clear cache
+  clearCache(): void {
+    this.cachedPosts = []
+    this.lastFetched = 0
+  }
+
+  // Test connection
+  async testConnection(): Promise<boolean> {
+    try {
+      const { error } = await supabaseAdmin.from("blog_posts").select("count", { count: "exact", head: true })
+
+      if (error) {
+        console.error("Connection test failed:", error)
+        return false
+      }
+
+      console.log("Supabase connection successful")
+      return true
+    } catch (error) {
+      console.error("Connection test error:", error)
+      return false
+    }
   }
 
   // Initialize the database schema if needed
   async initializeSchema(): Promise<boolean> {
     try {
-      const supabase = this.getClient()
+      const supabase = supabaseAdmin
 
       // Check if the table exists by trying to select from it
       const { error: checkError } = await supabase.from("blog_posts").select("id").limit(1)
@@ -102,310 +469,10 @@ class BlogStoreSupabase {
     }
   }
 
-  // Get all posts
-  async getAllPosts(forceRefresh = false): Promise<BlogPost[]> {
-    try {
-      // Use cache if available and not expired
-      const now = Date.now()
-      if (!forceRefresh && this.cachedPosts.length > 0 && now - this.lastFetched < this.CACHE_TTL) {
-        return [...this.cachedPosts]
-      }
-
-      const supabase = this.getClient()
-      const { data, error } = await supabase.from("blog_posts").select("*").order("date", { ascending: false })
-
-      if (error) {
-        console.error("Error fetching posts:", error)
-        throw error
-      }
-
-      // Map Supabase data to BlogPost format
-      const posts: BlogPost[] = (data || []).map((post) => ({
-        id: post.id,
-        title: post.title,
-        slug: post.slug,
-        intro: post.intro,
-        content: post.content,
-        date: post.date,
-        readingTime: post.reading_time || 5,
-        tags: post.tags || [],
-        imageUrls: post.image_urls || [],
-        author: post.author || undefined,
-        published: post.published !== false,
-        createdAt: post.created_at,
-        updatedAt: post.updated_at,
-      }))
-
-      // Update cache
-      this.cachedPosts = posts
-      this.lastFetched = now
-
-      return posts
-    } catch (error) {
-      console.error("Error fetching posts from Supabase:", error)
-      // Return cached posts if available, otherwise empty array
-      return this.cachedPosts.length > 0 ? [...this.cachedPosts] : []
-    }
-  }
-
-  // Get posts with limit
-  async getPosts(limit?: number): Promise<BlogPostSummary[]> {
-    try {
-      const posts = await this.getAllPosts()
-      const limitedPosts = limit ? posts.slice(0, limit) : posts
-
-      return limitedPosts.map((post) => ({
-        id: post.id,
-        title: post.title,
-        slug: post.slug,
-        intro: post.intro,
-        date: post.date,
-        tags: post.tags,
-        imageUrls: post.imageUrls,
-        readingTime: post.readingTime,
-      }))
-    } catch (error) {
-      console.error("Error getting posts with limit:", error)
-      return []
-    }
-  }
-
-  // Get post by slug
-  async getPostBySlug(slug: string): Promise<BlogPost | null> {
-    try {
-      // Check cache first
-      const cachedPost = this.cachedPosts.find((post) => post.slug === slug)
-      if (cachedPost) return { ...cachedPost }
-
-      const supabase = this.getClient()
-      const { data, error } = await supabase.from("blog_posts").select("*").eq("slug", slug).single()
-
-      if (error) {
-        if (error.code === "PGRST116") return null // No rows returned
-        console.error(`Error fetching post by slug ${slug}:`, error)
-        throw error
-      }
-
-      if (!data) return null
-
-      // Map to BlogPost format
-      return {
-        id: data.id,
-        title: data.title,
-        slug: data.slug,
-        intro: data.intro,
-        content: data.content,
-        date: data.date,
-        readingTime: data.reading_time || 5,
-        tags: data.tags || [],
-        imageUrls: data.image_urls || [],
-        author: data.author || undefined,
-        published: data.published !== false,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      }
-    } catch (error) {
-      console.error(`Error fetching post by slug ${slug}:`, error)
-      return null
-    }
-  }
-
-  // Add new post
-  async addPost(post: CreateBlogPost): Promise<BlogPost | null> {
-    try {
-      const supabase = this.getClient()
-      const now = new Date().toISOString()
-      const readingTime = this.calculateReadingTime(post.content)
-
-      // Generate a unique ID
-      const postId = crypto.randomUUID()
-
-      const insertData = {
-        id: postId,
-        title: post.title,
-        slug: post.slug,
-        intro: post.intro,
-        content: post.content,
-        date: now,
-        reading_time: readingTime,
-        tags: post.tags || [],
-        image_urls: post.imageUrls || [],
-        author: post.author || null,
-        published: post.published !== false,
-        created_at: now,
-        updated_at: now,
-      }
-
-      console.log("Inserting post data:", insertData)
-
-      const { data, error } = await supabase.from("blog_posts").insert(insertData).select().single()
-
-      if (error) {
-        console.error("Error inserting post:", error)
-        throw error
-      }
-
-      if (!data) {
-        throw new Error("No data returned from insert operation")
-      }
-
-      // Map to BlogPost format
-      const newPost: BlogPost = {
-        id: data.id,
-        title: data.title,
-        slug: data.slug,
-        intro: data.intro,
-        content: data.content,
-        date: data.date,
-        readingTime: data.reading_time || 5,
-        tags: data.tags || [],
-        imageUrls: data.image_urls || [],
-        author: data.author || undefined,
-        published: data.published !== false,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      }
-
-      // Update cache
-      this.cachedPosts = [newPost, ...this.cachedPosts.filter((p) => p.id !== newPost.id)]
-
-      console.log("Successfully created post:", newPost.title)
-      return newPost
-    } catch (error) {
-      console.error("Error adding post to Supabase:", error)
-      throw error
-    }
-  }
-
-  // Update existing post
-  async updatePost(slug: string, updates: UpdateBlogPost): Promise<BlogPost | null> {
-    try {
-      const supabase = this.getClient()
-
-      // Get the existing post first
-      const existingPost = await this.getPostBySlug(slug)
-      if (!existingPost) {
-        throw new Error(`Post with slug "${slug}" not found`)
-      }
-
-      const now = new Date().toISOString()
-      const readingTime = updates.content ? this.calculateReadingTime(updates.content) : existingPost.readingTime
-
-      const updateData = {
-        title: updates.title || existingPost.title,
-        slug: updates.slug || existingPost.slug,
-        intro: updates.intro || existingPost.intro,
-        content: updates.content || existingPost.content,
-        reading_time: readingTime,
-        tags: updates.tags || existingPost.tags,
-        image_urls: updates.imageUrls || existingPost.imageUrls,
-        author: updates.author || existingPost.author || null,
-        published: updates.published !== undefined ? updates.published : existingPost.published,
-        updated_at: now,
-      }
-
-      const { data, error } = await supabase.from("blog_posts").update(updateData).eq("slug", slug).select().single()
-
-      if (error) {
-        console.error("Error updating post:", error)
-        throw error
-      }
-
-      if (!data) {
-        throw new Error("No data returned from update operation")
-      }
-
-      // Map to BlogPost format
-      const updatedPost: BlogPost = {
-        id: data.id,
-        title: data.title,
-        slug: data.slug,
-        intro: data.intro,
-        content: data.content,
-        date: data.date,
-        readingTime: data.reading_time || 5,
-        tags: data.tags || [],
-        imageUrls: data.image_urls || [],
-        author: data.author || undefined,
-        published: data.published !== false,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      }
-
-      // Update cache
-      this.cachedPosts = this.cachedPosts.map((post) => (post.id === updatedPost.id ? updatedPost : post))
-
-      return updatedPost
-    } catch (error) {
-      console.error(`Error updating post ${slug}:`, error)
-      throw error
-    }
-  }
-
-  // Delete post
-  async deletePost(slug: string): Promise<boolean> {
-    try {
-      const supabase = this.getClient()
-
-      // Get the post first to ensure it exists
-      const existingPost = await this.getPostBySlug(slug)
-      if (!existingPost) {
-        throw new Error(`Post with slug "${slug}" not found`)
-      }
-
-      const { error } = await supabase.from("blog_posts").delete().eq("slug", slug)
-
-      if (error) {
-        console.error("Error deleting post:", error)
-        throw error
-      }
-
-      // Update cache
-      this.cachedPosts = this.cachedPosts.filter((post) => post.slug !== slug)
-
-      return true
-    } catch (error) {
-      console.error(`Error deleting post ${slug}:`, error)
-      throw error
-    }
-  }
-
-  // Check if slug exists
-  async slugExists(slug: string, excludeId?: string): Promise<boolean> {
-    try {
-      const supabase = this.getClient()
-
-      let query = supabase.from("blog_posts").select("id").eq("slug", slug)
-
-      if (excludeId) {
-        query = query.neq("id", excludeId)
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        console.error("Error checking slug existence:", error)
-        throw error
-      }
-
-      return (data || []).length > 0
-    } catch (error) {
-      console.error(`Error checking if slug ${slug} exists:`, error)
-      return false
-    }
-  }
-
-  // Calculate reading time
-  private calculateReadingTime(content: string): number {
-    const wordsPerMinute = 200
-    const wordCount = content.trim().split(/\s+/).length
-    return Math.max(1, Math.ceil(wordCount / wordsPerMinute))
-  }
-
   // Perform health check
   async performHealthCheck(): Promise<HealthCheckResult> {
     try {
-      const supabase = this.getClient()
+      const supabase = supabaseAdmin
 
       // Test connection
       const { error: connectionError } = await supabase
@@ -491,12 +558,18 @@ class BlogStoreSupabase {
     }
   }
 
-  // Initialize with sample data if empty
+  // Initialize with sample data if empty - ONLY in development
   async initializeSampleData(): Promise<void> {
+    // Only initialize sample data in development environment
+    if (process.env.NODE_ENV === "production") {
+      console.log("Skipping sample data initialization in production")
+      return
+    }
+
     try {
       const posts = await this.getAllPosts(true)
       if (posts.length === 0) {
-        console.log("Initializing sample blog posts...")
+        console.log("Initializing sample blog posts in development...")
 
         const samplePosts: CreateBlogPost[] = [
           {
@@ -553,7 +626,7 @@ Next.js 14 represents a significant step forward in React development. With its 
           },
         ]
 
-        // Add sample posts
+        // Add sample posts only in development
         for (const post of samplePosts) {
           try {
             await this.addPost(post)
@@ -562,7 +635,7 @@ Next.js 14 represents a significant step forward in React development. With its 
           }
         }
 
-        console.log("Sample blog posts initialized")
+        console.log("Sample blog posts initialized in development")
       }
     } catch (error) {
       console.error("Error initializing sample data:", error)
@@ -572,7 +645,7 @@ Next.js 14 represents a significant step forward in React development. With its 
   // Clear all data (for testing/reset purposes)
   async clearAllData(): Promise<boolean> {
     try {
-      const supabase = this.getClient()
+      const supabase = supabaseAdmin
 
       const { error } = await supabase.from("blog_posts").delete().neq("id", "00000000-0000-0000-0000-000000000000") // Delete all rows
 
@@ -606,7 +679,12 @@ export async function initializeSupabaseBlog(): Promise<void> {
   try {
     console.log("Initializing Supabase blog...")
     await blogStoreSupabase.initializeSchema()
-    await blogStoreSupabase.initializeSampleData()
+
+    // Only initialize sample data in development
+    if (process.env.NODE_ENV !== "production") {
+      await blogStoreSupabase.initializeSampleData()
+    }
+
     console.log("Supabase blog initialized successfully")
   } catch (error) {
     console.error("Error initializing Supabase blog:", error)

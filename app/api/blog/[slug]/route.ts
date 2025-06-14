@@ -1,17 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-// This would normally come from your database
-// For demo purposes, we'll use the same in-memory storage
-const blogPosts: any[] = []
+import { blogStoreSupabase } from "@/lib/blog-store-supabase"
 
 export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
   try {
-    const { slug } = params
-    const post = blogPosts.find((p) => p.slug === slug && p.published)
+    console.log("Fetching blog post by slug:", params.slug)
+
+    const post = await blogStoreSupabase.getPostBySlug(params.slug)
 
     if (!post) {
+      console.log("Post not found:", params.slug)
       return NextResponse.json({ success: false, error: "Post not found" }, { status: 404 })
     }
+
+    console.log("Found post:", post.title)
 
     return NextResponse.json({
       success: true,
@@ -25,29 +26,13 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
 
 export async function PUT(request: NextRequest, { params }: { params: { slug: string } }) {
   try {
-    const { slug } = params
     const body = await request.json()
 
-    const postIndex = blogPosts.findIndex((p) => p.slug === slug)
-    if (postIndex === -1) {
+    const updatedPost = await blogStoreSupabase.updatePost(params.slug, body)
+
+    if (!updatedPost) {
       return NextResponse.json({ success: false, error: "Post not found" }, { status: 404 })
     }
-
-    // Update the post
-    const updatedPost = {
-      ...blogPosts[postIndex],
-      ...body,
-      updatedAt: new Date().toISOString(),
-    }
-
-    // If slug is being changed, check for conflicts
-    if (body.slug && body.slug !== slug) {
-      if (blogPosts.some((p) => p.slug === body.slug)) {
-        return NextResponse.json({ success: false, error: "A post with this slug already exists" }, { status: 409 })
-      }
-    }
-
-    blogPosts[postIndex] = updatedPost
 
     return NextResponse.json({
       success: true,
@@ -62,14 +47,11 @@ export async function PUT(request: NextRequest, { params }: { params: { slug: st
 
 export async function DELETE(request: NextRequest, { params }: { params: { slug: string } }) {
   try {
-    const { slug } = params
-    const postIndex = blogPosts.findIndex((p) => p.slug === slug)
+    const success = await blogStoreSupabase.deletePost(params.slug)
 
-    if (postIndex === -1) {
+    if (!success) {
       return NextResponse.json({ success: false, error: "Post not found" }, { status: 404 })
     }
-
-    blogPosts.splice(postIndex, 1)
 
     return NextResponse.json({
       success: true,

@@ -152,7 +152,7 @@ export default function AboutSection() {
 
               <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.3 }} className="royal-border">
                 <Image
-                  src="/images/profile.jpg"
+                  src="/images/profile-new.jpg"
                   alt="Krish Thakker - Cybersecurity Specialist and Full Stack Developer"
                   width={450}
                   height={450}
