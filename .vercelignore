@@ -1,0 +1,13 @@
+.git
+.gitignore
+README.md
+.env
+.env.local
+.env.development
+.env.production
+node_modules
+.next
+.vercel
+*.log
+.DS_Store
+Thumbs.db

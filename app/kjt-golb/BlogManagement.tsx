@@ -34,7 +34,6 @@ import {
   Zap,
   Target,
   TrendingUp,
-  BarChart,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { BlogPost, BlogPostSummary } from "@/types/blog"
@@ -47,7 +46,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
-import AnalyticsDashboard from "@/components/analytics-dashboard"
 
 export default function BlogManagement() {
   const [posts, setPosts] = useState<BlogPostSummary[]>([])
@@ -70,7 +68,6 @@ export default function BlogManagement() {
   }>({ message: "", type: "" })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [postToDelete, setPostToDelete] = useState<BlogPostSummary | null>(null)
-  const [currentView, setCurrentView] = useState<"posts" | "analytics">("posts")
 
   const fetchPosts = async () => {
     try {
@@ -329,56 +326,28 @@ export default function BlogManagement() {
         >
           <div className="flex gap-4">
             <Button
-              onClick={() => setCurrentView("posts")}
+              onClick={() => setIsEditing(!isEditing)}
               size="lg"
               className={`${
-                currentView === "posts"
-                  ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-300 hover:to-yellow-400"
-                  : "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600"
+                isEditing
+                  ? "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600"
+                  : "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-300 hover:to-yellow-400 shadow-lg hover:shadow-xl"
               } transition-all duration-300 px-8 py-3 text-lg font-semibold`}
             >
-              <BookOpen className="mr-3 h-5 w-5" />
-              Blog Posts
+              {isEditing ? (
+                <>
+                  <Eye className="mr-3 h-5 w-5" />
+                  View Posts
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-3 h-5 w-5" />
+                  Create New Post
+                </>
+              )}
             </Button>
 
-            <Button
-              onClick={() => setCurrentView("analytics")}
-              size="lg"
-              className={`${
-                currentView === "analytics"
-                  ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-300 hover:to-yellow-400"
-                  : "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600"
-              } transition-all duration-300 px-8 py-3 text-lg font-semibold`}
-            >
-              <BarChart className="mr-3 h-5 w-5" />
-              Analytics
-            </Button>
-
-            {currentView === "posts" && (
-              <Button
-                onClick={() => setIsEditing(!isEditing)}
-                size="lg"
-                className={`${
-                  isEditing
-                    ? "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600"
-                    : "bg-gradient-to-r from-blue-400 to-blue-500 text-white hover:from-blue-300 hover:to-blue-400 shadow-lg hover:shadow-xl"
-                } transition-all duration-300 px-8 py-3 text-lg font-semibold`}
-              >
-                {isEditing ? (
-                  <>
-                    <Eye className="mr-3 h-5 w-5" />
-                    View Posts
-                  </>
-                ) : (
-                  <>
-                    <Plus className="mr-3 h-5 w-5" />
-                    Create New Post
-                  </>
-                )}
-              </Button>
-            )}
-
-            {isEditing && currentView === "posts" && (
+            {isEditing && (
               <Button
                 variant="outline"
                 size="lg"
@@ -392,9 +361,7 @@ export default function BlogManagement() {
           </div>
         </motion.div>
 
-        {currentView === "analytics" ? (
-          <AnalyticsDashboard />
-        ) : isEditing ? (
+        {isEditing ? (
           /* Enhanced Post Editor Form */
           <motion.div
             initial={{ opacity: 0, y: 20 }}

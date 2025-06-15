@@ -239,38 +239,19 @@ export default function HomeBlogSection() {
             </div>
           </motion.div>
 
-          {/* Enhanced error state with better UX */}
+          {/* Enhanced error state with retry options */}
           {error && (
             <motion.div className="text-center mb-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <div className="bg-yellow-500/20 text-yellow-400 border border-yellow-400/30 rounded-lg p-6 max-w-md mx-auto">
+              <div className="bg-red-500/20 text-red-400 border border-red-400/30 rounded-lg p-6 max-w-md mx-auto">
                 <AlertTriangle className="h-8 w-8 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold mb-2">Blog Temporarily Unavailable</h3>
+                <h3 className="text-lg font-semibold mb-2">Failed to load blog posts</h3>
                 <p className="text-sm mb-4">
-                  {error.includes("Network") ? "Please check your internet connection" : "Database connection issue"}
+                  {retryCount > 0 ? `Retry attempt ${retryCount}/3 failed` : "Unable to fetch latest posts"}
                 </p>
                 <div className="flex gap-2 justify-center">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleManualRefresh}
-                    disabled={loading}
-                    className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
-                  >
-                    {loading ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Retrying...
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4" />
-                        Try Again
-                      </>
-                    )}
-                  </Button>
                   <Link href="/blog">
                     <Button size="sm" variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-800">
-                      View Blog Page
+                      View All Posts
                     </Button>
                   </Link>
                 </div>

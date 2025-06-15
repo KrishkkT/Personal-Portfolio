@@ -91,18 +91,13 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: [
-      { url: "/images/favicon.jpg", sizes: "32x32", type: "image/jpeg" },
-      { url: "/images/favicon.jpg", sizes: "16x16", type: "image/jpeg" },
-    ],
+    icon: "/images/favicon.jpg",
     shortcut: "/images/favicon.jpg",
-    apple: [{ url: "/images/favicon.jpg", sizes: "180x180", type: "image/jpeg" }],
-    other: [
-      {
-        rel: "apple-touch-icon-precomposed",
-        url: "/images/favicon.jpg",
-      },
-    ],
+    apple: "/images/favicon.jpg",
+    other: {
+      rel: "apple-touch-icon-precomposed",
+      url: "/images/favicon.jpg",
+    },
   },
   verification: {
     google: "google-site-verification-code", // Replace with actual verification code when available
@@ -119,19 +114,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
-        {/* Favicon and manifest */}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href="/images/favicon.jpg" type="image/jpeg" />
-        <link rel="apple-touch-icon" href="/images/favicon.jpg" />
-        <link rel="manifest" href="/manifest.json" />
-
-        {/* Google AdSense */}
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7348769852590520"
-          crossOrigin="anonymous"
-        />
-
         <script
           dangerouslySetInnerHTML={{
             __html: `

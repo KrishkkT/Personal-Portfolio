@@ -22,8 +22,8 @@ Welcome aboard Krish's Personal Portfolio — a meticulously engineered webspace
 | Frontend        | Backend       | Styling          | Tools & Hosting           |
 |-----------------|---------------|------------------|---------------------------|
 | React.js        | Node.js       | Tailwind CSS     | Vercel                    |
-| Next.js         | Express.js    | Barba.js         | Git & GitHub              |
-| TypeScript      |               | Anime.js         |                           |
+| Next.js         | Express.js    | Framer Motion    | Git & GitHub              |
+| TypeScript      |               |                  |                           |
 
 ---
 
@@ -42,8 +42,7 @@ Welcome aboard Krish's Personal Portfolio — a meticulously engineered webspace
 - **Hero** — Brief intro with social links  
 - **About** — Who I am & what I do  
 - **Skills** — My tech stack with categories  
-- **Projects** — Featured works with descriptions
-- **Blog** - Featured Blogs to showcase my thoughts
+- **Projects** — Featured works with descriptions  
 - **Certifications** — Visual proof of learning  
 - **Stats** — Total projects, tech used, and live count  
 - **Contact** — Let’s collaborate!
@@ -78,5 +77,5 @@ Feel free to reach out via [LinkedIn](https://www.linkedin.com/in/krishthakker08
 ---
 
 <p align="center">
-  Built with ❤️ by <b>KT</b> — AI-driven, cyber-bound, coffee-fueled, and always shipping something smarter.
+  Built with ❤️ by <b>KT</b> — Code-driven, cyber-bound, coffee-fueled, and always shipping something smarter.
 </p>

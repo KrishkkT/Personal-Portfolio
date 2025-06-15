@@ -1,50 +1,67 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { blogStoreSupabase } from "@/lib/blog-store-supabase"
+import { testSupabaseConnection } from "@/lib/supabase-client"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("Blog API GET request received")
+    console.log("📖 API: GET /api/blog called")
 
     // Test connection first
-    const connectionOk = await blogStoreSupabase.testConnection()
-    if (!connectionOk) {
-      console.error("Supabase connection failed")
+    const connectionTest = await testSupabaseConnection()
+    if (!connectionTest.success) {
+      console.error("❌ Supabase connection failed:", connectionTest.error)
       return NextResponse.json(
         {
           success: false,
-          error: "Database connection failed",
+          error: `Database connection failed: ${connectionTest.error}`,
           posts: [],
-          count: 0,
+          total: 0,
         },
-        { status: 500 },
+        { status: 503 },
       )
     }
 
     const { searchParams } = new URL(request.url)
     const limit = searchParams.get("limit")
-
-    console.log("Fetching posts with limit:", limit)
-
-    // Get posts with optional limit
     const limitNum = limit ? Number.parseInt(limit, 10) : undefined
+
+    // Validate limit parameter
+    if (limit && (isNaN(limitNum!) || limitNum! < 1)) {
+      return NextResponse.json({ error: "Invalid limit parameter" }, { status: 400 })
+    }
+
     const posts = await blogStoreSupabase.getPosts(limitNum)
 
-    console.log("API returning posts:", posts.length)
-
-    return NextResponse.json({
-      success: true,
-      posts,
-      count: posts.length,
-    })
-  } catch (error) {
-    console.error("Error in blog API route:", error)
+    console.log(`📖 API: Returning ${posts.length} blog posts`)
 
     return NextResponse.json(
       {
+        success: true,
+        posts,
+        total: posts.length,
+        timestamp: Date.now(),
+      },
+      {
+        status: 200,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+          "Content-Type": "application/json",
+        },
+      },
+    )
+  } catch (error) {
+    console.error("❌ API Error fetching posts:", error)
+    return NextResponse.json(
+      {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : "Failed to fetch blog posts",
         posts: [],
-        count: 0,
+        total: 0,
       },
       { status: 500 },
     )
@@ -53,13 +70,61 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { title, slug, intro, content, tags, imageUrls, author, published } = body
+    console.log("✏️ API: POST /api/blog called")
 
-    // Validation
-    if (!title || !slug || !intro || !content) {
+    // Test connection first
+    const connectionTest = await testSupabaseConnection()
+    if (!connectionTest.success) {
+      console.error("❌ Supabase connection failed:", connectionTest.error)
       return NextResponse.json(
-        { success: false, error: "Title, slug, intro, and content are required" },
+        {
+          success: false,
+          error: `Database connection failed: ${connectionTest.error}`,
+        },
+        { status: 503 },
+      )
+    }
+
+    const body = await request.json()
+    console.log("📝 Request body:", {
+      title: body.title,
+      contentLength: body.content?.length,
+      tags: body.tags,
+    })
+
+    // Basic validation
+    if (!body.title || !body.content) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Title and content are required",
+        },
+        { status: 400 },
+      )
+    }
+
+    if (body.title.length > 200) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Title is too long (max 200 characters)",
+        },
+        { status: 400 },
+      )
+    }
+
+    // Generate slug from title
+    const slug = body.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+
+    if (!slug) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Could not generate a valid slug from the title",
+        },
         { status: 400 },
       )
     }
@@ -67,31 +132,80 @@ export async function POST(request: NextRequest) {
     // Check if slug already exists
     const slugExists = await blogStoreSupabase.slugExists(slug)
     if (slugExists) {
-      return NextResponse.json({ success: false, error: "A post with this slug already exists" }, { status: 409 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: "A post with this title already exists",
+        },
+        { status: 409 },
+      )
     }
 
-    const newPost = await blogStoreSupabase.addPost({
-      title,
+    const postData = {
+      title: body.title.trim(),
       slug,
-      intro,
-      content,
-      tags: tags || [],
-      imageUrls: imageUrls || [],
-      author: author || "Admin",
-      published: published !== false,
+      intro: body.intro?.trim() || body.content.substring(0, 150).trim() + "...",
+      content: body.content.trim(),
+      tags: Array.isArray(body.tags) ? body.tags.filter(Boolean) : [],
+      imageUrls: Array.isArray(body.imageUrls) ? body.imageUrls.filter(Boolean) : [],
+      published: body.published !== false, // Default to published
+    }
+
+    console.log("📝 Creating post with data:", {
+      title: postData.title,
+      slug: postData.slug,
+      tagsCount: postData.tags.length,
+      contentLength: postData.content.length,
     })
+
+    const newPost = await blogStoreSupabase.addPost(postData)
 
     if (!newPost) {
-      throw new Error("Failed to create post")
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to create post - no data returned",
+        },
+        { status: 500 },
+      )
     }
 
-    return NextResponse.json({
-      success: true,
-      post: newPost,
-      message: "Blog post created successfully",
-    })
+    console.log(`✅ API: Created new post - ${newPost.title}`)
+
+    return NextResponse.json(
+      {
+        success: true,
+        post: newPost,
+        message: "Post created successfully",
+      },
+      {
+        status: 201,
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      },
+    )
   } catch (error) {
-    console.error("Error creating blog post:", error)
-    return NextResponse.json({ success: false, error: "Failed to create blog post" }, { status: 500 })
+    console.error("❌ API Error creating post:", error)
+
+    // Provide more specific error messages
+    let errorMessage = "Failed to create post"
+    if (error instanceof Error) {
+      if (error.message.includes("duplicate key")) {
+        errorMessage = "A post with this title already exists"
+      } else if (error.message.includes("connection")) {
+        errorMessage = "Database connection error"
+      } else {
+        errorMessage = error.message
+      }
+    }
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: errorMessage,
+      },
+      { status: 500 },
+    )
   }
 }
