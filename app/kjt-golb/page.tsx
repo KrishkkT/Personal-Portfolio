@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Lock, User, Eye, EyeOff, Shield, Sparkles, Zap } from "lucide-react"
 import { motion } from "framer-motion"
-import BlogManagement from "./BlogManagement"
-import SimpleChat from "@/components/simple-chat"
+import PortfolioManagement from "./PortfolioManagement"
 
-export default function BlogManagementPage() {
+export default function PortfolioManagementPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -21,7 +20,7 @@ export default function BlogManagementPage() {
 
   useEffect(() => {
     // Check if already authenticated
-    const auth = localStorage.getItem("blog-auth")
+    const auth = localStorage.getItem("portfolio-auth")
     if (auth === "authenticated") {
       setIsAuthenticated(true)
     }
@@ -35,7 +34,7 @@ export default function BlogManagementPage() {
     // Simple client-side authentication check
     if (username === "thekjt" && password === "passissecret") {
       setIsAuthenticated(true)
-      localStorage.setItem("blog-auth", "authenticated")
+      localStorage.setItem("portfolio-auth", "authenticated")
     } else {
       setError("Invalid username or password")
     }
@@ -45,7 +44,7 @@ export default function BlogManagementPage() {
 
   const handleLogout = () => {
     setIsAuthenticated(false)
-    localStorage.removeItem("blog-auth")
+    localStorage.removeItem("portfolio-auth")
     setUsername("")
     setPassword("")
   }
@@ -63,10 +62,7 @@ export default function BlogManagementPage() {
             Logout
           </Button>
         </div>
-        <BlogManagement />
-
-        {/* Simple Chat Button - always works */}
-        <SimpleChat className="transition-all duration-300" />
+        <PortfolioManagement />
       </div>
     )
   }
@@ -143,8 +139,8 @@ export default function BlogManagementPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <CardTitle className="text-3xl text-white font-bold mb-2">Blog Management</CardTitle>
-              <p className="text-gray-300 text-sm">Secure access to content management system</p>
+              <CardTitle className="text-3xl text-white font-bold mb-2">Portfolio Management</CardTitle>
+              <p className="text-gray-300 text-sm">Secure access to portfolio management system</p>
             </motion.div>
 
             {/* Feature Icons */}
@@ -160,7 +156,7 @@ export default function BlogManagementPage() {
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <Zap className="h-3 w-3 text-blue-400" />
-                <span>Real-time Preview</span>
+                <span>Real-time Updates</span>
               </div>
             </motion.div>
           </CardHeader>
@@ -279,9 +275,6 @@ export default function BlogManagementPage() {
           <p>© 2024 KT Portfolio. All rights reserved.</p>
         </motion.div>
       </motion.div>
-
-      {/* Simple Chat Button - always works */}
-      <SimpleChat className="transition-all duration-300" />
     </div>
   )
 }

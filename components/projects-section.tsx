@@ -8,79 +8,15 @@ import { ExternalLink, Github, Eye, Star, Diamond } from "lucide-react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import Link from "next/link"
-
-const projects = [
-  {
-    title: "SpiceSafari - Simple Travel Website",
-    description:
-      "SpiceSafari is a sleek and responsive travel website developed by a team of three college students as part of a collaborative academic project. It showcases curated travel destinations, immersive guides, and teamwork with a focus on visual appeal and user engagement.",
-    image:
-      "https://images.unsplash.com/photo-1749192715605-2c3f74f1e46b?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8NHx8fGVufDB8fHx8fA%3D%3D",
-    technologies: ["HTML5", "CSS3", "Tailwind CSS", "Vercel"],
-    category: "Web App",
-    featured: false,
-    liveUrl: "https://spice-safari.vercel.app",
-    githubUrl: "https://github.com/KrishkkT/SpiceSafari",
-    status: "Live",
-  },
-  {
-    title: "Thakker & Associates - A Law Firm Website",
-    description:
-      "Thakker & Associates is a professional legal website developed to establish a strong digital presence for Advocate Jaymin Thakker. The platform provides information on core legal services, areas of practice, and client engagement channels. It reflects a clean, trustworthy design tailored for the legal domain, with a focus on accessibility, SEO, and performance.",
-    image:
-      "https://images.unsplash.com/photo-1749192511700-9bad608be0c9?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8Mnx8fGVufDB8fHx8fA%3D%3D",
-    technologies: ["Next.js", "TypeScript", "Node.js", "Formspree", "Vercel", "SEO Optimization"],
-    category: "Web App",
-    featured: false,
-    liveUrl: "https://jayminthakkerlaw.com",
-    githubUrl: "#",
-    status: "Live",
-  },
-  {
-    title: "SPARSH - An Ecommerce Website",
-    description:
-      "Sparsh is a modern e-commerce web application built for selling natural hair care products online. Designed to deliver a seamless shopping experience, it features a clean UI, secure payment integration, and intuitive product browsing. Developed as part of a collaborative project, Sparsh blends functionality with elegance to support small wellness businesses going digital.",
-    image:
-      "https://images.unsplash.com/photo-1749192511760-92eac746260b?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8MXx8fGVufDB8fHx8fA%3D%3D",
-    technologies: [
-      "Next.js",
-      "Node.js",
-      "Tailwind CSS",
-      "TypeScript",
-      "Supabase",
-      "Authentication",
-      "Formspree",
-      "Razorpay",
-      "SEO and Custom Domain",
-    ],
-    category: "Full Stack",
-    featured: false,
-    liveUrl: "https://sparshnaturals.shop",
-    githubUrl: "https://github.com/KrishkkT/SPARSH---Ecommerce-Store",
-    status: "Live",
-  },
-  {
-    title: "Quick Sort Visualizer - A Java based",
-    description:
-      "An interactive tool that visually illustrates the Quick Sort algorithm's sorting process. It helps users understand how Quick Sort partitions and sorts elements by animating each step in real-time, making algorithm learning intuitive and engaging.",
-    image:
-      "https://images.unsplash.com/photo-1749192859407-e85d4a8bd441?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8M3x8fGVufDB8fHx8fA%3D%3D",
-    technologies: ["Java", "Data Structure - Quick Sort"],
-    category: "Academic Project",
-    featured: false,
-    liveUrl: "https://quick-sort-visualizer.vercel.app/",
-    githubUrl: "https://github.com/KrishkkT/QuickSort-Visualizer",
-    status: "Live",
-  },
-]
-
-const categories = ["All", "Full Stack", "Academic Project", "Web App", "Cybersecurity"]
+import { useProjects } from "@/hooks/use-portfolio"
 
 export default function ProjectsSection() {
   const [activeCategory, setActiveCategory] = useState("All")
   const [hoveredProject, setHoveredProject] = useState<number | null>(null)
   const [isVisible, setIsVisible] = useState(false)
   const sectionRef = useRef<HTMLElement>(null)
+
+  const { projects, loading } = useProjects(4) // Show only 4 projects on homepage
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -99,19 +35,62 @@ export default function ProjectsSection() {
     return () => observer.disconnect()
   }, [])
 
+  const categories = ["All", "Full Stack", "Academic Project", "Web App", "Cybersecurity"]
   const filteredProjects =
     activeCategory === "All" ? projects : projects.filter((project) => project.category === activeCategory)
 
   const handleLiveDemo = (url: string) => {
-    if (url !== "#") {
+    if (url && url !== "#") {
       window.open(url, "_blank")
     }
   }
 
   const handleSourceCode = (url: string) => {
-    if (url !== "#") {
+    if (url && url !== "#") {
       window.open(url, "_blank")
     }
+  }
+
+  if (loading) {
+    return (
+      <section ref={sectionRef} id="projects" className="royal-spacing royal-gradient">
+        <div className="royal-container">
+          <motion.div
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            animate={isVisible ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="flex items-center justify-center gap-3 mb-6">
+              <Diamond className="h-6 w-6 text-yellow-400" />
+              <h2 className="text-5xl font-bold text-white">
+                <span className="gradient-text">Projects</span>
+              </h2>
+              <Diamond className="h-6 w-6 text-yellow-400" />
+            </div>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              Showcasing recent web development and cybersecurity projects that reflect my technical craft and creative
+              edge.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="animate-pulse">
+                <div className="royal-card h-96 overflow-hidden">
+                  <div className="bg-gray-700/50 h-48 mb-4"></div>
+                  <div className="p-6">
+                    <div className="bg-gray-700/50 h-6 rounded mb-2"></div>
+                    <div className="bg-gray-700/50 h-4 rounded w-3/4 mb-4"></div>
+                    <div className="bg-gray-700/50 h-20 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -213,7 +192,7 @@ export default function ProjectsSection() {
         >
           {filteredProjects.map((project, index) => (
             <motion.div
-              key={project.title}
+              key={project.id}
               className="group"
               initial={{ opacity: 0, y: 50 }}
               animate={isVisible ? { opacity: 1, y: 0 } : {}}
@@ -228,7 +207,7 @@ export default function ProjectsSection() {
               <Card className="royal-card overflow-hidden h-full transition-all duration-500 group-hover:shadow-2xl">
                 <div className="relative overflow-hidden">
                   <Image
-                    src={project.image || "/placeholder.svg"}
+                    src={project.image_url || "/placeholder.svg?height=300&width=400&text=Project"}
                     alt={`${project.title} - Project Screenshot`}
                     width={400}
                     height={300}
@@ -273,7 +252,7 @@ export default function ProjectsSection() {
                       <Button
                         size="sm"
                         className="midnight-glass text-yellow-400 border-yellow-400/30"
-                        onClick={() => handleLiveDemo(project.liveUrl)}
+                        onClick={() => handleLiveDemo(project.live_url || "")}
                         aria-label={`Preview ${project.title}`}
                       >
                         <Eye className="h-4 w-4 mr-2" />
@@ -284,7 +263,7 @@ export default function ProjectsSection() {
                       <Button
                         size="sm"
                         className="midnight-glass text-yellow-400 border-yellow-400/30"
-                        onClick={() => handleSourceCode(project.githubUrl)}
+                        onClick={() => handleSourceCode(project.github_url || "")}
                         aria-label={`View source code for ${project.title}`}
                       >
                         <Github className="h-4 w-4 mr-2" />
@@ -335,7 +314,7 @@ export default function ProjectsSection() {
                       <Button
                         size="sm"
                         className="w-full btn-royal text-black font-semibold"
-                        onClick={() => handleLiveDemo(project.liveUrl)}
+                        onClick={() => handleLiveDemo(project.live_url || "")}
                         aria-label={`View live demo of ${project.title}`}
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
@@ -347,7 +326,7 @@ export default function ProjectsSection() {
                         size="sm"
                         variant="outline"
                         className="w-full midnight-glass text-yellow-400 border-yellow-400/30 hover:border-yellow-400/50"
-                        onClick={() => handleSourceCode(project.githubUrl)}
+                        onClick={() => handleSourceCode(project.github_url || "")}
                         aria-label={`View source code for ${project.title}`}
                       >
                         <Github className="h-4 w-4 mr-2" />
