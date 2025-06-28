@@ -1,117 +1,82 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Menu, X, Sparkles } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { Menu, X, Sparkles } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { Button } from "@/components/ui/button"
 
-// Update the navItems array to link to the blog section on the homepage
 const navItems = [
-  { name: "Home", href: "#home" },
-  { name: "About", href: "#about" },
-  { name: "Skills", href: "#skills" },
-  { name: "Blog", href: "#blog" },
-  { name: "Certificates", href: "#certificates" },
-  { name: "Projects", href: "#projects" },
-  { name: "Contact", href: "#contact" },
+  { name: "Home", href: "/" },
+  { name: "About", href: "/#about" },
+  { name: "Skills", href: "/#skills" },
+  { name: "Journey", href: "/#journey" },
+  { name: "Projects", href: "/#projects" },
+  { name: "Certificates", href: "/#certificates" },
+  { name: "Blog", href: "/#blog" },
+  { name: "Contact", href: "/#contact" },
 ]
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const pathname = usePathname()
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50)
     }
 
-    // Set initial state
-    setScrolled(window.scrollY > 50)
-
-    // Mark initial load as complete after a short delay
-    const timer = setTimeout(() => {
-      setIsInitialLoad(false)
-    }, 3000) // Allow time for preloader and initial setup
-
-    if (typeof window !== "undefined") {
-      window.addEventListener("scroll", handleScroll)
-      return () => {
-        window.removeEventListener("scroll", handleScroll)
-        clearTimeout(timer)
-      }
-    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const handleNavClick = (href: string, e: React.MouseEvent) => {
-    e.preventDefault()
+  const handleNavClick = (href: string, e?: React.MouseEvent) => {
     setIsOpen(false)
 
-    // Handle external navigation (like /blog)
-    if (href.startsWith("/")) {
-      window.location.href = href
-      return
-    }
-
-    // Only allow smooth scrolling after initial load is complete
-    if (!isInitialLoad && href.startsWith("#")) {
-      const targetId = href.substring(1)
-      const targetElement = document.getElementById(targetId)
-
-      if (targetElement) {
-        targetElement.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        })
-
-        // Update URL without triggering scroll
-        window.history.pushState(null, "", href)
+    if (href.startsWith("/#")) {
+      if (pathname !== "/") {
+        // If not on homepage, navigate to homepage first
+        window.location.href = href
+      } else {
+        // If on homepage, smooth scroll to section
+        e?.preventDefault()
+        const sectionId = href.substring(2)
+        const element = document.getElementById(sectionId)
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" })
+        }
       }
     }
   }
 
-  // Close mobile menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const nav = document.getElementById("mobile-nav")
-      if (nav && !nav.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-      // Prevent body scroll when menu is open
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-      document.body.style.overflow = ""
-    }
-  }, [isOpen])
+  const isActiveLink = (href: string) => {
+    if (href === "/" && pathname === "/") return true
+    if (href !== "/" && pathname.startsWith(href.split("#")[0])) return true
+    return false
+  }
 
   return (
-    <nav
-      className={`fixed top-0 w-full z-50 transition-all duration-500 ${
-        scrolled ? "midnight-glass shadow-2xl" : "bg-transparent"
+    <motion.nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+        scrolled ? "midnight-glass shadow-2xl border-b border-yellow-400/20" : "bg-transparent"
       }`}
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.6 }}
     >
       <div className="royal-container">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <motion.div
-            className="flex items-center space-x-2 md:space-x-3"
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="relative">
+          <Link href="/" className="flex items-center space-x-3">
+            <motion.div className="relative" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-xl">
+                <span className="text-gray-900 font-bold text-xl">KT</span>
+              </div>
               <motion.div
-                className="absolute -top-1 -right-1 md:-top-2 md:-right-2"
+                className="absolute -top-1 -right-1"
                 animate={{
                   rotate: [0, 180, 360],
                   scale: [1, 1.2, 1],
@@ -122,40 +87,54 @@ export default function Navigation() {
                   ease: "easeInOut",
                 }}
               >
-                <Sparkles className="h-3 w-3 md:h-4 md:w-4 text-yellow-400" />
+                <Sparkles className="h-4 w-4 text-yellow-400" />
               </motion.div>
-            </div>
-            <span className="text-xl md:text-2xl font-bold gradient-text">KT</span>
-          </motion.div>
+            </motion.div>
+          </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-6 xl:space-x-8">
-            {navItems.map((item, index) => (
-              <motion.a
-                key={item.name}
-                href={item.href}
-                onClick={(e) => handleNavClick(item.href, e)}
-                className="text-gray-300 hover:text-yellow-400 transition-all duration-300 font-medium relative group cursor-pointer text-sm xl:text-base"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                whileHover={{ scale: 1.05 }}
-              >
-                {item.name}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-full"></span>
-              </motion.a>
-            ))}
+          <div className="hidden lg:flex items-center space-x-2">
+            {navItems.map((item, index) => {
+              const isActive = isActiveLink(item.href)
+
+              return (
+                <motion.div
+                  key={item.name}
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                >
+                  <Link href={item.href} onClick={(e) => handleNavClick(item.href, e)} className="relative group">
+                    <motion.div
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 relative ${
+                        isActive
+                          ? "text-yellow-400 bg-yellow-400/10"
+                          : "text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/5"
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {item.name}
+                      <span
+                        className={`absolute bottom-0 left-0 h-0.5 bg-yellow-400 transition-all duration-300 ${
+                          isActive ? "w-full" : "w-0 group-hover:w-full"
+                        }`}
+                      />
+                    </motion.div>
+                  </Link>
+                </motion.div>
+              )
+            })}
           </div>
 
           {/* Mobile Menu Button */}
           <Button
             variant="ghost"
             size="sm"
-            className="lg:hidden p-2 md:p-3 text-gray-300 hover:text-yellow-400 transition-colors"
+            className="lg:hidden p-2 text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/10"
             onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle menu"
           >
-            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </Button>
         </div>
 
@@ -163,34 +142,34 @@ export default function Navigation() {
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              id="mobile-nav"
-              className="lg:hidden fixed inset-x-0 top-16 md:top-20 bg-gray-900/95 backdrop-blur-lg border-t border-yellow-400/20 z-40"
+              className="lg:hidden absolute inset-x-0 top-full bg-gray-900/98 backdrop-blur-lg border-t border-yellow-400/20"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="royal-container py-6">
-                <div className="space-y-4">
-                  {navItems.map((item, index) => (
-                    <motion.a
-                      key={item.name}
+              <div className="px-6 py-6 space-y-2">
+                {navItems.map((item, index) => (
+                  <motion.div
+                    key={item.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Link
                       href={item.href}
                       onClick={(e) => handleNavClick(item.href, e)}
-                      className="block py-3 px-4 text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/10 rounded-lg transition-all duration-300 font-medium cursor-pointer"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      className="block px-4 py-3 rounded-lg text-base font-medium text-gray-300 transition-all duration-300 hover:text-yellow-400 hover:bg-yellow-400/5"
                     >
                       {item.name}
-                    </motion.a>
-                  ))}
-                </div>
+                    </Link>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-    </nav>
+    </motion.nav>
   )
 }

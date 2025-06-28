@@ -62,7 +62,7 @@ export const metadata: Metadata = {
     siteName: "KT Portfolio",
     images: [
       {
-        url: "/images/profile.jpg",
+        url: "/icon",
         width: 1200,
         height: 630,
         alt: "Krish Thakker - Full Stack Developer & Cybersecurity Specialist",
@@ -76,7 +76,7 @@ export const metadata: Metadata = {
     title: "KT - Full Stack Developer & Cybersecurity Enthusiast &Specialist",
     description:
       "Cybersecurity, Cloud & Full Stack Development Enthusiast. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
-    images: ["/images/profile.jpg"],
+    images: ["/icon"],
     creator: "@krishthakker08",
   },
   robots: {
@@ -90,17 +90,8 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  icons: {
-    icon: "/images/favicon.jpg",
-    shortcut: "/images/favicon.jpg",
-    apple: "/images/favicon.jpg",
-    other: {
-      rel: "apple-touch-icon-precomposed",
-      url: "/images/favicon.jpg",
-    },
-  },
   verification: {
-    google: "google-site-verification-code", // Replace with actual verification code when available
+    google: "google-site-verification-code",
   },
   category: "technology",
   generator: "Next.js",
@@ -118,11 +109,8 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
-                // Immediate scroll prevention
                 if (typeof window !== 'undefined') {
                   window.history.scrollRestoration = 'manual';
-                  
-                  // Force scroll to top immediately
                   window.scrollTo(0, 0);
                   document.documentElement.scrollTop = 0;
                   if (document.body) document.body.scrollTop = 0;
@@ -131,7 +119,6 @@ export default function RootLayout({
             `,
           }}
         />
-        {/* Preload critical fonts */}
         <link rel="preload" href="/fonts/Inter-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/Inter-Bold.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
       </head>
@@ -149,7 +136,6 @@ export default function RootLayout({
           }}
         />
 
-        {/* Structured data for Person */}
         <Script
           id="schema-person"
           type="application/ld+json"
@@ -159,7 +145,7 @@ export default function RootLayout({
               "@type": "Person",
               name: "Krish Thakker",
               url: "https://kjt.vercel.app",
-              image: "https://kjt.vercel.app/images/profile.jpg",
+              image: "https://kjt.vercel.app/icon",
               sameAs: ["https://github.com/krishkkt", "https://linkedin.com/in/krishthakker08"],
               jobTitle: "Full Stack Developer & Cybersecurity Enthusiast & Specialist",
               worksFor: {
@@ -181,7 +167,6 @@ export default function RootLayout({
           }}
         />
 
-        {/* Structured data for WebSite */}
         <Script
           id="schema-website"
           type="application/ld+json"

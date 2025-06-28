@@ -1,167 +1,275 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Github } from "lucide-react"
-import PageTransitionWrapper from "@/components/page-transition-wrapper"
-import { AnimationUtils } from "@/lib/animation-utils"
-import anime from "animejs"
+import { ExternalLink, Github, Briefcase, Calendar, Star, Code } from "lucide-react"
+import { motion } from "framer-motion"
+import Image from "next/image"
+import PageHeader from "@/components/page-header"
+import { dataStore } from "@/lib/data-store"
+import type { Project } from "@/lib/data-store"
 
-const allProjects = [
-  {
-    title: "SpiceSafari - Simple Travel Website",
-    description:
-      "SpiceSafari is a sleek and responsive travel website developed by a team of three college students as part of a collaborative academic project. It showcases curated travel destinations, immersive guides, and teamwork with a focus on visual appeal and user engagement.",
-    image:
-      "https://images.unsplash.com/photo-1749192715605-2c3f74f1e46b?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8NHx8fGVufDB8fHx8fA%3D%3D",
-    technologies: ["HTML5", "CSS3", "Tailwind CSS", "Vercel"],
-    category: "Web App",
-    featured: false,
-    liveUrl: "https://spice-safari.vercel.app",
-    githubUrl: "https://github.com/KrishkkT/SpiceSafari",
-    status: "Live",
-  },
-  {
-    title: "Thakker & Associates - A Law Firm Website",
-    description:
-      "Thakker & Associates is a professional legal website developed to establish a strong digital presence for Advocate Jaymin Thakker. The platform provides information on core legal services, areas of practice, and client engagement channels. It reflects a clean, trustworthy design tailored for the legal domain, with a focus on accessibility, SEO, and performance.",
-    image:
-      "https://images.unsplash.com/photo-1749192511700-9bad608be0c9?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8Mnx8fGVufDB8fHx8fA%3D%3D",
-    technologies: ["Next.js", "TypeScript", "Node.js", "Formspree", "Vercel", "SEO Optimization"],
-    category: "Web App",
-    featured: false,
-    liveUrl: "https://jayminthakkerlaw.com",
-    githubUrl: "#",
-    status: "Live",
-  },
-  {
-    title: "SPARSH - An Ecommerce Website",
-    description:
-      "Sparsh is a modern e-commerce web application built for selling natural hair care products online. Designed to deliver a seamless shopping experience, it features a clean UI, secure payment integration, and intuitive product browsing. Developed as part of a collaborative project, Sparsh blends functionality with elegance to support small wellness businesses going digital.",
-    image:
-      "https://images.unsplash.com/photo-1749192511760-92eac746260b?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8MXx8fGVufDB8fHx8fA%3D%3D",
-    technologies: [
-      "Next.js",
-      "Node.js",
-      "Tailwind CSS",
-      "TypeScript",
-      "Supabase",
-      "Authentication",
-      "Formspree",
-      "Razorpay",
-      "SEO and Custom Domain",
-    ],
-    category: "Full Stack",
-    featured: false,
-    liveUrl: "https://sparshnaturals.shop",
-    githubUrl: "https://github.com/KrishkkT/SPARSH---Ecommerce-Store",
-    status: "Live",
-  },
-  {
-    title: "Quick Sort Visualizer - A Java based",
-    description:
-      "An interactive tool that visually illustrates the Quick Sort algorithm's sorting process. It helps users understand how Quick Sort partitions and sorts elements by animating each step in real-time, making algorithm learning intuitive and engaging.",
-    image:
-      "https://images.unsplash.com/photo-1749192859407-e85d4a8bd441?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8M3x8fGVufDB8fHx8fA%3D%3D",
-    technologies: ["Java", "Data Structure - Quick Sort"],
-    category: "Academic Project",
-    featured: false,
-    liveUrl: "https://quick-sort-visualizer.vercel.app/",
-    githubUrl: "https://github.com/KrishkkT/QuickSort-Visualizer",
-    status: "Live",
-  },
-]
-
-const categories = ["All", "Web App", "Full Stack", "Academic Project", "Cybersecurity"]
+const categories = ["All", "Web Development", "Cybersecurity", "Mobile", "Desktop", "AI/ML"]
 
 export default function ProjectsClientPage() {
+  const [projects, setProjects] = useState<Project[]>([])
   const [activeCategory, setActiveCategory] = useState("All")
-  const [hoveredProject, setHoveredProject] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Force scroll to top on page load
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.scrollTo(0, 0)
       document.documentElement.scrollTop = 0
       document.body.scrollTop = 0
+    }
+  }, [])
 
-      // Additional force scroll after a brief delay
-      setTimeout(() => {
-        window.scrollTo(0, 0)
-        document.documentElement.scrollTop = 0
-        document.body.scrollTop = 0
-      }, 100)
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await dataStore.getAllProjects(true)
+        setProjects(data)
+      } catch (error) {
+        console.error("Error loading projects:", error)
+        setError("Failed to load projects")
+      } finally {
+        setLoading(false)
+      }
     }
 
-    // Apply animations when component mounts
-    AnimationUtils.textReveal(".projects-page-title", { delay: 200 })
-    AnimationUtils.staggered(".project-item", "scaleIn", {
-      delay: anime.stagger(100, { start: 300 }),
-      duration: 800,
-    })
+    loadProjects()
   }, [])
 
   const filteredProjects =
-    activeCategory === "All" ? allProjects : allProjects.filter((project) => project.category === activeCategory)
+    activeCategory === "All" ? projects : projects.filter((project) => project.category === activeCategory)
 
-  const handleLiveDemo = (url: string) => {
-    if (url !== "#") {
-      window.open(url, "_blank")
-    }
+  if (loading) {
+    return (
+      <div className="min-h-screen royal-gradient flex items-center justify-center">
+        <div className="text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full mx-auto mb-4"
+          />
+          <p className="text-gray-300">Loading projects...</p>
+        </div>
+      </div>
+    )
   }
 
-  const handleSourceCode = (url: string) => {
-    if (url !== "#") {
-      window.open(url, "_blank")
-    }
+  if (error) {
+    return (
+      <div className="min-h-screen royal-gradient flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()} className="btn-royal text-black font-semibold">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <PageTransitionWrapper namespace="projects">
-      <div className="royal-container royal-spacing py-20">
-        <h1 className="projects-page-title text-4xl font-bold mb-2 text-center">All Projects</h1>
-        <p className="text-center text-gray-400 mb-12">
-          Explore my complete collection of projects, from web applications to educational tools, showcasing technical
-          expertise and creative problem-solving in cybersecurity and full stack development.
-        </p>
+    <div className="min-h-screen royal-gradient">
+      <PageHeader
+        icon={Briefcase}
+        title="Featured"
+        subtitle="Projects"
+        description="A showcase of innovative web applications, cybersecurity tools, and full-stack solutions that demonstrate my technical expertise and problem-solving capabilities."
+      />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {allProjects.map((project, index) => (
-            <Card key={index} className="project-item royal-card overflow-hidden opacity-0">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-xl">{project.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-300 mb-4">{project.description}</p>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {project.technologies.map((tech, i) => (
-                    <span key={i} className="text-xs px-2 py-1 rounded-full bg-secondary/50 text-gray-300">
-                      {tech}
-                    </span>
-                  ))}
+      <div className="royal-container pb-20">
+        {/* Category Filter */}
+        <motion.div
+          className="flex flex-wrap justify-center gap-4 mb-16"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          {categories.map((category, index) => (
+            <motion.button
+              key={category}
+              className={`px-6 py-3 rounded-full font-medium transition-all duration-300 ${
+                activeCategory === category
+                  ? "btn-royal text-black"
+                  : "midnight-glass text-gray-300 hover:text-white border border-yellow-400/20 hover:border-yellow-400/40"
+              }`}
+              onClick={() => setActiveCategory(category)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
+            >
+              {category}
+            </motion.button>
+          ))}
+        </motion.div>
+
+        {/* Projects Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          {filteredProjects.map((project, index) => (
+            <motion.div
+              key={project.id}
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
+              whileHover={{ scale: 1.02, y: -5 }}
+              className="group"
+            >
+              <Card className="royal-card h-full transition-all duration-300 group-hover:shadow-2xl overflow-hidden">
+                <div className="relative h-48 w-full overflow-hidden">
+                  <Image
+                    src={project.image || "/placeholder.svg?height=200&width=400"}
+                    alt={project.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
+
+                  {/* Status badge */}
+                  <div className="absolute top-4 right-4">
+                    <Badge
+                      className={`backdrop-blur-sm ${
+                        project.status === "Live"
+                          ? "bg-green-500/20 text-green-400 border-green-400/30"
+                          : project.status === "In Development"
+                            ? "bg-yellow-500/20 text-yellow-400 border-yellow-400/30"
+                            : "bg-blue-500/20 text-blue-400 border-blue-400/30"
+                      }`}
+                    >
+                      {project.status === "In Development" && <Code className="h-3 w-3 mr-1" />}
+                      {project.status}
+                    </Badge>
+                  </div>
+
+                  {/* Featured badge */}
+                  {project.featured && (
+                    <div className="absolute top-4 left-4">
+                      <Badge className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 backdrop-blur-sm">
+                        <Star className="h-3 w-3 mr-1" />
+                        Featured
+                      </Badge>
+                    </div>
+                  )}
                 </div>
-              </CardContent>
-              <CardFooter className="flex gap-4">
-                {project.liveUrl && (
-                  <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" variant="outline" className="flex items-center gap-1">
-                      <ExternalLink className="h-4 w-4" /> Live
-                    </Button>
-                  </a>
-                )}
-                {project.githubUrl && (
-                  <a href={project.githubUrl} target="_blank" rel="noopener noreferrer">
-                    <Button size="sm" variant="outline" className="flex items-center gap-1">
-                      <Github className="h-4 w-4" /> Code
-                    </Button>
-                  </a>
-                )}
-              </CardFooter>
-            </Card>
+
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <CardTitle className="text-lg text-white group-hover:text-yellow-400 transition-colors leading-tight">
+                        {project.title}
+                      </CardTitle>
+                      <p className="text-sm text-gray-400">{project.category}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-sm text-gray-400">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>{project.year}</span>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-4 pt-0">
+                  <p className="text-gray-300 leading-relaxed text-sm">{project.description}</p>
+
+                  <div className="flex flex-wrap gap-1">
+                    {project.technologies.slice(0, 4).map((tech) => (
+                      <Badge
+                        key={tech}
+                        variant="outline"
+                        className="text-xs bg-yellow-400/10 text-yellow-400 border-yellow-400/20 hover:bg-yellow-400/20 transition-colors"
+                      >
+                        {tech}
+                      </Badge>
+                    ))}
+                    {project.technologies.length > 4 && (
+                      <Badge variant="outline" className="text-xs bg-gray-400/10 text-gray-400 border-gray-400/20">
+                        +{project.technologies.length - 4}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {project.liveUrl && (
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full midnight-glass text-yellow-400 border-yellow-400/30 hover:border-yellow-400/50 hover:bg-yellow-400/10 bg-transparent"
+                          onClick={() => window.open(project.liveUrl, "_blank")}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Live Demo
+                        </Button>
+                      </motion.div>
+                    )}
+                    {project.githubUrl && (
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full midnight-glass text-gray-300 border-gray-400/30 hover:border-gray-400/50 hover:bg-gray-400/10 bg-transparent"
+                          onClick={() => window.open(project.githubUrl, "_blank")}
+                        >
+                          <Github className="h-4 w-4 mr-1" />
+                          Code
+                        </Button>
+                      </motion.div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           ))}
         </div>
+
+        {/* Stats Section */}
+        <motion.div
+          className="grid grid-cols-2 md:grid-cols-4 gap-6"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+        >
+          <Card className="royal-card text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-yellow-400 mb-2">{projects.length}</div>
+              <div className="text-sm text-gray-300">Total Projects</div>
+            </CardContent>
+          </Card>
+          <Card className="royal-card text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-yellow-400 mb-2">
+                {projects.filter((p) => p.status === "Live").length}
+              </div>
+              <div className="text-sm text-gray-300">Live Projects</div>
+            </CardContent>
+          </Card>
+          <Card className="royal-card text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-yellow-400 mb-2">{projects.filter((p) => p.featured).length}</div>
+              <div className="text-sm text-gray-300">Featured Projects</div>
+            </CardContent>
+          </Card>
+          <Card className="royal-card text-center">
+            <CardContent className="p-6">
+              <div className="text-3xl font-bold text-yellow-400 mb-2">
+                {Array.from(new Set(projects.flatMap((p) => p.technologies))).length}
+              </div>
+              <div className="text-sm text-gray-300">Technologies Used</div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-    </PageTransitionWrapper>
+    </div>
   )
 }

@@ -7,95 +7,156 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { Switch } from "@/components/ui/switch"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Plus,
-  Trash2,
   Edit,
-  Save,
-  X,
-  Eye,
-  Calendar,
-  Clock,
-  Search,
-  Filter,
-  RefreshCw,
-  AlertCircle,
-  CheckCircle,
-  Loader2,
+  Trash2,
   FileText,
-  Tag,
-  ImageIcon,
+  Award,
+  Briefcase,
+  User,
+  ExternalLink,
+  Github,
+  CheckCircle,
+  Diamond,
   Sparkles,
-  PenTool,
-  BookOpen,
-  Layers,
-  Zap,
-  Target,
+  BarChart3,
   TrendingUp,
+  AlertCircle,
+  Loader2,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import type { BlogPost, BlogPostSummary } from "@/types/blog"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { toast } from "sonner"
+import { blogStoreSupabase } from "@/lib/blog-store-supabase"
+import { dataStore } from "@/lib/data-store"
+import ImageUpload from "@/components/image-upload"
+import type { BlogPost } from "@/types/blog"
+import type {
+  Certificate,
+  CreateCertificate,
+  Project,
+  CreateProject,
+  Experience,
+  CreateExperience,
+} from "@/lib/data-store"
 
 export default function BlogManagement() {
-  const [posts, setPosts] = useState<BlogPostSummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedTag, setSelectedTag] = useState("")
-  const [allTags, setAllTags] = useState<string[]>([])
-  const [isEditing, setIsEditing] = useState(false)
+  // Blog state
+  const [posts, setPosts] = useState<BlogPost[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
   const [formData, setFormData] = useState({
     title: "",
+    slug: "",
     intro: "",
     content: "",
-    tags: "",
-    imageUrls: "",
+    tags: [] as string[],
+    imageUrls: [] as string[],
+    published: true,
+  })
+
+  // Certificates state
+  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [isCertDialogOpen, setIsCertDialogOpen] = useState(false)
+  const [editingCertificate, setEditingCertificate] = useState<Certificate | null>(null)
+  const [certFormData, setCertFormData] = useState<CreateCertificate>({
+    title: "",
+    issuer: "",
+    date: "",
+    description: "",
+    skills: [],
+    verified: true,
+    status: "Active",
+    image: "",
+    level: "",
+    hours: "",
+  })
+
+  // Projects state
+  const [projects, setProjects] = useState<Project[]>([])
+  const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [projectFormData, setProjectFormData] = useState<CreateProject>({
+    title: "",
+    description: "",
+    image: "",
+    technologies: [],
+    category: "",
+    featured: false,
+    liveUrl: "",
+    githubUrl: "",
+    status: "Live",
+  })
+
+  // Experience state
+  const [experience, setExperience] = useState<Experience[]>([])
+  const [isExpDialogOpen, setIsExpDialogOpen] = useState(false)
+  const [editingExperience, setEditingExperience] = useState<Experience | null>(null)
+  const [expFormData, setExpFormData] = useState<CreateExperience>({
+    year: "",
+    title: "",
+    organization: "",
+    type: "Education",
+    achievements: [],
+    skills: [],
+  })
+
+  const [activeTab, setActiveTab] = useState("overview")
+  const [stats, setStats] = useState({
+    totalPosts: 0,
+    publishedPosts: 0,
+    totalCertificates: 0,
+    totalProjects: 0,
+    totalExperience: 0,
   })
   const [submitStatus, setSubmitStatus] = useState<{
     message: string
     type: "success" | "error" | "loading" | ""
   }>({ message: "", type: "" })
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [postToDelete, setPostToDelete] = useState<BlogPostSummary | null>(null)
 
-  const fetchPosts = async () => {
+  // Load all data
+  useEffect(() => {
+    loadAllData()
+  }, [])
+
+  const loadAllData = async () => {
+    setIsLoading(true)
     try {
-      setLoading(true)
-      const response = await fetch("/api/blog")
-      if (!response.ok) throw new Error("Failed to fetch posts")
+      const [postsData, certificatesData, projectsData, experienceData] = await Promise.all([
+        blogStoreSupabase.getAllPosts(true),
+        dataStore.getAllCertificates(true),
+        dataStore.getAllProjects(true),
+        dataStore.getAllExperience(true),
+      ])
 
-      const data = await response.json()
-      setPosts(data.posts || [])
+      setPosts(postsData)
+      setCertificates(certificatesData)
+      setProjects(projectsData)
+      setExperience(experienceData)
 
-      // Extract tags
-      const tags = new Set<string>()
-      data.posts?.forEach((post: BlogPostSummary) => {
-        post.tags?.forEach((tag) => tags.add(tag))
+      setStats({
+        totalPosts: postsData.length,
+        publishedPosts: postsData.filter((p) => p.published).length,
+        totalCertificates: certificatesData.length,
+        totalProjects: projectsData.length,
+        totalExperience: experienceData.length,
       })
-      setAllTags(Array.from(tags))
     } catch (error) {
-      toast.error("Failed to load blog posts")
+      console.error("Error loading data:", error)
+      toast.error("Failed to load data")
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchPosts()
-  }, [])
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Blog functions
+  const handleSubmitPost = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.title.trim() || !formData.content.trim()) {
       toast.error("Title and content are required")
@@ -105,192 +166,305 @@ export default function BlogManagement() {
     setSubmitStatus({ message: "Saving...", type: "loading" })
 
     try {
-      const method = editingPost ? "PUT" : "POST"
-      const url = editingPost ? `/api/blog/${editingPost.slug}` : "/api/blog"
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formData,
-          tags: formData.tags
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean),
-          imageUrls: formData.imageUrls ? [formData.imageUrls] : [],
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to save post")
-      }
-
-      const result = await response.json()
-
       if (editingPost) {
-        setPosts(posts.map((post) => (post.slug === editingPost.slug ? result.post : post)))
+        await blogStoreSupabase.updatePost(editingPost.slug, formData)
         toast.success("Post updated successfully")
       } else {
-        setPosts([result.post, ...posts])
+        // Generate slug if not provided
+        if (!formData.slug) {
+          formData.slug = formData.title
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, "")
+        }
+        await blogStoreSupabase.addPost(formData)
         toast.success("Post created successfully")
       }
-
-      resetForm()
+      await loadAllData()
+      resetPostForm()
+      setIsDialogOpen(false)
       setSubmitStatus({ message: "Success!", type: "success" })
-
-      setTimeout(() => {
-        setSubmitStatus({ message: "", type: "" })
-      }, 3000)
     } catch (error) {
+      console.error("Error saving post:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to save post"
       toast.error(errorMessage)
       setSubmitStatus({ message: errorMessage, type: "error" })
     }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 3000)
   }
 
-  const handleDelete = async () => {
-    if (!postToDelete) return
-
-    setDeleteDialogOpen(false)
-    setSubmitStatus({ message: "Deleting...", type: "loading" })
-
-    try {
-      const response = await fetch(`/api/blog/${postToDelete.slug}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to delete post")
+  const handleDeletePost = async (slug: string) => {
+    if (confirm("Are you sure you want to delete this post?")) {
+      setSubmitStatus({ message: "Deleting...", type: "loading" })
+      try {
+        await blogStoreSupabase.deletePost(slug)
+        await loadAllData()
+        toast.success("Post deleted successfully")
+        setSubmitStatus({ message: "Deleted successfully!", type: "success" })
+      } catch (error) {
+        console.error("Error deleting post:", error)
+        toast.error("Failed to delete post")
+        setSubmitStatus({ message: "Failed to delete post", type: "error" })
       }
-
-      setPosts(posts.filter((post) => post.slug !== postToDelete.slug))
-      toast.success(`Post "${postToDelete.title}" deleted successfully`)
-      setSubmitStatus({ message: "Deleted successfully!", type: "success" })
 
       setTimeout(() => {
         setSubmitStatus({ message: "", type: "" })
       }, 3000)
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to delete post"
-      toast.error(errorMessage)
-      setSubmitStatus({ message: errorMessage, type: "error" })
-    } finally {
-      setPostToDelete(null)
     }
   }
 
-  const startEdit = async (slug: string) => {
-    try {
-      const response = await fetch(`/api/blog/${slug}`)
-      if (!response.ok) throw new Error("Failed to fetch post")
-
-      const post = await response.json()
-      setEditingPost(post)
-      setFormData({
-        title: post.title,
-        intro: post.intro,
-        content: post.content,
-        tags: post.tags?.join(", ") || "",
-        imageUrls: post.imageUrls?.[0] || "",
-      })
-      setIsEditing(true)
-    } catch (error) {
-      toast.error("Failed to load post for editing")
-    }
-  }
-
-  const resetForm = () => {
-    setEditingPost(null)
-    setIsEditing(false)
+  const resetPostForm = () => {
     setFormData({
       title: "",
+      slug: "",
       intro: "",
       content: "",
-      tags: "",
-      imageUrls: "",
+      tags: [],
+      imageUrls: [],
+      published: true,
     })
+    setEditingPost(null)
   }
 
-  const confirmDeletePost = (post: BlogPostSummary) => {
-    setPostToDelete(post)
-    setDeleteDialogOpen(true)
+  // Certificate functions
+  const handleSubmitCertificate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!certFormData.title.trim() || !certFormData.issuer.trim()) {
+      toast.error("Title and issuer are required")
+      return
+    }
+
+    setSubmitStatus({ message: "Saving...", type: "loading" })
+
+    try {
+      if (editingCertificate) {
+        await dataStore.updateCertificate(editingCertificate.id, certFormData)
+        toast.success("Certificate updated successfully")
+      } else {
+        await dataStore.addCertificate(certFormData)
+        toast.success("Certificate added successfully")
+      }
+      await loadAllData()
+      resetCertificateForm()
+      setIsCertDialogOpen(false)
+      setSubmitStatus({ message: "Success!", type: "success" })
+    } catch (error) {
+      console.error("Error saving certificate:", error)
+      const errorMessage = error instanceof Error ? error.message : "Failed to save certificate"
+      toast.error(errorMessage)
+      setSubmitStatus({ message: errorMessage, type: "error" })
+    }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 3000)
   }
 
-  const filteredPosts = posts.filter((post) => {
-    const matchesSearch =
-      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      post.intro.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesTag = !selectedTag || post.tags?.includes(selectedTag)
-    return matchesSearch && matchesTag
-  })
+  const handleDeleteCertificate = async (id: string) => {
+    if (confirm("Are you sure you want to delete this certificate?")) {
+      setSubmitStatus({ message: "Deleting...", type: "loading" })
+      try {
+        await dataStore.deleteCertificate(id)
+        await loadAllData()
+        toast.success("Certificate deleted successfully")
+        setSubmitStatus({ message: "Deleted successfully!", type: "success" })
+      } catch (error) {
+        console.error("Error deleting certificate:", error)
+        toast.error("Failed to delete certificate")
+        setSubmitStatus({ message: "Failed to delete certificate", type: "error" })
+      }
+
+      setTimeout(() => {
+        setSubmitStatus({ message: "", type: "" })
+      }, 3000)
+    }
+  }
+
+  const resetCertificateForm = () => {
+    setCertFormData({
+      title: "",
+      issuer: "",
+      date: "",
+      description: "",
+      skills: [],
+      verified: true,
+      status: "Active",
+      image: "",
+      level: "",
+      hours: "",
+    })
+    setEditingCertificate(null)
+  }
+
+  // Project functions
+  const handleSubmitProject = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!projectFormData.title.trim() || !projectFormData.description.trim()) {
+      toast.error("Title and description are required")
+      return
+    }
+
+    setSubmitStatus({ message: "Saving...", type: "loading" })
+
+    try {
+      if (editingProject) {
+        await dataStore.updateProject(editingProject.id, projectFormData)
+        toast.success("Project updated successfully")
+      } else {
+        await dataStore.addProject(projectFormData)
+        toast.success("Project added successfully")
+      }
+      await loadAllData()
+      resetProjectForm()
+      setIsProjectDialogOpen(false)
+      setSubmitStatus({ message: "Success!", type: "success" })
+    } catch (error) {
+      console.error("Error saving project:", error)
+      const errorMessage = error instanceof Error ? error.message : "Failed to save project"
+      toast.error(errorMessage)
+      setSubmitStatus({ message: errorMessage, type: "error" })
+    }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 3000)
+  }
+
+  const handleDeleteProject = async (id: string) => {
+    if (confirm("Are you sure you want to delete this project?")) {
+      setSubmitStatus({ message: "Deleting...", type: "loading" })
+      try {
+        await dataStore.deleteProject(id)
+        await loadAllData()
+        toast.success("Project deleted successfully")
+        setSubmitStatus({ message: "Deleted successfully!", type: "success" })
+      } catch (error) {
+        console.error("Error deleting project:", error)
+        toast.error("Failed to delete project")
+        setSubmitStatus({ message: "Failed to delete project", type: "error" })
+      }
+
+      setTimeout(() => {
+        setSubmitStatus({ message: "", type: "" })
+      }, 3000)
+    }
+  }
+
+  const resetProjectForm = () => {
+    setProjectFormData({
+      title: "",
+      description: "",
+      image: "",
+      technologies: [],
+      category: "",
+      featured: false,
+      liveUrl: "",
+      githubUrl: "",
+      status: "Live",
+    })
+    setEditingProject(null)
+  }
+
+  // Experience functions
+  const handleSubmitExperience = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!expFormData.title.trim() || !expFormData.organization.trim()) {
+      toast.error("Title and organization are required")
+      return
+    }
+
+    setSubmitStatus({ message: "Saving...", type: "loading" })
+
+    try {
+      if (editingExperience) {
+        await dataStore.updateExperience(editingExperience.id, expFormData)
+        toast.success("Experience updated successfully")
+      } else {
+        await dataStore.addExperience(expFormData)
+        toast.success("Experience added successfully")
+      }
+      await loadAllData()
+      resetExperienceForm()
+      setIsExpDialogOpen(false)
+      setSubmitStatus({ message: "Success!", type: "success" })
+    } catch (error) {
+      console.error("Error saving experience:", error)
+      const errorMessage = error instanceof Error ? error.message : "Failed to save experience"
+      toast.error(errorMessage)
+      setSubmitStatus({ message: errorMessage, type: "error" })
+    }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 3000)
+  }
+
+  const handleDeleteExperience = async (id: string) => {
+    if (confirm("Are you sure you want to delete this experience?")) {
+      setSubmitStatus({ message: "Deleting...", type: "loading" })
+      try {
+        await dataStore.deleteExperience(id)
+        await loadAllData()
+        toast.success("Experience deleted successfully")
+        setSubmitStatus({ message: "Deleted successfully!", type: "success" })
+      } catch (error) {
+        console.error("Error deleting experience:", error)
+        toast.error("Failed to delete experience")
+        setSubmitStatus({ message: "Failed to delete experience", type: "error" })
+      }
+
+      setTimeout(() => {
+        setSubmitStatus({ message: "", type: "" })
+      }, 3000)
+    }
+  }
+
+  const resetExperienceForm = () => {
+    setExpFormData({
+      year: "",
+      title: "",
+      organization: "",
+      type: "Education",
+      achievements: [],
+      skills: [],
+    })
+    setEditingExperience(null)
+  }
+
+  // Utility functions
+  const handleTagsChange = (value: string, setter: (tags: string[]) => void) => {
+    const tags = value
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+    setter(tags)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <div className="text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full mx-auto mb-4"
+          />
+          <p className="text-gray-300">Loading management dashboard...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-20">
-      <div className="royal-container">
-        {/* Hero Header */}
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500 mb-6">
-            <PenTool className="h-10 w-10 text-gray-900" />
-          </div>
-          <h1 className="text-5xl md:text-6xl font-bold gradient-text mb-6">Blog Management</h1>
-          <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Create, edit, and manage your blog posts with our powerful content management system
-          </p>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 max-w-4xl mx-auto">
-            <motion.div
-              className="midnight-glass rounded-xl p-6 border border-yellow-400/20"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm font-medium">Total Posts</p>
-                  <p className="text-3xl font-bold text-white">{posts.length}</p>
-                </div>
-                <BookOpen className="h-8 w-8 text-yellow-400" />
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="midnight-glass rounded-xl p-6 border border-yellow-400/20"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm font-medium">Categories</p>
-                  <p className="text-3xl font-bold text-white">{allTags.length}</p>
-                </div>
-                <Layers className="h-8 w-8 text-yellow-400" />
-              </div>
-            </motion.div>
-
-            <motion.div
-              className="midnight-glass rounded-xl p-6 border border-yellow-400/20"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-400 text-sm font-medium">Status</p>
-                  <p className="text-3xl font-bold text-green-400">Active</p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-green-400" />
-              </div>
-            </motion.div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2">Content Management Dashboard</h1>
+          <p className="text-gray-300">Manage your portfolio content across all sections</p>
         </motion.div>
 
         {/* Status Message */}
@@ -317,466 +491,1019 @@ export default function BlogManagement() {
           )}
         </AnimatePresence>
 
-        {/* Action Buttons */}
-        <motion.div
-          className="flex justify-center mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-        >
-          <div className="flex gap-4">
-            <Button
-              onClick={() => setIsEditing(!isEditing)}
-              size="lg"
-              className={`${
-                isEditing
-                  ? "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600"
-                  : "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-300 hover:to-yellow-400 shadow-lg hover:shadow-xl"
-              } transition-all duration-300 px-8 py-3 text-lg font-semibold`}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5 bg-gray-800/50 border border-yellow-400/20">
+            <TabsTrigger
+              value="overview"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400"
             >
-              {isEditing ? (
-                <>
-                  <Eye className="mr-3 h-5 w-5" />
-                  View Posts
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-3 h-5 w-5" />
-                  Create New Post
-                </>
-              )}
-            </Button>
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger
+              value="blogs"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Blogs ({stats.totalPosts})
+            </TabsTrigger>
+            <TabsTrigger
+              value="certificates"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400"
+            >
+              <Award className="h-4 w-4 mr-2" />
+              Certificates ({stats.totalCertificates})
+            </TabsTrigger>
+            <TabsTrigger
+              value="projects"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400"
+            >
+              <Briefcase className="h-4 w-4 mr-2" />
+              Projects ({stats.totalProjects})
+            </TabsTrigger>
+            <TabsTrigger
+              value="experience"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400"
+            >
+              <User className="h-4 w-4 mr-2" />
+              Experience ({stats.totalExperience})
+            </TabsTrigger>
+          </TabsList>
 
-            {isEditing && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={resetForm}
-                className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 px-8 py-3 text-lg"
-              >
-                <X className="mr-3 h-5 w-5" />
-                Cancel
-              </Button>
-            )}
-          </div>
-        </motion.div>
-
-        {isEditing ? (
-          /* Enhanced Post Editor Form */
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-5xl mx-auto"
-          >
-            <Card className="midnight-glass border-yellow-400/20 shadow-2xl">
-              <CardHeader className="pb-8">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-3 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500">
-                      <FileText className="h-6 w-6 text-gray-900" />
-                    </div>
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card className="royal-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-3xl text-white">
-                        {editingPost ? "Edit Post" : "Create New Post"}
-                      </CardTitle>
-                      <p className="text-gray-400 mt-1">
-                        {editingPost ? `Editing: ${editingPost.title}` : "Craft your next amazing blog post"}
-                      </p>
+                      <p className="text-sm text-gray-400">Total Posts</p>
+                      <p className="text-2xl font-bold text-yellow-400">{stats.totalPosts}</p>
                     </div>
+                    <FileText className="h-8 w-8 text-yellow-400/60" />
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Zap className="h-5 w-5 text-yellow-400" />
-                    <span className="text-sm text-gray-400">Auto-save enabled</span>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-8">
-                <form onSubmit={handleSubmit} className="space-y-8">
-                  {/* Title Section */}
-                  <div className="space-y-3">
-                    <Label htmlFor="title" className="text-lg font-semibold text-gray-200 flex items-center">
-                      <Target className="mr-2 h-5 w-5 text-yellow-400" />
-                      Post Title
-                      <span className="text-red-400 ml-2">*</span>
-                    </Label>
-                    <Input
-                      id="title"
-                      name="title"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="bg-gray-800/50 border-gray-600 text-white text-lg h-14 focus:border-yellow-400/50 focus:ring-yellow-400/20 transition-all duration-200"
-                      placeholder="Enter a compelling title that grabs attention..."
-                    />
-                    <p className="text-sm text-gray-400">
-                      💡 Tip: Great titles are specific, benefit-focused, and under 60 characters
-                    </p>
-                  </div>
-
-                  <Separator className="bg-gray-700/50" />
-
-                  {/* Introduction Section */}
-                  <div className="space-y-3">
-                    <Label htmlFor="intro" className="text-lg font-semibold text-gray-200 flex items-center">
-                      <Sparkles className="mr-2 h-5 w-5 text-yellow-400" />
-                      Introduction
-                      <span className="text-red-400 ml-2">*</span>
-                    </Label>
-                    <Textarea
-                      id="intro"
-                      name="intro"
-                      value={formData.intro}
-                      onChange={(e) => setFormData({ ...formData, intro: e.target.value })}
-                      className="bg-gray-800/50 border-gray-600 text-white min-h-[120px] text-lg leading-relaxed focus:border-yellow-400/50 focus:ring-yellow-400/20 transition-all duration-200"
-                      placeholder="Write a compelling introduction that hooks your readers..."
-                    />
-                    <p className="text-sm text-gray-400">
-                      ✨ This appears as the excerpt on your blog listing and social media previews
-                    </p>
-                  </div>
-
-                  <Separator className="bg-gray-700/50" />
-
-                  {/* Content Section */}
-                  <div className="space-y-3">
-                    <Label htmlFor="content" className="text-lg font-semibold text-gray-200 flex items-center">
-                      <BookOpen className="mr-2 h-5 w-5 text-yellow-400" />
-                      Content
-                      <span className="text-red-400 ml-2">*</span>
-                    </Label>
-                    <Textarea
-                      id="content"
-                      name="content"
-                      value={formData.content}
-                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                      className="bg-gray-800/50 border-gray-600 text-white min-h-[400px] text-lg leading-relaxed font-mono focus:border-yellow-400/50 focus:ring-yellow-400/20 transition-all duration-200"
-                      placeholder="Write your post content using Markdown formatting...
-
-                      ## Use headings to structure your content
-                      ### Subheadings help with readability
-
-                      **Bold text** for emphasis
-                      *Italic text* for subtle emphasis
-                      `code snippets` for technical content
-
-                      - Bullet points for lists
-                      - Keep paragraphs short and scannable
-                      - Use examples and stories to engage readers"
-                    />
-                    <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
-                      <p className="text-sm text-gray-300 mb-2 font-medium">📝 Markdown Quick Reference:</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-400">
-                        <div>
-                          • **bold** → <strong className="text-white">bold</strong>
-                        </div>
-                        <div>
-                          • *italic* → <em className="text-white">italic</em>
-                        </div>
-                        <div>
-                          • ## Heading → <span className="text-white text-lg font-bold">Heading</span>
-                        </div>
-                        <div>
-                          • `code` → <code className="bg-gray-700 px-1 rounded text-yellow-400">code</code>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator className="bg-gray-700/50" />
-
-                  {/* Tags and Image Row */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Tags Section */}
-                    <div className="space-y-3">
-                      <Label className="text-lg font-semibold text-gray-200 flex items-center">
-                        <Tag className="mr-2 h-5 w-5 text-yellow-400" />
-                        Tags
-                        <span className="text-red-400 ml-2">*</span>
-                      </Label>
-                      <Input
-                        value={formData.tags}
-                        onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                        className="bg-gray-800/50 border-gray-600 text-white h-12 focus:border-yellow-400/50 focus:ring-yellow-400/20 transition-all duration-200"
-                        placeholder="React, Next.js, Web Development, Tutorial"
-                      />
-                      <p className="text-sm text-gray-400">
-                        🏷️ Separate tags with commas. Use 3-5 relevant tags for best discoverability
-                      </p>
-                    </div>
-
-                    {/* Featured Image Section */}
-                    <div className="space-y-3">
-                      <Label htmlFor="imageUrl" className="text-lg font-semibold text-gray-200 flex items-center">
-                        <ImageIcon className="mr-2 h-5 w-5 text-yellow-400" />
-                        Featured Image URL
-                      </Label>
-                      <Input
-                        id="imageUrl"
-                        name="imageUrl"
-                        value={formData.imageUrls}
-                        onChange={(e) => setFormData({ ...formData, imageUrls: e.target.value })}
-                        className="bg-gray-800/50 border-gray-600 text-white h-12 focus:border-yellow-400/50 focus:ring-yellow-400/20 transition-all duration-200"
-                        placeholder="https://example.com/featured-image.jpg"
-                      />
-                      <p className="text-sm text-gray-400">
-                        🖼️ Optional: Add a featured image to make your post more engaging
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Submit Button */}
-                  <div className="pt-8 border-t border-gray-700/50">
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 font-bold text-lg py-4 hover:from-yellow-300 hover:to-yellow-400 transition-all duration-300 shadow-lg hover:shadow-xl"
-                      disabled={submitStatus.type === "loading"}
-                    >
-                      {submitStatus.type === "loading" ? (
-                        <>
-                          <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-                          {editingPost ? "Updating Post..." : "Creating Post..."}
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-3 h-5 w-5" />
-                          {editingPost ? "Update Post" : "Publish Post"}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ) : (
-          /* Enhanced Posts List */
-          <div className="space-y-8">
-            {/* Search and Filter Section */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-              <Card className="midnight-glass border-yellow-400/20">
-                <CardContent className="pt-8">
-                  <div className="flex flex-col lg:flex-row gap-6">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <Input
-                        type="text"
-                        placeholder="Search blog posts by title or content..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-12 bg-gray-800/50 border-gray-600 text-white h-12 text-lg placeholder-gray-400 focus:border-yellow-400/50 focus:ring-yellow-400/20"
-                      />
-                    </div>
-                    <Button
-                      onClick={fetchPosts}
-                      size="lg"
-                      className="bg-yellow-400 text-gray-900 hover:bg-yellow-300 px-8"
-                      disabled={loading}
-                    >
-                      {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="mr-2 h-5 w-5" />}
-                      Refresh
-                    </Button>
-                  </div>
-
-                  {/* Enhanced Tag Filter */}
-                  {allTags.length > 0 && (
-                    <div className="mt-8 pt-6 border-t border-gray-700/50">
-                      <div className="flex items-center text-gray-300 mb-4">
-                        <Filter className="h-5 w-5 mr-2 text-yellow-400" />
-                        <span className="font-medium">Filter by category:</span>
-                      </div>
-                      <div className="flex flex-wrap gap-3">
-                        <Badge
-                          variant={selectedTag === "" ? "default" : "secondary"}
-                          className={`cursor-pointer transition-all duration-200 px-4 py-2 text-sm ${
-                            selectedTag === ""
-                              ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                              : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                          }`}
-                          onClick={() => setSelectedTag("")}
-                        >
-                          All Posts ({posts.length})
-                        </Badge>
-                        {allTags.map((tag) => (
-                          <Badge
-                            key={tag}
-                            variant={selectedTag === tag ? "default" : "secondary"}
-                            className={`cursor-pointer transition-all duration-200 px-4 py-2 text-sm ${
-                              selectedTag === tag
-                                ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            }`}
-                            onClick={() => setSelectedTag(tag === selectedTag ? "" : tag)}
-                          >
-                            {tag} ({posts.filter((post) => post.tags?.includes(tag)).length})
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
-            </motion.div>
 
-            {/* Enhanced Posts Grid */}
-            {loading ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="midnight-glass rounded-xl p-8 h-80 border border-gray-700/30">
-                      <div className="bg-gray-700/50 h-8 rounded-lg mb-6"></div>
-                      <div className="bg-gray-700/50 h-4 rounded w-3/4 mb-3"></div>
-                      <div className="bg-gray-700/50 h-4 rounded w-1/2 mb-6"></div>
-                      <div className="bg-gray-700/50 h-3 rounded w-1/3"></div>
+              <Card className="royal-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Certificates</p>
+                      <p className="text-2xl font-bold text-yellow-400">{stats.totalCertificates}</p>
                     </div>
+                    <Award className="h-8 w-8 text-yellow-400/60" />
                   </div>
-                ))}
-              </div>
-            ) : filteredPosts.length === 0 ? (
-              <motion.div
-                className="text-center py-20"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6 }}
-              >
-                <div className="midnight-glass rounded-2xl p-16 max-w-2xl mx-auto border border-yellow-400/20">
-                  <div className="text-8xl mb-8">📝</div>
-                  <h3 className="text-3xl font-bold text-white mb-6">No blog posts found</h3>
-                  <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-                    {searchTerm || selectedTag
-                      ? "Try adjusting your search or filter criteria to find what you're looking for."
-                      : "Ready to share your thoughts with the world? Create your first blog post to get started!"}
-                  </p>
-                  {(searchTerm || selectedTag) && (
-                    <Button
-                      onClick={() => {
-                        setSearchTerm("")
-                        setSelectedTag("")
-                      }}
-                      size="lg"
-                      variant="outline"
-                      className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-gray-900 px-8 py-3"
-                    >
-                      Clear All Filters
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredPosts.map((post, index) => (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                </CardContent>
+              </Card>
+
+              <Card className="royal-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Projects</p>
+                      <p className="text-2xl font-bold text-yellow-400">{stats.totalProjects}</p>
+                    </div>
+                    <Briefcase className="h-8 w-8 text-yellow-400/60" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="royal-card">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-400">Experience</p>
+                      <p className="text-2xl font-bold text-yellow-400">{stats.totalExperience}</p>
+                    </div>
+                    <User className="h-8 w-8 text-yellow-400/60" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="royal-card">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-yellow-400" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Button
+                  onClick={() => {
+                    resetPostForm()
+                    setIsDialogOpen(true)
+                  }}
+                  className="btn-royal text-black font-semibold"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Blog Post
+                </Button>
+                <Button
+                  onClick={() => {
+                    resetCertificateForm()
+                    setIsCertDialogOpen(true)
+                  }}
+                  className="btn-royal text-black font-semibold"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Certificate
+                </Button>
+                <Button
+                  onClick={() => {
+                    resetProjectForm()
+                    setIsProjectDialogOpen(true)
+                  }}
+                  className="btn-royal text-black font-semibold"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Project
+                </Button>
+                <Button
+                  onClick={() => {
+                    resetExperienceForm()
+                    setIsExpDialogOpen(true)
+                  }}
+                  className="btn-royal text-black font-semibold"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Experience
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Blogs Tab */}
+          <TabsContent value="blogs" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-white">Blog Posts</h2>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      resetPostForm()
+                      setIsDialogOpen(true)
+                    }}
+                    className="btn-royal text-black font-semibold"
                   >
-                    <Card className="midnight-glass border-yellow-400/20 hover:border-yellow-400/40 transition-all duration-300 h-full group hover:shadow-2xl hover:shadow-yellow-400/10">
-                      <CardContent className="p-8">
-                        <div className="flex items-start justify-between mb-4">
-                          <h3 className="text-xl font-bold text-white mb-2 line-clamp-2 group-hover:text-yellow-400 transition-colors duration-200">
-                            {post.title}
-                          </h3>
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Post
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto midnight-glass border-yellow-400/20">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">
+                      {editingPost ? "Edit Blog Post" : "Create New Blog Post"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmitPost} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="title" className="text-gray-300">
+                          Title *
+                        </Label>
+                        <Input
+                          id="title"
+                          value={formData.title}
+                          onChange={(e) => {
+                            setFormData({ ...formData, title: e.target.value })
+                            // Auto-generate slug if not editing
+                            if (!editingPost && !formData.slug) {
+                              const slug = e.target.value
+                                .toLowerCase()
+                                .replace(/[^a-z0-9]+/g, "-")
+                                .replace(/(^-|-$)/g, "")
+                              setFormData((prev) => ({ ...prev, slug }))
+                            }
+                          }}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="slug" className="text-gray-300">
+                          Slug *
+                        </Label>
+                        <Input
+                          id="slug"
+                          value={formData.slug}
+                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="intro" className="text-gray-300">
+                        Introduction *
+                      </Label>
+                      <Textarea
+                        id="intro"
+                        value={formData.intro}
+                        onChange={(e) => setFormData({ ...formData, intro: e.target.value })}
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                        rows={3}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="content" className="text-gray-300">
+                        Content (Markdown) *
+                      </Label>
+                      <Textarea
+                        id="content"
+                        value={formData.content}
+                        onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                        rows={10}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="tags" className="text-gray-300">
+                        Tags (comma-separated)
+                      </Label>
+                      <Input
+                        id="tags"
+                        value={formData.tags.join(", ")}
+                        onChange={(e) => handleTagsChange(e.target.value, (tags) => setFormData({ ...formData, tags }))}
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                      />
+                    </div>
+                    <ImageUpload
+                      value={formData.imageUrls[0] || ""}
+                      onChange={(url) => setFormData({ ...formData, imageUrls: url ? [url] : [] })}
+                      label="Featured Image"
+                      placeholder="Enter image URL or upload a file"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="published"
+                        checked={formData.published}
+                        onCheckedChange={(checked) => setFormData({ ...formData, published: checked })}
+                      />
+                      <Label htmlFor="published" className="text-gray-300">
+                        Published
+                      </Label>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="btn-royal text-black font-semibold">
+                        {editingPost ? "Update Post" : "Create Post"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsDialogOpen(false)}
+                        className="border-gray-600 text-gray-300"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-6">
+              {posts.map((post) => (
+                <Card key={post.id} className="royal-card">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-xl font-semibold text-white">{post.title}</h3>
+                          <Badge variant={post.published ? "default" : "secondary"}>
+                            {post.published ? "Published" : "Draft"}
+                          </Badge>
                         </div>
-
-                        <div className="flex items-center gap-6 text-sm text-gray-400 mb-4">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 text-yellow-400" />
-                            {new Date(post.date).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-yellow-400" />
-                            {post.readingTime} min
-                          </div>
-                        </div>
-
-                        <p className="text-gray-300 mb-6 line-clamp-3 leading-relaxed">{post.intro}</p>
-
-                        <div className="flex flex-wrap gap-2 mb-6">
-                          {post.tags?.slice(0, 3).map((tag) => (
-                            <Badge
-                              key={tag}
-                              variant="secondary"
-                              className="bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 text-xs px-3 py-1 hover:bg-yellow-400/20 transition-colors duration-200"
-                            >
+                        <p className="text-gray-300 mb-3">{post.intro}</p>
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {post.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
                               {tag}
                             </Badge>
                           ))}
-                          {post.tags && post.tags.length > 3 && (
-                            <Badge
-                              variant="secondary"
-                              className="bg-gray-700/50 text-gray-400 border border-gray-600/50 text-xs px-3 py-1"
-                            >
-                              +{post.tags.length - 3} more
+                        </div>
+                        <p className="text-sm text-gray-400">
+                          Created: {new Date(post.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingPost(post)
+                            setFormData({
+                              title: post.title,
+                              slug: post.slug,
+                              intro: post.intro,
+                              content: post.content,
+                              tags: post.tags,
+                              imageUrls: post.imageUrls,
+                              published: post.published,
+                            })
+                            setIsDialogOpen(true)
+                          }}
+                          className="border-yellow-400/30 text-yellow-400"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeletePost(post.slug)}
+                          className="border-red-400/30 text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Certificates Tab */}
+          <TabsContent value="certificates" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-white">Certificates</h2>
+              <Dialog open={isCertDialogOpen} onOpenChange={setIsCertDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      resetCertificateForm()
+                      setIsCertDialogOpen(true)
+                    }}
+                    className="btn-royal text-black font-semibold"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Certificate
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto midnight-glass border-yellow-400/20">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">
+                      {editingCertificate ? "Edit Certificate" : "Add New Certificate"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmitCertificate} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="cert-title" className="text-gray-300">
+                          Title *
+                        </Label>
+                        <Input
+                          id="cert-title"
+                          value={certFormData.title}
+                          onChange={(e) => setCertFormData({ ...certFormData, title: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="cert-issuer" className="text-gray-300">
+                          Issuer *
+                        </Label>
+                        <Input
+                          id="cert-issuer"
+                          value={certFormData.issuer}
+                          onChange={(e) => setCertFormData({ ...certFormData, issuer: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="cert-date" className="text-gray-300">
+                          Date *
+                        </Label>
+                        <Input
+                          id="cert-date"
+                          value={certFormData.date}
+                          onChange={(e) => setCertFormData({ ...certFormData, date: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="cert-level" className="text-gray-300">
+                          Level
+                        </Label>
+                        <Input
+                          id="cert-level"
+                          value={certFormData.level}
+                          onChange={(e) => setCertFormData({ ...certFormData, level: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="cert-hours" className="text-gray-300">
+                          Hours
+                        </Label>
+                        <Input
+                          id="cert-hours"
+                          value={certFormData.hours}
+                          onChange={(e) => setCertFormData({ ...certFormData, hours: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="cert-description" className="text-gray-300">
+                        Description *
+                      </Label>
+                      <Textarea
+                        id="cert-description"
+                        value={certFormData.description}
+                        onChange={(e) => setCertFormData({ ...certFormData, description: e.target.value })}
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                        rows={4}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="cert-skills" className="text-gray-300">
+                        Skills (comma-separated)
+                      </Label>
+                      <Input
+                        id="cert-skills"
+                        value={certFormData.skills?.join(", ") || ""}
+                        onChange={(e) =>
+                          handleTagsChange(e.target.value, (skills) => setCertFormData({ ...certFormData, skills }))
+                        }
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                      />
+                    </div>
+                    <ImageUpload
+                      value={certFormData.image || ""}
+                      onChange={(url) => setCertFormData({ ...certFormData, image: url })}
+                      label="Certificate Image"
+                      placeholder="Enter image URL or upload certificate image"
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="cert-status" className="text-gray-300">
+                          Status
+                        </Label>
+                        <Select
+                          value={certFormData.status}
+                          onValueChange={(value) => setCertFormData({ ...certFormData, status: value })}
+                        >
+                          <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="In Progress">In Progress</SelectItem>
+                            <SelectItem value="Expired">Expired</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center space-x-2 pt-6">
+                        <Switch
+                          id="cert-verified"
+                          checked={certFormData.verified}
+                          onCheckedChange={(checked) => setCertFormData({ ...certFormData, verified: checked })}
+                        />
+                        <Label htmlFor="cert-verified" className="text-gray-300">
+                          Verified
+                        </Label>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="btn-royal text-black font-semibold">
+                        {editingCertificate ? "Update Certificate" : "Add Certificate"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsCertDialogOpen(false)}
+                        className="border-gray-600 text-gray-300"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-6">
+              {certificates.map((certificate) => (
+                <Card key={certificate.id} className="royal-card">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-xl font-semibold text-white">{certificate.title}</h3>
+                          {certificate.verified && (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-400/30">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Verified
                             </Badge>
                           )}
+                          <Badge variant="outline">{certificate.status}</Badge>
                         </div>
-
-                        <div className="flex gap-3">
-                          <Button
-                            size="sm"
-                            onClick={() => startEdit(post.slug)}
-                            className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-300 hover:to-yellow-400 font-medium"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => confirmDeletePost(post)}
-                            className="bg-red-500/10 text-red-400 border border-red-400/30 hover:bg-red-500/20 hover:border-red-400/50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        <p className="text-gray-400 mb-2">{certificate.issuer}</p>
+                        <p className="text-gray-300 mb-3">{certificate.description}</p>
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {certificate.skills.map((skill) => (
+                            <Badge key={skill} variant="outline" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
                         </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Enhanced Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="midnight-glass border-red-400/30 max-w-md">
-          <DialogHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-              <AlertCircle className="h-8 w-8 text-red-400" />
+                        <p className="text-sm text-gray-400">
+                          Date: {certificate.date} | Level: {certificate.level} | Hours: {certificate.hours}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingCertificate(certificate)
+                            setCertFormData({
+                              title: certificate.title,
+                              issuer: certificate.issuer,
+                              date: certificate.date,
+                              description: certificate.description,
+                              skills: certificate.skills,
+                              verified: certificate.verified,
+                              status: certificate.status,
+                              image: certificate.image,
+                              level: certificate.level,
+                              hours: certificate.hours,
+                            })
+                            setIsCertDialogOpen(true)
+                          }}
+                          className="border-yellow-400/30 text-yellow-400"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteCertificate(certificate.id)}
+                          className="border-red-400/30 text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <DialogTitle className="text-2xl text-white">Confirm Deletion</DialogTitle>
-            <DialogDescription className="text-gray-300 text-lg leading-relaxed">
-              Are you sure you want to delete <span className="font-semibold text-white">"{postToDelete?.title}"</span>?
-              This action cannot be undone and will permanently remove the post from your blog.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col sm:flex-row gap-3 sm:justify-center pt-6">
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              className="border-gray-600 text-gray-300 hover:bg-gray-800 px-8"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              className="bg-red-500/20 text-red-400 border border-red-400/30 hover:bg-red-500/30 hover:border-red-400/50 px-8"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Post
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </TabsContent>
+
+          {/* Projects Tab */}
+          <TabsContent value="projects" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-white">Projects</h2>
+              <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      resetProjectForm()
+                      setIsProjectDialogOpen(true)
+                    }}
+                    className="btn-royal text-black font-semibold"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Project
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto midnight-glass border-yellow-400/20">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">
+                      {editingProject ? "Edit Project" : "Add New Project"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmitProject} className="space-y-6">
+                    <div>
+                      <Label htmlFor="project-title" className="text-gray-300">
+                        Title *
+                      </Label>
+                      <Input
+                        id="project-title"
+                        value={projectFormData.title}
+                        onChange={(e) => setProjectFormData({ ...projectFormData, title: e.target.value })}
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="project-description" className="text-gray-300">
+                        Description *
+                      </Label>
+                      <Textarea
+                        id="project-description"
+                        value={projectFormData.description}
+                        onChange={(e) => setProjectFormData({ ...projectFormData, description: e.target.value })}
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                        rows={4}
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="project-category" className="text-gray-300">
+                          Category
+                        </Label>
+                        <Input
+                          id="project-category"
+                          value={projectFormData.category}
+                          onChange={(e) => setProjectFormData({ ...projectFormData, category: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="project-status" className="text-gray-300">
+                          Status
+                        </Label>
+                        <Select
+                          value={projectFormData.status}
+                          onValueChange={(value) => setProjectFormData({ ...projectFormData, status: value })}
+                        >
+                          <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Live">Live</SelectItem>
+                            <SelectItem value="In Development">In Development</SelectItem>
+                            <SelectItem value="Completed">Completed</SelectItem>
+                            <SelectItem value="Archived">Archived</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="project-live-url" className="text-gray-300">
+                          Live URL
+                        </Label>
+                        <Input
+                          id="project-live-url"
+                          value={projectFormData.liveUrl}
+                          onChange={(e) => setProjectFormData({ ...projectFormData, liveUrl: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="project-github-url" className="text-gray-300">
+                          GitHub URL
+                        </Label>
+                        <Input
+                          id="project-github-url"
+                          value={projectFormData.githubUrl}
+                          onChange={(e) => setProjectFormData({ ...projectFormData, githubUrl: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                        />
+                      </div>
+                    </div>
+                    <ImageUpload
+                      value={projectFormData.image || ""}
+                      onChange={(url) => setProjectFormData({ ...projectFormData, image: url })}
+                      label="Project Image"
+                      placeholder="Enter image URL or upload project screenshot"
+                    />
+                    <div>
+                      <Label htmlFor="project-technologies" className="text-gray-300">
+                        Technologies (comma-separated)
+                      </Label>
+                      <Input
+                        id="project-technologies"
+                        value={projectFormData.technologies?.join(", ") || ""}
+                        onChange={(e) =>
+                          handleTagsChange(e.target.value, (technologies) =>
+                            setProjectFormData({ ...projectFormData, technologies }),
+                          )
+                        }
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="project-featured"
+                        checked={projectFormData.featured}
+                        onCheckedChange={(checked) => setProjectFormData({ ...projectFormData, featured: checked })}
+                      />
+                      <Label htmlFor="project-featured" className="text-gray-300">
+                        Featured Project
+                      </Label>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="btn-royal text-black font-semibold">
+                        {editingProject ? "Update Project" : "Add Project"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsProjectDialogOpen(false)}
+                        className="border-gray-600 text-gray-300"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-6">
+              {projects.map((project) => (
+                <Card key={project.id} className="royal-card">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-xl font-semibold text-white">{project.title}</h3>
+                          {project.featured && (
+                            <Badge className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30">
+                              <Sparkles className="h-3 w-3 mr-1" />
+                              Featured
+                            </Badge>
+                          )}
+                          <Badge variant="outline">{project.status}</Badge>
+                        </div>
+                        <p className="text-gray-300 mb-3">{project.description}</p>
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {project.technologies.map((tech) => (
+                            <Badge key={tech} variant="outline" className="text-xs">
+                              {tech}
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="flex gap-4 text-sm text-gray-400">
+                          {project.liveUrl && (
+                            <a
+                              href={project.liveUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 hover:text-yellow-400"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Live Demo
+                            </a>
+                          )}
+                          {project.githubUrl && (
+                            <a
+                              href={project.githubUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 hover:text-yellow-400"
+                            >
+                              <Github className="h-3 w-3" />
+                              Source Code
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingProject(project)
+                            setProjectFormData({
+                              title: project.title,
+                              description: project.description,
+                              image: project.image,
+                              technologies: project.technologies,
+                              category: project.category,
+                              featured: project.featured,
+                              liveUrl: project.liveUrl,
+                              githubUrl: project.githubUrl,
+                              status: project.status,
+                            })
+                            setIsProjectDialogOpen(true)
+                          }}
+                          className="border-yellow-400/30 text-yellow-400"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteProject(project.id)}
+                          className="border-red-400/30 text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* Experience Tab */}
+          <TabsContent value="experience" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-white">Experience</h2>
+              <Dialog open={isExpDialogOpen} onOpenChange={setIsExpDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={() => {
+                      resetExperienceForm()
+                      setIsExpDialogOpen(true)
+                    }}
+                    className="btn-royal text-black font-semibold"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Experience
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto midnight-glass border-yellow-400/20">
+                  <DialogHeader>
+                    <DialogTitle className="text-white">
+                      {editingExperience ? "Edit Experience" : "Add New Experience"}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmitExperience} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="exp-title" className="text-gray-300">
+                          Title *
+                        </Label>
+                        <Input
+                          id="exp-title"
+                          value={expFormData.title}
+                          onChange={(e) => setExpFormData({ ...expFormData, title: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="exp-organization" className="text-gray-300">
+                          Organization *
+                        </Label>
+                        <Input
+                          id="exp-organization"
+                          value={expFormData.organization}
+                          onChange={(e) => setExpFormData({ ...expFormData, organization: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="exp-year" className="text-gray-300">
+                          Year/Period *
+                        </Label>
+                        <Input
+                          id="exp-year"
+                          value={expFormData.year}
+                          onChange={(e) => setExpFormData({ ...expFormData, year: e.target.value })}
+                          className="bg-gray-800/50 border-gray-700 text-white"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="exp-type" className="text-gray-300">
+                          Type
+                        </Label>
+                        <Select
+                          value={expFormData.type}
+                          onValueChange={(value) => setExpFormData({ ...expFormData, type: value })}
+                        >
+                          <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Education">Education</SelectItem>
+                            <SelectItem value="Work">Work</SelectItem>
+                            <SelectItem value="Internship">Internship</SelectItem>
+                            <SelectItem value="Project">Project</SelectItem>
+                            <SelectItem value="Volunteer">Volunteer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="exp-achievements" className="text-gray-300">
+                        Achievements (comma-separated)
+                      </Label>
+                      <Textarea
+                        id="exp-achievements"
+                        value={expFormData.achievements?.join(", ") || ""}
+                        onChange={(e) =>
+                          handleTagsChange(e.target.value, (achievements) =>
+                            setExpFormData({ ...expFormData, achievements }),
+                          )
+                        }
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="exp-skills" className="text-gray-300">
+                        Skills (comma-separated)
+                      </Label>
+                      <Input
+                        id="exp-skills"
+                        value={expFormData.skills?.join(", ") || ""}
+                        onChange={(e) =>
+                          handleTagsChange(e.target.value, (skills) => setExpFormData({ ...expFormData, skills }))
+                        }
+                        className="bg-gray-800/50 border-gray-700 text-white"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="submit" className="btn-royal text-black font-semibold">
+                        {editingExperience ? "Update Experience" : "Add Experience"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsExpDialogOpen(false)}
+                        className="border-gray-600 text-gray-300"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="grid gap-6">
+              {experience.map((exp) => (
+                <Card key={exp.id} className="royal-card">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-xl font-semibold text-white">{exp.title}</h3>
+                          <Badge variant="outline">{exp.type}</Badge>
+                        </div>
+                        <p className="text-gray-400 mb-2">{exp.organization}</p>
+                        <p className="text-yellow-400 mb-3">{exp.year}</p>
+                        {exp.achievements.length > 0 && (
+                          <div className="mb-3">
+                            <h4 className="text-sm font-semibold text-gray-300 mb-2">Achievements:</h4>
+                            <ul className="space-y-1">
+                              {exp.achievements.map((achievement, index) => (
+                                <li key={index} className="flex items-start gap-2 text-sm text-gray-300">
+                                  <Diamond className="h-3 w-3 text-yellow-400 mt-1 flex-shrink-0" />
+                                  {achievement}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <div className="flex flex-wrap gap-1">
+                          {exp.skills.map((skill) => (
+                            <Badge key={skill} variant="outline" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditingExperience(exp)
+                            setExpFormData({
+                              year: exp.year,
+                              title: exp.title,
+                              organization: exp.organization,
+                              type: exp.type,
+                              achievements: exp.achievements,
+                              skills: exp.skills,
+                            })
+                            setIsExpDialogOpen(true)
+                          }}
+                          className="border-yellow-400/30 text-yellow-400"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteExperience(exp.id)}
+                          className="border-red-400/30 text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }

@@ -15,7 +15,10 @@ export function getSupabaseClient() {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Missing Supabase environment variables")
+      console.error("Missing Supabase client environment variables:", {
+        url: !!supabaseUrl,
+        key: !!supabaseAnonKey,
+      })
       return null
     }
 
@@ -47,11 +50,21 @@ let serverSupabaseClient: ReturnType<typeof createClient<Database>> | null = nul
 
 export function getServerSupabaseClient() {
   if (!serverSupabaseClient) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing Supabase server environment variables")
+      console.error("Missing Supabase server environment variables:", {
+        url: !!supabaseUrl,
+        serviceKey: !!supabaseServiceKey,
+        availableEnvVars: {
+          NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+          SUPABASE_URL: !!process.env.SUPABASE_URL,
+          SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+          SUPABASE_ANON_KEY: !!process.env.SUPABASE_ANON_KEY,
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        },
+      })
       return null
     }
 
@@ -84,21 +97,50 @@ export async function testSupabaseConnection(): Promise<{ success: boolean; erro
   try {
     const client = getServerSupabaseClient()
     if (!client) {
-      return { success: false, error: "Failed to initialize Supabase client" }
+      return { success: false, error: "Failed to initialize Supabase client - check environment variables" }
     }
 
-    // Test with a simple query
+    // Test with a simple query to blog_posts table
     const { error } = await client.from("blog_posts").select("count", { count: "exact", head: true })
 
     if (error) {
-      return { success: false, error: error.message }
+      console.error("Supabase connection test failed:", error)
+      return { success: false, error: `Database connection error: ${error.message}` }
     }
 
     return { success: true }
   } catch (error) {
+    console.error("Supabase connection test exception:", error)
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown connection error",
+    }
+  }
+}
+
+// Image upload function using Vercel Blob
+export async function uploadImage(file: File): Promise<{ url: string; error?: string }> {
+  try {
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || "Upload failed")
+    }
+
+    const data = await response.json()
+    return { url: data.url }
+  } catch (error) {
+    console.error("Image upload error:", error)
+    return {
+      url: "",
+      error: error instanceof Error ? error.message : "Upload failed",
     }
   }
 }

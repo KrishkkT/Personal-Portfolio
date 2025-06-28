@@ -1,43 +1,23 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Diamond, Calendar, Building, User, GraduationCap, Briefcase, ArrowRight } from "lucide-react"
+import { Diamond, Calendar, Building, User, GraduationCap, Briefcase } from "lucide-react"
 import { motion } from "framer-motion"
-import Link from "next/link"
+import PageHeader from "@/components/page-header"
 import { dataStore } from "@/lib/data-store"
 import type { Experience } from "@/lib/data-store"
 
-export default function TimelineSection() {
+export default function ExperiencePage() {
   const [experience, setExperience] = useState<Experience[]>([])
   const [loading, setLoading] = useState(true)
-  const [isVisible, setIsVisible] = useState(false)
-  const sectionRef = useRef<HTMLElement>(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true)
-        }
-      },
-      { threshold: 0.1 },
-    )
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current)
-    }
-
-    return () => observer.disconnect()
-  }, [])
 
   useEffect(() => {
     const loadExperience = async () => {
       try {
         const data = await dataStore.getAllExperience(true)
-        setExperience(data.slice(0, 4)) // Show only first 4 items
+        setExperience(data)
       } catch (error) {
         console.error("Error loading experience:", error)
       } finally {
@@ -50,102 +30,33 @@ export default function TimelineSection() {
 
   if (loading) {
     return (
-      <section ref={sectionRef} id="journey" className="py-20 royal-gradient">
-        <div className="royal-container">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 30 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8 }}
-          >
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <motion.div
-                animate={{
-                  rotate: [0, 180, 360],
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: "easeInOut",
-                }}
-              >
-                <Diamond className="h-6 w-6 text-yellow-400" />
-              </motion.div>
-              <h2 className="text-4xl md:text-5xl font-bold text-white">
-                My <span className="gradient-text">Journey</span>
-              </h2>
-            </div>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Key milestones and experiences that have shaped my professional growth
-            </p>
-          </motion.div>
-
-          <div className="max-w-4xl mx-auto">
-            <div className="relative">
-              <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-yellow-400/30"></div>
-              {[1, 2, 3, 4].map((i) => (
-                <motion.div
-                  key={i}
-                  className="relative pl-20 pb-12 last:pb-0 animate-pulse"
-                  initial={{ opacity: 0, x: -50 }}
-                  animate={isVisible ? { opacity: 1, x: 0 } : {}}
-                  transition={{ duration: 0.6, delay: i * 0.1 }}
-                >
-                  <div className="absolute left-6 top-6 w-4 h-4 rounded-full bg-gray-700 border-4 border-gray-900"></div>
-                  <div className="royal-card">
-                    <div className="p-8">
-                      <div className="bg-gray-700/50 h-6 rounded w-3/4 mb-4"></div>
-                      <div className="bg-gray-700/50 h-4 rounded w-1/2 mb-6"></div>
-                      <div className="space-y-2">
-                        <div className="bg-gray-700/50 h-4 rounded"></div>
-                        <div className="bg-gray-700/50 h-4 rounded w-5/6"></div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+      <div className="min-h-screen royal-gradient">
+        <PageHeader title="Experience" subtitle="My professional journey and key milestones" icon={User} />
+        <div className="royal-container py-20">
+          <div className="text-center">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+              className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full mx-auto mb-4"
+            />
+            <p className="text-gray-300">Loading experience...</p>
           </div>
         </div>
-      </section>
+      </div>
     )
   }
 
   return (
-    <section ref={sectionRef} id="journey" className="py-20 royal-gradient">
-      <div className="royal-container">
-        <motion.div
-          className="text-center mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
-        >
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <motion.div
-              animate={{
-                rotate: [0, 180, 360],
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Number.POSITIVE_INFINITY,
-                ease: "easeInOut",
-              }}
-            >
-              <Diamond className="h-6 w-6 text-yellow-400" />
-            </motion.div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white">
-              My <span className="gradient-text">Journey</span>
-            </h2>
-          </div>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Key milestones and experiences that have shaped my professional growth and expertise in technology
-          </p>
-        </motion.div>
+    <div className="min-h-screen royal-gradient">
+      <PageHeader
+        title="Experience"
+        subtitle="Key milestones and experiences that have shaped my professional growth and expertise in technology"
+        icon={User}
+      />
 
+      <div className="royal-container py-20">
         {/* Timeline */}
-        <div className="max-w-4xl mx-auto mb-16">
+        <div className="max-w-4xl mx-auto">
           <div className="relative">
             {/* Timeline Line */}
             <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-yellow-400/30"></div>
@@ -155,7 +66,7 @@ export default function TimelineSection() {
                 key={item.id}
                 className="relative pl-20 pb-12 last:pb-0"
                 initial={{ opacity: 0, x: -50 }}
-                animate={isVisible ? { opacity: 1, x: 0 } : {}}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
               >
                 {/* Timeline Dot */}
@@ -217,12 +128,12 @@ export default function TimelineSection() {
                           Key Achievements
                         </h4>
                         <ul className="space-y-3">
-                          {item.achievements.slice(0, 2).map((achievement, achievementIndex) => (
+                          {item.achievements.map((achievement, achievementIndex) => (
                             <motion.li
                               key={achievementIndex}
                               className="flex items-start gap-3 text-gray-300"
                               initial={{ opacity: 0, x: -20 }}
-                              animate={isVisible ? { opacity: 1, x: 0 } : {}}
+                              animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.4, delay: index * 0.1 + achievementIndex * 0.1 + 0.3 }}
                             >
                               <Diamond className="h-4 w-4 text-yellow-400 mt-1 flex-shrink-0" />
@@ -238,7 +149,7 @@ export default function TimelineSection() {
                       <div>
                         <h4 className="text-lg font-semibold text-white mb-4">Skills & Technologies</h4>
                         <div className="flex flex-wrap gap-2">
-                          {item.skills.slice(0, 4).map((skill) => (
+                          {item.skills.map((skill) => (
                             <Badge
                               key={skill}
                               variant="secondary"
@@ -247,11 +158,6 @@ export default function TimelineSection() {
                               {skill}
                             </Badge>
                           ))}
-                          {item.skills.length > 4 && (
-                            <Badge variant="outline" className="bg-gray-400/10 text-gray-400 border-gray-400/20">
-                              +{item.skills.length - 4}
-                            </Badge>
-                          )}
                         </div>
                       </div>
                     )}
@@ -262,22 +168,18 @@ export default function TimelineSection() {
           </div>
         </div>
 
-        {/* View More Button */}
-        <motion.div
-          className="text-center"
-          initial={{ opacity: 0 }}
-          animate={isVisible ? { opacity: 1 } : {}}
-          transition={{ duration: 0.8, delay: 0.8 }}
-        >
-          <Link href="/experience">
-            <Button size="lg" className="btn-royal text-black font-semibold group">
-              <User className="mr-2 h-5 w-5" />
-              View Full Journey
-              <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </Button>
-          </Link>
-        </motion.div>
+        {experience.length === 0 && (
+          <motion.div
+            className="text-center py-20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h3 className="text-2xl font-bold text-white mb-4">No experience data available</h3>
+            <p className="text-gray-300">Experience information will be updated soon.</p>
+          </motion.div>
+        )}
       </div>
-    </section>
+    </div>
   )
 }

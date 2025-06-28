@@ -15,8 +15,8 @@ interface SeoMetaProps {
 }
 
 export default function SeoMeta({
-  title = "KT - Full Stack Developer & Cybersecurity Specialist",
-  description = "Krish Thakker - Cybersecurity & Cloud Specialist with expertise in Full Stack Development. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
+  title = "KT - Cybersecurity & AI developer",
+  description = "Krish Thakker - Cybersecurity, AI & Cloud Enthusiast with expertise in Development. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
   keywords = [],
   ogImage = "/images/profile.jpg",
   ogType = "website",

@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "KT - Full Stack Developer & Cybersecurity Specialist",
+    name: "KT - Cybersecurity, AI & Developer Portfolio",
     short_name: "KT Portfolio",
     description:
-      "Professional portfolio of Krish Thakker, showcasing expertise in Full Stack Development, Cybersecurity, and Cloud Computing.",
+      "Professional portfolio of Krish Thakker, showcasing expertise in Development, Cybersecurity, CLoud and AI.",
     start_url: "/",
     display: "standalone",
     background_color: "#0f0f23",

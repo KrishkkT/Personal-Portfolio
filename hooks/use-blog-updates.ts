@@ -11,9 +11,9 @@ interface UseBlogUpdatesOptions {
 
 interface UseBlogPostsResult {
   posts: BlogPostSummary[]
-  isLoading: boolean
+  loading: boolean
   error: string | null
-  refetch: () => Promise<void>
+  refresh: () => Promise<void>
 }
 
 interface UseBlogPostResult {
@@ -76,12 +76,12 @@ export function useBlogUpdates(options: UseBlogUpdatesOptions = {}) {
 // Blog posts hook for fetching and managing blog posts
 export function useBlogPosts(limit?: number): UseBlogPostsResult {
   const [posts, setPosts] = useState<BlogPostSummary[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
-      setIsLoading(true)
+      setLoading(true)
       setError(null)
 
       const params = new URLSearchParams()
@@ -97,7 +97,11 @@ export function useBlogPosts(limit?: number): UseBlogPostsResult {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`)
+        // If API fails, return empty array instead of throwing
+        console.warn(`Blog API returned ${response.status}, using empty array`)
+        setPosts([])
+        setError(null) // Don't show error for missing blog posts
+        return
       }
 
       const data = await response.json()
@@ -105,19 +109,21 @@ export function useBlogPosts(limit?: number): UseBlogPostsResult {
       if (data.success && Array.isArray(data.posts)) {
         setPosts(data.posts)
       } else {
-        throw new Error(data.error || "Failed to fetch blog posts")
+        console.warn("Blog API returned unexpected format, using empty array")
+        setPosts([])
+        setError(null)
       }
     } catch (err) {
-      console.error("Error fetching blog posts:", err)
-      setError(err instanceof Error ? err.message : "Failed to fetch blog posts")
+      console.warn("Error fetching blog posts:", err)
       setPosts([]) // Set empty array on error
+      setError(null) // Don't show error to user for blog posts
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
-  }
+  }, [limit])
 
   // Use blog updates hook for real-time updates
-  useBlogUpdates({
+  const { refresh: triggerRefresh } = useBlogUpdates({
     onUpdate: () => {
       fetchPosts()
     },
@@ -125,9 +131,14 @@ export function useBlogPosts(limit?: number): UseBlogPostsResult {
 
   useEffect(() => {
     fetchPosts()
-  }, [limit])
+  }, [fetchPosts])
 
-  return { posts, isLoading, error, refetch: fetchPosts }
+  return {
+    posts,
+    loading,
+    error,
+    refresh: fetchPosts,
+  }
 }
 
 // Single blog post hook
@@ -136,7 +147,7 @@ export function useBlogPost(slug: string): UseBlogPostResult {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchPost = async () => {
+  const fetchPost = useCallback(async () => {
     if (!slug) return
 
     try {
@@ -167,13 +178,13 @@ export function useBlogPost(slug: string): UseBlogPostResult {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [slug])
 
   useEffect(() => {
     if (slug) {
       fetchPost()
     }
-  }, [slug])
+  }, [fetchPost, slug])
 
   return { post, isLoading, error, refetch: fetchPost }
 }

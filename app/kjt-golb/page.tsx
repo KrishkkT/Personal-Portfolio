@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input"
 import { Lock, User, Eye, EyeOff, Shield, Sparkles, Zap } from "lucide-react"
 import { motion } from "framer-motion"
 import BlogManagement from "./BlogManagement"
-import SimpleChat from "@/components/simple-chat"
 
 export default function BlogManagementPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -57,16 +56,13 @@ export default function BlogManagementPage() {
           <Button
             onClick={handleLogout}
             variant="outline"
-            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 backdrop-blur-sm"
+            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 backdrop-blur-sm bg-transparent"
           >
             <Lock className="h-4 w-4 mr-2" />
             Logout
           </Button>
         </div>
         <BlogManagement />
-
-        {/* Simple Chat Button - always works */}
-        <SimpleChat className="transition-all duration-300" />
       </div>
     )
   }
@@ -279,9 +275,6 @@ export default function BlogManagementPage() {
           <p>© 2024 KT Portfolio. All rights reserved.</p>
         </motion.div>
       </motion.div>
-
-      {/* Simple Chat Button - always works */}
-      <SimpleChat className="transition-all duration-300" />
     </div>
   )
 }
