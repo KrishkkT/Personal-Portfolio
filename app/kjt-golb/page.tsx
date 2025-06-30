@@ -127,7 +127,7 @@ export default function BlogManagementPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
-              <CardTitle className="text-2xl sm:text-3xl text-white font-bold mb-2">Blog Management</CardTitle>
+              <CardTitle className="text-2xl sm:text-3xl text-white font-bold mb-2">Content Management</CardTitle>
               <p className="text-gray-300 text-xs sm:text-sm">Secure access to content management system</p>
             </motion.div>
 

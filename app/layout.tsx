@@ -1,10 +1,14 @@
 import type React from "react"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import Script from "next/script"
 import EnhancedPreloader from "@/components/enhanced-preloader"
+import Navigation from "@/components/navigation"
+import Footer from "@/components/footer"
 import { Toaster } from "sonner"
+import ErrorBoundary from "@/components/error-boundary"
+import { initializeSupabaseBlog } from "@/lib/blog-store-supabase"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -30,6 +34,17 @@ const keywords = [
   "Web Security",
   "Professional Portfolio",
 ]
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#111827" },
+  ],
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://kjt.vercel.app"),
@@ -73,7 +88,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "KT - Full Stack Developer & Cybersecurity Enthusiast &Specialist",
+    title: "KT - Full Stack Developer & Cybersecurity Enthusiast & Specialist",
     description:
       "Cybersecurity, Cloud & Full Stack Development Enthusiast. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
     images: ["/icon"],
@@ -96,6 +111,11 @@ export const metadata: Metadata = {
   category: "technology",
   generator: "Next.js",
 }
+
+// Initialize blog store on app start
+initializeSupabaseBlog().catch(() => {
+  // Silent fail - app should still work with fallback data
+})
 
 export default function RootLayout({
   children,
@@ -121,75 +141,91 @@ export default function RootLayout({
         />
         <link rel="preload" href="/fonts/Inter-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/Inter-Bold.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
+        <meta name="theme-color" content="#111827" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="KT Portfolio" />
+        <meta name="application-name" content="KT Portfolio" />
+        <meta name="msapplication-TileColor" content="#111827" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={`${inter.className} antialiased`}>
-        <EnhancedPreloader />
-        <div data-barba="wrapper">{children}</div>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: "rgb(31 41 55)",
-              color: "rgb(243 244 246)",
-              border: "1px solid rgb(75 85 99)",
-            },
-          }}
-        />
-
-        <Script
-          id="schema-person"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "Person",
-              name: "Krish Thakker",
-              url: "https://kjt.vercel.app",
-              image: "https://kjt.vercel.app/icon",
-              sameAs: ["https://github.com/krishkkt", "https://linkedin.com/in/krishthakker08"],
-              jobTitle: "Full Stack Developer & Cybersecurity Enthusiast & Specialist",
-              worksFor: {
-                "@type": "Organization",
-                name: "Independent Professional",
+        <ErrorBoundary>
+          <EnhancedPreloader />
+          <div data-barba="wrapper">
+            <Navigation />
+            <main className="relative z-10">{children}</main>
+            <Footer />
+          </div>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "rgb(31 41 55)",
+                color: "rgb(243 244 246)",
+                border: "1px solid rgb(75 85 99)",
               },
-              description:
-                "Cybersecurity, Cloud & Full Stack Development Enthusiast. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
-              knowsAbout: [
-                "Full Stack Development",
-                "Cybersecurity",
-                "Cloud Computing",
-                "React",
-                "Next.js",
-                "TypeScript",
-                "Ethical Hacking",
-              ],
-            }),
-          }}
-        />
+            }}
+          />
 
-        <Script
-          id="schema-website"
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              url: "https://kjt.vercel.app",
-              name: "KT - Full Stack Developer & Cybersecurity Specialist",
-              description:
-                "Professional portfolio of Krish Thakker, showcasing expertise in Full Stack Development, Cybersecurity, and Cloud Computing.",
-              author: {
+          <Script
+            id="schema-person"
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
                 "@type": "Person",
                 name: "Krish Thakker",
-              },
-              potentialAction: {
-                "@type": "SearchAction",
-                target: "https://kjt.vercel.app/search?q={search_term_string}",
-                "query-input": "required name=search_term_string",
-              },
-            }),
-          }}
-        />
+                url: "https://kjt.vercel.app",
+                image: "https://kjt.vercel.app/icon",
+                sameAs: ["https://github.com/krishkkt", "https://linkedin.com/in/krishthakker08"],
+                jobTitle: "Full Stack Developer & Cybersecurity Enthusiast & Specialist",
+                worksFor: {
+                  "@type": "Organization",
+                  name: "Independent Professional",
+                },
+                description:
+                  "Cybersecurity, Cloud & Full Stack Development Enthusiast. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
+                knowsAbout: [
+                  "Full Stack Development",
+                  "Cybersecurity",
+                  "Cloud Computing",
+                  "React",
+                  "Next.js",
+                  "TypeScript",
+                  "Ethical Hacking",
+                ],
+              }),
+            }}
+          />
+
+          <Script
+            id="schema-website"
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                url: "https://kjt.vercel.app",
+                name: "KT - Full Stack Developer & Cybersecurity Specialist",
+                description:
+                  "Professional portfolio of Krish Thakker, showcasing expertise in Full Stack Development, Cybersecurity, and Cloud Computing.",
+                author: {
+                  "@type": "Person",
+                  name: "Krish Thakker",
+                },
+                potentialAction: {
+                  "@type": "SearchAction",
+                  target: "https://kjt.vercel.app/search?q={search_term_string}",
+                  "query-input": "required name=search_term_string",
+                },
+              }),
+            }}
+          />
+        </ErrorBoundary>
       </body>
     </html>
   )

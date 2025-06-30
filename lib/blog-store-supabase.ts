@@ -34,7 +34,6 @@ class BlogStoreSupabase {
     const client = getSupabaseClient()
     if (!client) {
       this.fallbackMode = true
-      console.warn("Supabase client not available, using fallback mode")
       return null
     }
     return client
@@ -225,7 +224,7 @@ TypeScript significantly improves the React development experience by catching e
     try {
       const supabase = this.getClient()
       if (!supabase) {
-        console.log("Using fallback mode - no database initialization needed")
+        this.fallbackMode = true
         return true
       }
 
@@ -233,20 +232,15 @@ TypeScript significantly improves the React development experience by catching e
       const { error: checkError } = await supabase.from("blog_posts").select("id").limit(1)
 
       if (checkError && checkError.code === "42P01") {
-        console.log("blog_posts table doesn't exist, using sample data")
         this.fallbackMode = true
         return true
       } else if (checkError) {
-        console.error("Error checking table existence:", checkError)
         this.fallbackMode = true
         return true
-      } else {
-        console.log("Table already exists")
       }
 
       return true
     } catch (error) {
-      console.error("Error initializing schema:", error)
       this.fallbackMode = true
       return true
     }
@@ -273,7 +267,6 @@ TypeScript significantly improves the React development experience by catching e
       const { data, error } = await supabase.from("blog_posts").select("*").order("date", { ascending: false })
 
       if (error) {
-        console.error("Error fetching posts:", error)
         // Fallback to sample data
         const samplePosts = this.getSamplePosts()
         this.cachedPosts = samplePosts
@@ -304,7 +297,6 @@ TypeScript significantly improves the React development experience by catching e
 
       return posts
     } catch (error) {
-      console.error("Error fetching posts from Supabase:", error)
       // Return sample data as fallback
       const samplePosts = this.getSamplePosts()
       this.cachedPosts = samplePosts
@@ -330,7 +322,6 @@ TypeScript significantly improves the React development experience by catching e
         readingTime: post.readingTime,
       }))
     } catch (error) {
-      console.error("Error getting posts with limit:", error)
       return []
     }
   }
@@ -357,7 +348,6 @@ TypeScript significantly improves the React development experience by catching e
           const samplePosts = this.getSamplePosts()
           return samplePosts.find((post) => post.slug === slug) || null
         }
-        console.error(`Error fetching post by slug ${slug}:`, error)
         // Fallback to sample data
         const samplePosts = this.getSamplePosts()
         return samplePosts.find((post) => post.slug === slug) || null
@@ -382,7 +372,6 @@ TypeScript significantly improves the React development experience by catching e
         updatedAt: data.updated_at,
       }
     } catch (error) {
-      console.error(`Error fetching post by slug ${slug}:`, error)
       // Fallback to sample data
       const samplePosts = this.getSamplePosts()
       return samplePosts.find((post) => post.slug === slug) || null
@@ -419,12 +408,9 @@ TypeScript significantly improves the React development experience by catching e
         updated_at: now,
       }
 
-      console.log("Inserting post data:", insertData)
-
       const { data, error } = await supabase.from("blog_posts").insert(insertData).select().single()
 
       if (error) {
-        console.error("Error inserting post:", error)
         throw error
       }
 
@@ -452,10 +438,8 @@ TypeScript significantly improves the React development experience by catching e
       // Update cache
       this.cachedPosts = [newPost, ...this.cachedPosts.filter((p) => p.id !== newPost.id)]
 
-      console.log("Successfully created post:", newPost.title)
       return newPost
     } catch (error) {
-      console.error("Error adding post to Supabase:", error)
       throw error
     }
   }
@@ -493,7 +477,6 @@ TypeScript significantly improves the React development experience by catching e
       const { data, error } = await supabase.from("blog_posts").update(updateData).eq("slug", slug).select().single()
 
       if (error) {
-        console.error("Error updating post:", error)
         throw error
       }
 
@@ -523,7 +506,6 @@ TypeScript significantly improves the React development experience by catching e
 
       return updatedPost
     } catch (error) {
-      console.error(`Error updating post ${slug}:`, error)
       throw error
     }
   }
@@ -545,7 +527,6 @@ TypeScript significantly improves the React development experience by catching e
       const { error } = await supabase.from("blog_posts").delete().eq("slug", slug)
 
       if (error) {
-        console.error("Error deleting post:", error)
         throw error
       }
 
@@ -554,7 +535,6 @@ TypeScript significantly improves the React development experience by catching e
 
       return true
     } catch (error) {
-      console.error(`Error deleting post ${slug}:`, error)
       throw error
     }
   }
@@ -578,13 +558,11 @@ TypeScript significantly improves the React development experience by catching e
       const { data, error } = await query
 
       if (error) {
-        console.error("Error checking slug existence:", error)
         return false
       }
 
       return (data || []).length > 0
     } catch (error) {
-      console.error(`Error checking if slug ${slug} exists:`, error)
       return false
     }
   }
@@ -687,7 +665,6 @@ TypeScript significantly improves the React development experience by catching e
         },
       }
     } catch (error) {
-      console.error("Error performing health check:", error)
       return {
         status: "error",
         issues: [`Database connection failed: ${error instanceof Error ? error.message : "Unknown error"}`],
@@ -707,12 +684,10 @@ TypeScript significantly improves the React development experience by catching e
     try {
       const posts = await this.getAllPosts(true)
       if (posts.length === 0) {
-        console.log("Initializing with sample blog posts...")
         this.cachedPosts = this.getSamplePosts()
         this.lastFetched = Date.now()
       }
     } catch (error) {
-      console.error("Error initializing sample data:", error)
       this.cachedPosts = this.getSamplePosts()
       this.lastFetched = Date.now()
     }
@@ -732,7 +707,6 @@ TypeScript significantly improves the React development experience by catching e
       const { error } = await supabase.from("blog_posts").delete().neq("id", "00000000-0000-0000-0000-000000000000") // Delete all rows
 
       if (error) {
-        console.error("Error clearing data:", error)
         throw error
       }
 
@@ -742,7 +716,6 @@ TypeScript significantly improves the React development experience by catching e
 
       return true
     } catch (error) {
-      console.error("Error clearing data:", error)
       return false
     }
   }
@@ -759,12 +732,9 @@ export async function performHealthCheck(): Promise<HealthCheckResult> {
 // Initialize schema and sample data
 export async function initializeSupabaseBlog(): Promise<void> {
   try {
-    console.log("Initializing Supabase blog...")
     await blogStoreSupabase.initializeSchema()
     await blogStoreSupabase.initializeSampleData()
-    console.log("Supabase blog initialized successfully")
   } catch (error) {
-    console.error("Error initializing Supabase blog:", error)
     // Don't throw error, just log it
   }
 }

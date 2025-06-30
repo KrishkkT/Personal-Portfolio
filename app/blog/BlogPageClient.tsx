@@ -25,17 +25,15 @@ export default function BlogPageClient() {
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedTag, setSelectedTag] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
   const [allTags, setAllTags] = useState<string[]>([])
 
-  const fetchBlogPosts = async (page = 1, search = "", tag = "") => {
+  const fetchBlogPosts = async (search = "", tag = "") => {
     setLoading(true)
     setError(null)
 
     try {
       const params = new URLSearchParams({
-        page: page.toString(),
-        limit: "6",
+        limit: "12",
         timestamp: Date.now().toString(),
       })
 
@@ -78,19 +76,26 @@ export default function BlogPageClient() {
   }
 
   useEffect(() => {
-    fetchBlogPosts(currentPage, searchTerm, selectedTag)
-  }, [currentPage, searchTerm, selectedTag])
+    fetchBlogPosts(searchTerm, selectedTag)
+  }, [searchTerm, selectedTag])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    setCurrentPage(1)
-    fetchBlogPosts(1, searchTerm, selectedTag)
+    fetchBlogPosts(searchTerm, selectedTag)
   }
 
   const handleTagFilter = (tag: string) => {
     setSelectedTag(tag === selectedTag ? "" : tag)
-    setCurrentPage(1)
   }
+
+  const filteredPosts = blogData.filter((post) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      post.intro.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesTag = selectedTag === "" || post.tags?.includes(selectedTag)
+    return matchesSearch && matchesTag
+  })
 
   if (error) {
     return (
@@ -147,13 +152,17 @@ export default function BlogPageClient() {
           >
             <form onSubmit={handleSearch} className="flex gap-4 mb-6">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
+                  aria-hidden="true"
+                />
                 <Input
                   type="text"
                   placeholder="Search blog posts..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-400"
+                  aria-label="Search blog posts"
                 />
               </div>
               <Button type="submit" className="bg-yellow-400 text-gray-900 hover:bg-yellow-300">
@@ -163,9 +172,9 @@ export default function BlogPageClient() {
 
             {/* Tag Filter */}
             {allTags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by tags">
                 <span className="flex items-center text-gray-300 mr-2">
-                  <Filter className="h-4 w-4 mr-1" />
+                  <Filter className="h-4 w-4 mr-1" aria-hidden="true" />
                   Filter by tag:
                 </span>
                 {allTags.map((tag) => (
@@ -178,6 +187,15 @@ export default function BlogPageClient() {
                         : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                     }`}
                     onClick={() => handleTagFilter(tag)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        handleTagFilter(tag)
+                      }
+                    }}
+                    aria-pressed={selectedTag === tag}
                   >
                     {tag}
                   </Badge>
@@ -192,7 +210,7 @@ export default function BlogPageClient() {
       <section className="pb-20">
         <div className="royal-container">
           {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8" role="status" aria-label="Loading blog posts">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="animate-pulse">
                   <div className="midnight-glass rounded-xl p-6 h-96">
@@ -204,7 +222,7 @@ export default function BlogPageClient() {
                 </div>
               ))}
             </div>
-          ) : blogData.length === 0 ? (
+          ) : filteredPosts.length === 0 ? (
             <motion.div
               className="text-center py-16"
               initial={{ opacity: 0, y: 20 }}
@@ -222,7 +240,6 @@ export default function BlogPageClient() {
                   onClick={() => {
                     setSearchTerm("")
                     setSelectedTag("")
-                    setCurrentPage(1)
                   }}
                   variant="outline"
                   className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-gray-900"
@@ -233,8 +250,8 @@ export default function BlogPageClient() {
             </motion.div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-              {blogData.map((post, index) => (
-                <motion.div
+              {filteredPosts.map((post, index) => (
+                <motion.article
                   key={post.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -245,9 +262,10 @@ export default function BlogPageClient() {
                       <div className="relative h-48 overflow-hidden rounded-t-xl">
                         <Image
                           src={post.imageUrls?.[0] || "/placeholder.svg?height=200&width=400&text=Blog+Post"}
-                          alt={post.title}
+                          alt={`Featured image for ${post.title}`}
                           fill
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 to-transparent" />
                       </div>
@@ -255,18 +273,18 @@ export default function BlogPageClient() {
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4 text-sm text-gray-400 mb-3">
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {new Date(post.date).toLocaleDateString()}
+                          <Calendar className="h-4 w-4" aria-hidden="true" />
+                          <time dateTime={post.date}>{new Date(post.date).toLocaleDateString()}</time>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          {post.readingTime} min read
+                          <Clock className="h-4 w-4" aria-hidden="true" />
+                          <span>{post.readingTime} min read</span>
                         </div>
                       </div>
 
-                      <h3 className="text-xl font-bold text-white mb-3 group-hover:text-yellow-400 transition-colors line-clamp-2">
+                      <h2 className="text-xl font-bold text-white mb-3 group-hover:text-yellow-400 transition-colors line-clamp-2">
                         {post.title}
-                      </h3>
+                      </h2>
 
                       <p className="text-gray-300 mb-4 line-clamp-3">{post.intro}</p>
 
@@ -282,10 +300,11 @@ export default function BlogPageClient() {
                         ))}
                       </div>
 
-                      <Link href={`/blog/${post.slug}`}>
+                      <Link href={`/blog/${post.slug}`} className="block">
                         <Button
                           variant="ghost"
                           className="w-full text-yellow-400 hover:text-gray-900 hover:bg-yellow-400 transition-all duration-300 group"
+                          aria-label={`Read more about ${post.title}`}
                         >
                           Read More
                           <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -293,7 +312,7 @@ export default function BlogPageClient() {
                       </Link>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </motion.article>
               ))}
             </div>
           )}

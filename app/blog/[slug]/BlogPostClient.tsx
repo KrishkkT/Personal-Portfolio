@@ -49,15 +49,41 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
       setReadingProgress(Math.min(progress, 100))
     }
 
-    window.addEventListener("scroll", handleScroll)
+    window.addEventListener("scroll", handleScroll, { passive: true })
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  const handleShare = async () => {
+    if (!post) return
+
+    const shareData = {
+      title: post.title,
+      text: post.intro,
+      url: window.location.href,
+    }
+
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData)
+      } else {
+        await navigator.clipboard.writeText(window.location.href)
+        // You could add a toast notification here
+      }
+    } catch (err) {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href)
+      } catch (clipboardErr) {
+        // Handle clipboard error
+      }
+    }
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-20">
         <div className="royal-container">
-          <div className="animate-pulse space-y-8">
+          <div className="animate-pulse space-y-8" role="status" aria-label="Loading blog post">
             <div className="h-8 bg-gray-700/50 rounded-lg w-1/4"></div>
             <div className="h-16 bg-gray-700/50 rounded-lg"></div>
             <div className="flex gap-4">
@@ -82,7 +108,9 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
         <div className="royal-container">
           <motion.div className="text-center py-20" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="midnight-glass rounded-2xl p-12 max-w-2xl mx-auto">
-              <div className="text-6xl mb-6">📝</div>
+              <div className="text-6xl mb-6" role="img" aria-label="Document icon">
+                📝
+              </div>
               <h1 className="text-3xl font-bold text-white mb-4">Post Not Found</h1>
               <p className="text-gray-300 mb-8">
                 {error || "The blog post you're looking for doesn't exist or has been removed."}
@@ -103,7 +131,7 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* Reading Progress Bar */}
-      <div className="fixed top-0 left-0 w-full h-1 bg-gray-800 z-50">
+      <div className="fixed top-0 left-0 w-full h-1 bg-gray-800 z-50" role="progressbar" aria-label="Reading progress">
         <motion.div
           className="h-full bg-gradient-to-r from-yellow-400 to-yellow-500"
           style={{ width: `${readingProgress}%` }}
@@ -115,11 +143,12 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
 
       <div className="royal-container py-20">
         {/* Back Navigation */}
-        <motion.div
+        <motion.nav
           className="mb-8"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
+          aria-label="Breadcrumb navigation"
         >
           <Link href="/blog">
             <Button variant="ghost" className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-400/10 -ml-4">
@@ -127,7 +156,7 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
               Back to Blog
             </Button>
           </Link>
-        </motion.div>
+        </motion.nav>
 
         {/* Article Header */}
         <motion.article
@@ -169,25 +198,25 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
                 transition={{ duration: 0.8, delay: 0.6 }}
               >
                 <div className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-yellow-400" />
+                  <User className="h-5 w-5 text-yellow-400" aria-hidden="true" />
                   <span className="font-medium">{post.author || "KT"}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-yellow-400" />
-                  <span>
+                  <Calendar className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+                  <time dateTime={post.date}>
                     {new Date(post.date).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
                     })}
-                  </span>
+                  </time>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-yellow-400" />
+                  <Clock className="h-5 w-5 text-yellow-400" aria-hidden="true" />
                   <span>{post.readingTime} min read</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-yellow-400" />
+                  <BookOpen className="h-5 w-5 text-yellow-400" aria-hidden="true" />
                   <span>Article</span>
                 </div>
               </motion.div>
@@ -200,8 +229,8 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.8 }}
                 >
-                  <Tag className="h-5 w-5 text-yellow-400 mr-2" />
-                  {post.tags.map((tag, index) => (
+                  <Tag className="h-5 w-5 text-yellow-400 mr-2" aria-hidden="true" />
+                  {post.tags.map((tag) => (
                     <Badge
                       key={tag}
                       variant="secondary"
@@ -226,7 +255,7 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
               <div className="relative overflow-hidden rounded-2xl shadow-2xl">
                 <img
                   src={post.imageUrls[0] || "/placeholder.svg"}
-                  alt={post.title}
+                  alt={`Featured image for ${post.title}`}
                   className="w-full h-64 md:h-96 object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
@@ -293,7 +322,12 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
                     <p className="text-gray-300">Share it with others or explore more content.</p>
                   </div>
                   <div className="flex gap-4">
-                    <Button variant="outline" className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10">
+                    <Button
+                      variant="outline"
+                      className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 bg-transparent"
+                      onClick={handleShare}
+                      aria-label="Share this article"
+                    >
                       <Share2 className="mr-2 h-4 w-4" />
                       Share
                     </Button>
