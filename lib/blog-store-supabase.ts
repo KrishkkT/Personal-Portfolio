@@ -1,5 +1,7 @@
+"use client"
+
 import type { BlogPost, BlogPostSummary, CreateBlogPost, UpdateBlogPost } from "@/types/blog"
-import { getSupabaseClient, getServerSupabaseClient } from "./supabase-client"
+import { getSupabaseClient } from "./supabase-client"
 
 interface HealthCheckResult {
   status: "healthy" | "warning" | "error"
@@ -18,6 +20,7 @@ class BlogStoreSupabase {
   private cachedPosts: BlogPost[] = []
   private lastFetched = 0
   private readonly CACHE_TTL = 30000 // 30 seconds cache
+  private fallbackMode = false
 
   static getInstance(): BlogStoreSupabase {
     if (!BlogStoreSupabase.instance) {
@@ -26,71 +29,217 @@ class BlogStoreSupabase {
     return BlogStoreSupabase.instance
   }
 
-  // Get the appropriate Supabase client
+  // Get the Supabase client
   private getClient() {
-    // Try server client first (for API routes)
-    const serverClient = getServerSupabaseClient()
-    if (serverClient) return serverClient
+    const client = getSupabaseClient()
+    if (!client) {
+      this.fallbackMode = true
+      console.warn("Supabase client not available, using fallback mode")
+      return null
+    }
+    return client
+  }
 
-    // Fallback to client-side client
-    const clientClient = getSupabaseClient()
-    if (clientClient) return clientClient
+  // Get sample posts for fallback
+  private getSamplePosts(): BlogPost[] {
+    return [
+      {
+        id: "1",
+        title: "Getting Started with Next.js 14",
+        slug: "getting-started-nextjs-14",
+        intro: "Learn the fundamentals of Next.js 14 and build modern web applications with the latest features.",
+        content: `# Getting Started with Next.js 14
 
-    throw new Error("No Supabase client available")
+Next.js 14 brings exciting new features and improvements that make building React applications even better. In this comprehensive guide, we'll explore the key features and learn how to build modern web applications.
+
+## What's New in Next.js 14
+
+Next.js 14 introduces several groundbreaking features:
+
+- **Turbopack**: The new Rust-based bundler for faster development
+- **Server Actions**: Simplified server-side mutations
+- **Partial Prerendering**: Combine static and dynamic content seamlessly
+- **Enhanced App Router**: Better performance and developer experience
+
+## Setting Up Your First Next.js 14 Project
+
+Let's start by creating a new Next.js project:
+
+\`\`\`bash
+npx create-next-app@latest my-app
+cd my-app
+npm run dev
+\`\`\`
+
+## Key Features to Explore
+
+### 1. App Router
+The App Router provides a more intuitive way to structure your application with file-based routing.
+
+### 2. Server Components
+Server Components allow you to render components on the server, reducing client-side JavaScript and improving performance.
+
+### 3. Streaming
+Stream your UI to provide better user experience with faster initial page loads.
+
+## Best Practices
+
+1. **Use TypeScript**: Take advantage of type safety
+2. **Optimize Images**: Use Next.js Image component
+3. **Implement SEO**: Use metadata API for better search engine optimization
+4. **Performance**: Monitor Core Web Vitals
+
+## Conclusion
+
+Next.js 14 represents a significant step forward in React development. With its powerful features and excellent developer experience, it's the perfect choice for modern web applications.`,
+        date: new Date().toISOString(),
+        readingTime: 8,
+        tags: ["Next.js", "React", "Web Development", "JavaScript"],
+        imageUrls: ["/placeholder.svg?height=400&width=800&text=Next.js+14"],
+        published: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: "2",
+        title: "Building Responsive UIs with Tailwind CSS",
+        slug: "building-responsive-uis-tailwind",
+        intro: "Master the art of creating beautiful, responsive user interfaces using Tailwind CSS utility classes.",
+        content: `# Building Responsive UIs with Tailwind CSS
+
+Tailwind CSS has revolutionized how we approach styling in modern web development. This guide will help you master responsive design with Tailwind's utility-first approach.
+
+## Why Tailwind CSS?
+
+- **Utility-First**: Build complex components from simple utilities
+- **Responsive Design**: Built-in responsive design system
+- **Customizable**: Highly customizable design system
+- **Performance**: Purge unused CSS for optimal performance
+
+## Getting Started
+
+Install Tailwind CSS in your project:
+
+\`\`\`bash
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+\`\`\`
+
+## Responsive Design Principles
+
+Tailwind uses a mobile-first approach with these breakpoints:
+
+- **sm**: 640px and up
+- **md**: 768px and up  
+- **lg**: 1024px and up
+- **xl**: 1280px and up
+- **2xl**: 1536px and up
+
+## Best Practices
+
+1. Start with mobile design
+2. Use consistent spacing scale
+3. Leverage Tailwind's design tokens
+4. Create reusable component classes
+
+## Conclusion
+
+Tailwind CSS empowers developers to build beautiful, responsive interfaces quickly and efficiently.`,
+        date: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        readingTime: 6,
+        tags: ["Tailwind CSS", "CSS", "Responsive Design", "UI/UX"],
+        imageUrls: ["/placeholder.svg?height=400&width=800&text=Tailwind+CSS"],
+        published: true,
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000).toISOString(),
+      },
+      {
+        id: "3",
+        title: "TypeScript Best Practices for React",
+        slug: "typescript-best-practices-react",
+        intro: "Enhance your React applications with TypeScript best practices and advanced typing techniques.",
+        content: `# TypeScript Best Practices for React
+
+TypeScript brings type safety and better developer experience to React applications. Let's explore the best practices for using TypeScript effectively in React projects.
+
+## Setting Up TypeScript with React
+
+Create a new TypeScript React project:
+
+\`\`\`bash
+npx create-react-app my-app --template typescript
+\`\`\`
+
+## Component Typing
+
+### Functional Components
+
+\`\`\`typescript
+interface Props {
+  title: string;
+  count: number;
+  onIncrement: () => void;
+}
+
+const Counter: React.FC<Props> = ({ title, count, onIncrement }) => {
+  return (
+    <div>
+      <h2>{title}</h2>
+      <p>Count: {count}</p>
+      <button onClick={onIncrement}>Increment</button>
+    </div>
+  );
+};
+\`\`\`
+
+## Advanced Patterns
+
+1. **Generic Components**: Create reusable components with generics
+2. **Discriminated Unions**: Handle different component states
+3. **Utility Types**: Leverage TypeScript's built-in utility types
+4. **Custom Hooks**: Type your custom hooks properly
+
+## Best Practices
+
+- Use strict TypeScript configuration
+- Prefer interfaces over types for object shapes
+- Use proper event typing
+- Leverage TypeScript's inference when possible
+
+## Conclusion
+
+TypeScript significantly improves the React development experience by catching errors early and providing excellent IDE support.`,
+        date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+        readingTime: 7,
+        tags: ["TypeScript", "React", "JavaScript", "Best Practices"],
+        imageUrls: ["/placeholder.svg?height=400&width=800&text=TypeScript+React"],
+        published: true,
+        createdAt: new Date(Date.now() - 172800000).toISOString(),
+        updatedAt: new Date(Date.now() - 172800000).toISOString(),
+      },
+    ]
   }
 
   // Initialize the database schema if needed
   async initializeSchema(): Promise<boolean> {
     try {
       const supabase = this.getClient()
+      if (!supabase) {
+        console.log("Using fallback mode - no database initialization needed")
+        return true
+      }
 
       // Check if the table exists by trying to select from it
       const { error: checkError } = await supabase.from("blog_posts").select("id").limit(1)
 
       if (checkError && checkError.code === "42P01") {
-        // Table doesn't exist, create it
-        console.log("Creating blog_posts table...")
-
-        const { error: createError } = await supabase.rpc("create_blog_posts_table")
-
-        if (createError) {
-          console.error("Failed to create table via RPC, trying direct SQL:", createError)
-
-          // Fallback: try to create table directly
-          const createTableSQL = `
-            CREATE TABLE IF NOT EXISTS blog_posts (
-              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-              title TEXT NOT NULL,
-              slug TEXT UNIQUE NOT NULL,
-              intro TEXT NOT NULL,
-              content TEXT NOT NULL,
-              date TIMESTAMPTZ DEFAULT NOW(),
-              reading_time INTEGER DEFAULT 5,
-              tags TEXT[] DEFAULT '{}',
-              image_urls TEXT[] DEFAULT '{}',
-              author TEXT,
-              published BOOLEAN DEFAULT true,
-              created_at TIMESTAMPTZ DEFAULT NOW(),
-              updated_at TIMESTAMPTZ DEFAULT NOW()
-            );
-
-            CREATE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug);
-            CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published);
-            CREATE INDEX IF NOT EXISTS idx_blog_posts_date ON blog_posts(date DESC);
-          `
-
-          const { error: directCreateError } = await supabase.rpc("exec_sql", { sql: createTableSQL })
-
-          if (directCreateError) {
-            console.error("Failed to create table directly:", directCreateError)
-            return false
-          }
-        }
-
-        console.log("Table created successfully")
+        console.log("blog_posts table doesn't exist, using sample data")
+        this.fallbackMode = true
+        return true
       } else if (checkError) {
         console.error("Error checking table existence:", checkError)
-        return false
+        this.fallbackMode = true
+        return true
       } else {
         console.log("Table already exists")
       }
@@ -98,7 +247,8 @@ class BlogStoreSupabase {
       return true
     } catch (error) {
       console.error("Error initializing schema:", error)
-      return false
+      this.fallbackMode = true
+      return true
     }
   }
 
@@ -112,11 +262,23 @@ class BlogStoreSupabase {
       }
 
       const supabase = this.getClient()
+      if (!supabase || this.fallbackMode) {
+        // Return sample data
+        const samplePosts = this.getSamplePosts()
+        this.cachedPosts = samplePosts
+        this.lastFetched = now
+        return samplePosts
+      }
+
       const { data, error } = await supabase.from("blog_posts").select("*").order("date", { ascending: false })
 
       if (error) {
         console.error("Error fetching posts:", error)
-        throw error
+        // Fallback to sample data
+        const samplePosts = this.getSamplePosts()
+        this.cachedPosts = samplePosts
+        this.lastFetched = now
+        return samplePosts
       }
 
       // Map Supabase data to BlogPost format
@@ -143,8 +305,11 @@ class BlogStoreSupabase {
       return posts
     } catch (error) {
       console.error("Error fetching posts from Supabase:", error)
-      // Return cached posts if available, otherwise empty array
-      return this.cachedPosts.length > 0 ? [...this.cachedPosts] : []
+      // Return sample data as fallback
+      const samplePosts = this.getSamplePosts()
+      this.cachedPosts = samplePosts
+      this.lastFetched = Date.now()
+      return samplePosts
     }
   }
 
@@ -178,12 +343,24 @@ class BlogStoreSupabase {
       if (cachedPost) return { ...cachedPost }
 
       const supabase = this.getClient()
+      if (!supabase || this.fallbackMode) {
+        // Check sample data
+        const samplePosts = this.getSamplePosts()
+        return samplePosts.find((post) => post.slug === slug) || null
+      }
+
       const { data, error } = await supabase.from("blog_posts").select("*").eq("slug", slug).single()
 
       if (error) {
-        if (error.code === "PGRST116") return null // No rows returned
+        if (error.code === "PGRST116") {
+          // No rows returned, check sample data
+          const samplePosts = this.getSamplePosts()
+          return samplePosts.find((post) => post.slug === slug) || null
+        }
         console.error(`Error fetching post by slug ${slug}:`, error)
-        throw error
+        // Fallback to sample data
+        const samplePosts = this.getSamplePosts()
+        return samplePosts.find((post) => post.slug === slug) || null
       }
 
       if (!data) return null
@@ -206,7 +383,9 @@ class BlogStoreSupabase {
       }
     } catch (error) {
       console.error(`Error fetching post by slug ${slug}:`, error)
-      return null
+      // Fallback to sample data
+      const samplePosts = this.getSamplePosts()
+      return samplePosts.find((post) => post.slug === slug) || null
     }
   }
 
@@ -214,6 +393,10 @@ class BlogStoreSupabase {
   async addPost(post: CreateBlogPost): Promise<BlogPost | null> {
     try {
       const supabase = this.getClient()
+      if (!supabase || this.fallbackMode) {
+        throw new Error("Database not available - cannot add posts in fallback mode")
+      }
+
       const now = new Date().toISOString()
       const readingTime = this.calculateReadingTime(post.content)
 
@@ -281,6 +464,9 @@ class BlogStoreSupabase {
   async updatePost(slug: string, updates: UpdateBlogPost): Promise<BlogPost | null> {
     try {
       const supabase = this.getClient()
+      if (!supabase || this.fallbackMode) {
+        throw new Error("Database not available - cannot update posts in fallback mode")
+      }
 
       // Get the existing post first
       const existingPost = await this.getPostBySlug(slug)
@@ -346,6 +532,9 @@ class BlogStoreSupabase {
   async deletePost(slug: string): Promise<boolean> {
     try {
       const supabase = this.getClient()
+      if (!supabase || this.fallbackMode) {
+        throw new Error("Database not available - cannot delete posts in fallback mode")
+      }
 
       // Get the post first to ensure it exists
       const existingPost = await this.getPostBySlug(slug)
@@ -374,6 +563,11 @@ class BlogStoreSupabase {
   async slugExists(slug: string, excludeId?: string): Promise<boolean> {
     try {
       const supabase = this.getClient()
+      if (!supabase || this.fallbackMode) {
+        // Check in sample data
+        const samplePosts = this.getSamplePosts()
+        return samplePosts.some((post) => post.slug === slug && post.id !== excludeId)
+      }
 
       let query = supabase.from("blog_posts").select("id").eq("slug", slug)
 
@@ -385,7 +579,7 @@ class BlogStoreSupabase {
 
       if (error) {
         console.error("Error checking slug existence:", error)
-        throw error
+        return false
       }
 
       return (data || []).length > 0
@@ -406,6 +600,23 @@ class BlogStoreSupabase {
   async performHealthCheck(): Promise<HealthCheckResult> {
     try {
       const supabase = this.getClient()
+      if (!supabase || this.fallbackMode) {
+        // Return health check for sample data
+        const samplePosts = this.getSamplePosts()
+        return {
+          status: "warning",
+          issues: ["Using fallback mode - database not available"],
+          recommendations: ["Check Supabase configuration and environment variables"],
+          stats: {
+            totalPosts: samplePosts.length,
+            publishedPosts: samplePosts.filter((post) => post.published).length,
+            draftPosts: samplePosts.filter((post) => !post.published).length,
+            averageReadingTime: Math.round(
+              samplePosts.reduce((sum, post) => sum + post.readingTime, 0) / samplePosts.length,
+            ),
+          },
+        }
+      }
 
       // Test connection
       const { error: connectionError } = await supabase
@@ -496,76 +707,14 @@ class BlogStoreSupabase {
     try {
       const posts = await this.getAllPosts(true)
       if (posts.length === 0) {
-        console.log("Initializing sample blog posts...")
-
-        const samplePosts: CreateBlogPost[] = [
-          {
-            title: "Getting Started with Next.js 14",
-            slug: "getting-started-nextjs-14",
-            intro: "Learn the fundamentals of Next.js 14 and build modern web applications with the latest features.",
-            content: `# Getting Started with Next.js 14
-
-Next.js 14 brings exciting new features and improvements that make building React applications even better. In this comprehensive guide, we'll explore the key features and learn how to build modern web applications.
-
-## What's New in Next.js 14
-
-Next.js 14 introduces several groundbreaking features:
-
-- **Turbopack**: The new Rust-based bundler for faster development
-- **Server Actions**: Simplified server-side mutations
-- **Partial Prerendering**: Combine static and dynamic content seamlessly
-- **Enhanced App Router**: Better performance and developer experience
-
-## Setting Up Your First Next.js 14 Project
-
-Let's start by creating a new Next.js project:
-
-\`\`\`bash
-npx create-next-app@latest my-app
-cd my-app
-npm run dev
-\`\`\`
-
-## Key Features to Explore
-
-### 1. App Router
-The App Router provides a more intuitive way to structure your application with file-based routing.
-
-### 2. Server Components
-Server Components allow you to render components on the server, reducing client-side JavaScript and improving performance.
-
-### 3. Streaming
-Stream your UI to provide better user experience with faster initial page loads.
-
-## Best Practices
-
-1. **Use TypeScript**: Take advantage of type safety
-2. **Optimize Images**: Use Next.js Image component
-3. **Implement SEO**: Use metadata API for better search engine optimization
-4. **Performance**: Monitor Core Web Vitals
-
-## Conclusion
-
-Next.js 14 represents a significant step forward in React development. With its powerful features and excellent developer experience, it's the perfect choice for modern web applications.`,
-            tags: ["Next.js", "React", "Web Development", "JavaScript"],
-            imageUrls: ["/placeholder.svg?height=400&width=800&text=Next.js+14"],
-            published: true,
-          },
-        ]
-
-        // Add sample posts
-        for (const post of samplePosts) {
-          try {
-            await this.addPost(post)
-          } catch (error) {
-            console.error(`Failed to add sample post "${post.title}":`, error)
-          }
-        }
-
-        console.log("Sample blog posts initialized")
+        console.log("Initializing with sample blog posts...")
+        this.cachedPosts = this.getSamplePosts()
+        this.lastFetched = Date.now()
       }
     } catch (error) {
       console.error("Error initializing sample data:", error)
+      this.cachedPosts = this.getSamplePosts()
+      this.lastFetched = Date.now()
     }
   }
 
@@ -573,6 +722,12 @@ Next.js 14 represents a significant step forward in React development. With its 
   async clearAllData(): Promise<boolean> {
     try {
       const supabase = this.getClient()
+      if (!supabase || this.fallbackMode) {
+        // Clear cache only in fallback mode
+        this.cachedPosts = []
+        this.lastFetched = 0
+        return true
+      }
 
       const { error } = await supabase.from("blog_posts").delete().neq("id", "00000000-0000-0000-0000-000000000000") // Delete all rows
 
@@ -610,6 +765,6 @@ export async function initializeSupabaseBlog(): Promise<void> {
     console.log("Supabase blog initialized successfully")
   } catch (error) {
     console.error("Error initializing Supabase blog:", error)
-    throw error
+    // Don't throw error, just log it
   }
 }

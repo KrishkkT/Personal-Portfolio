@@ -99,10 +99,10 @@ export default function CertificatesSection() {
               <Card className="royal-card h-full transition-all duration-300 group-hover:shadow-2xl overflow-hidden">
                 <div className="relative h-40 w-full overflow-hidden">
                   <Image
-                    src={cert.image || "/placeholder.svg?height=160&width=320"}
+                    src={cert.image || "/placeholder.svg?height=160&width=320&text=Certificate"}
                     alt={cert.title}
                     fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-110"
+                    className="object-contain transition-transform duration-300 group-hover:scale-105 p-2"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
 

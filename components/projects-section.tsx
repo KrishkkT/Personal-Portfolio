@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Github, Briefcase, Calendar, Star, ArrowRight } from "lucide-react"
+import { ExternalLink, Github, Briefcase, Star, ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
@@ -99,10 +99,10 @@ export default function ProjectsSection() {
               <Card className="royal-card h-full transition-all duration-300 group-hover:shadow-2xl overflow-hidden">
                 <div className="relative h-40 w-full overflow-hidden">
                   <Image
-                    src={project.image || "/placeholder.svg?height=160&width=320"}
+                    src={project.image || "/placeholder.svg?height=160&width=320&text=Project"}
                     alt={project.title}
                     fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-110"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
 
@@ -140,11 +140,6 @@ export default function ProjectsSection() {
                 </CardHeader>
 
                 <CardContent className="space-y-3 pt-0">
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Calendar className="h-3 w-3" />
-                    <span>{project.year}</span>
-                  </div>
-
                   <p className="text-gray-300 text-sm leading-relaxed line-clamp-2">{project.description}</p>
 
                   <div className="flex flex-wrap gap-1">

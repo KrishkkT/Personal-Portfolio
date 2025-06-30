@@ -1,21 +1,16 @@
 import { createClient } from "@supabase/supabase-js"
 import type { Database } from "@/types/supabase"
 
-// Client-side Supabase client
+// Single Supabase client that works in both client and server environments
 let supabaseClient: ReturnType<typeof createClient<Database>> | null = null
 
 export function getSupabaseClient() {
-  if (typeof window === "undefined") {
-    // Server-side: return null, use server client instead
-    return null
-  }
-
   if (!supabaseClient) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Missing Supabase client environment variables:", {
+      console.error("Missing Supabase environment variables:", {
         url: !!supabaseUrl,
         key: !!supabaseAnonKey,
       })
@@ -25,7 +20,7 @@ export function getSupabaseClient() {
     try {
       supabaseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
         auth: {
-          persistSession: false, // Disable auth for blog functionality
+          persistSession: false,
         },
         db: {
           schema: "public",
@@ -45,57 +40,15 @@ export function getSupabaseClient() {
   return supabaseClient
 }
 
-// Server-side Supabase client
-let serverSupabaseClient: ReturnType<typeof createClient<Database>> | null = null
-
+// Use the same client for server operations since we only have public keys
 export function getServerSupabaseClient() {
-  if (!serverSupabaseClient) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing Supabase server environment variables:", {
-        url: !!supabaseUrl,
-        serviceKey: !!supabaseServiceKey,
-        availableEnvVars: {
-          NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-          SUPABASE_URL: !!process.env.SUPABASE_URL,
-          SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-          SUPABASE_ANON_KEY: !!process.env.SUPABASE_ANON_KEY,
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        },
-      })
-      return null
-    }
-
-    try {
-      serverSupabaseClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-        db: {
-          schema: "public",
-        },
-        global: {
-          headers: {
-            "X-Client-Info": "blog-server",
-          },
-        },
-      })
-    } catch (error) {
-      console.error("Failed to create Supabase server client:", error)
-      return null
-    }
-  }
-
-  return serverSupabaseClient
+  return getSupabaseClient()
 }
 
 // Test connection function
 export async function testSupabaseConnection(): Promise<{ success: boolean; error?: string }> {
   try {
-    const client = getServerSupabaseClient()
+    const client = getSupabaseClient()
     if (!client) {
       return { success: false, error: "Failed to initialize Supabase client - check environment variables" }
     }

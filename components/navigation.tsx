@@ -1,9 +1,9 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Menu, X, Sparkles } from "lucide-react"
+import { Menu, X, Sparkles } from 'lucide-react'
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -21,17 +21,7 @@ const navItems = [
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50)
-    }
-
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
 
   const handleNavClick = (href: string, e?: React.MouseEvent) => {
     setIsOpen(false)
@@ -60,20 +50,18 @@ export default function Navigation() {
 
   return (
     <motion.nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled ? "midnight-glass shadow-2xl border-b border-yellow-400/20" : "bg-transparent"
-      }`}
+      className="fixed top-0 left-0 right-0 z-50 bg-transparent"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <div className="royal-container">
-        <div className="flex items-center justify-between h-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3">
             <motion.div className="relative" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-xl">
-                <span className="text-gray-900 font-bold text-xl">KT</span>
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-xl">
+                <span className="text-gray-900 font-bold text-lg sm:text-xl">KT</span>
               </div>
               <motion.div
                 className="absolute -top-1 -right-1"
@@ -87,44 +75,29 @@ export default function Navigation() {
                   ease: "easeInOut",
                 }}
               >
-                <Sparkles className="h-4 w-4 text-yellow-400" />
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-400" />
               </motion.div>
             </motion.div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-2">
-            {navItems.map((item, index) => {
-              const isActive = isActiveLink(item.href)
-
-              return (
-                <motion.div
-                  key={item.name}
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
+          <div className="hidden lg:flex items-center space-x-1">
+            {navItems.map((item, index) => (
+              <motion.div
+                key={item.name}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Link
+                  href={item.href}
+                  onClick={(e) => handleNavClick(item.href, e)}
+                  className="block px-4 py-3 rounded-lg text-sm font-medium text-gray-300 transition-all duration-300 hover:text-yellow-400 hover:bg-yellow-400/5"
                 >
-                  <Link href={item.href} onClick={(e) => handleNavClick(item.href, e)} className="relative group">
-                    <motion.div
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 relative ${
-                        isActive
-                          ? "text-yellow-400 bg-yellow-400/10"
-                          : "text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/5"
-                      }`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      {item.name}
-                      <span
-                        className={`absolute bottom-0 left-0 h-0.5 bg-yellow-400 transition-all duration-300 ${
-                          isActive ? "w-full" : "w-0 group-hover:w-full"
-                        }`}
-                      />
-                    </motion.div>
-                  </Link>
-                </motion.div>
-              )
-            })}
+                  {item.name}
+                </Link>
+              </motion.div>
+            ))}
           </div>
 
           {/* Mobile Menu Button */}
@@ -134,7 +107,7 @@ export default function Navigation() {
             className="lg:hidden p-2 text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/10"
             onClick={() => setIsOpen(!isOpen)}
           >
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isOpen ? <X className="h-5 w-5 sm:h-6 sm:w-6" /> : <Menu className="h-5 w-5 sm:h-6 sm:w-6" />}
           </Button>
         </div>
 
@@ -148,7 +121,7 @@ export default function Navigation() {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="px-6 py-6 space-y-2">
+              <div className="px-4 py-4 space-y-1">
                 {navItems.map((item, index) => (
                   <motion.div
                     key={item.name}
