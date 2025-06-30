@@ -1,8 +1,6 @@
 "use client"
 
-// Fix animejs import - it doesn't have a default export
-import * as anime from "animejs"
-
+// Simple animation utilities without external dependencies
 export class AnimationManager {
   private static instance: AnimationManager
   private isInitialized = false
@@ -23,22 +21,25 @@ export class AnimationManager {
   }
 
   private setupPageTransitions() {
-    // Page enter animation
+    // Page enter animation using CSS transitions
     this.pageEnterAnimation()
-
-    // Setup intersection observer for scroll animations
     this.setupIntersectionObserver()
   }
 
   private pageEnterAnimation() {
-    // Animate page elements on load
-    anime.default({
-      targets: ".animate-on-load",
-      opacity: [0, 1],
-      translateY: [30, 0],
-      duration: 800,
-      delay: anime.stagger(100),
-      easing: "easeOutQuart",
+    // Simple fade in animation for page load
+    const elements = document.querySelectorAll(".animate-on-load")
+    elements.forEach((el, index) => {
+      if (el instanceof HTMLElement) {
+        el.style.opacity = "0"
+        el.style.transform = "translateY(30px)"
+        el.style.transition = "all 0.8s ease-out"
+
+        setTimeout(() => {
+          el.style.opacity = "1"
+          el.style.transform = "translateY(0)"
+        }, index * 100)
+      }
     })
   }
 
@@ -60,7 +61,6 @@ export class AnimationManager {
       },
     )
 
-    // Observe elements with animation classes
     document.querySelectorAll(".animate-on-scroll").forEach((el) => {
       observer.observe(el)
     })
@@ -69,55 +69,50 @@ export class AnimationManager {
   private animateElement(element: HTMLElement) {
     const animationType = element.dataset.animation || "fadeInUp"
 
+    element.style.transition = "all 0.6s ease-out"
+
     switch (animationType) {
       case "fadeInUp":
-        anime.default({
-          targets: element,
-          opacity: [0, 1],
-          translateY: [50, 0],
-          duration: 600,
-          easing: "easeOutQuart",
-        })
+        element.style.opacity = "0"
+        element.style.transform = "translateY(50px)"
+        setTimeout(() => {
+          element.style.opacity = "1"
+          element.style.transform = "translateY(0)"
+        }, 50)
         break
       case "fadeInLeft":
-        anime.default({
-          targets: element,
-          opacity: [0, 1],
-          translateX: [-50, 0],
-          duration: 600,
-          easing: "easeOutQuart",
-        })
+        element.style.opacity = "0"
+        element.style.transform = "translateX(-50px)"
+        setTimeout(() => {
+          element.style.opacity = "1"
+          element.style.transform = "translateX(0)"
+        }, 50)
         break
       case "fadeInRight":
-        anime.default({
-          targets: element,
-          opacity: [0, 1],
-          translateX: [50, 0],
-          duration: 600,
-          easing: "easeOutQuart",
-        })
+        element.style.opacity = "0"
+        element.style.transform = "translateX(50px)"
+        setTimeout(() => {
+          element.style.opacity = "1"
+          element.style.transform = "translateX(0)"
+        }, 50)
         break
       case "scaleIn":
-        anime.default({
-          targets: element,
-          opacity: [0, 1],
-          scale: [0.8, 1],
-          duration: 600,
-          easing: "easeOutQuart",
-        })
+        element.style.opacity = "0"
+        element.style.transform = "scale(0.8)"
+        setTimeout(() => {
+          element.style.opacity = "1"
+          element.style.transform = "scale(1)"
+        }, 50)
         break
       default:
-        anime.default({
-          targets: element,
-          opacity: [0, 1],
-          duration: 600,
-          easing: "easeOutQuart",
-        })
+        element.style.opacity = "0"
+        setTimeout(() => {
+          element.style.opacity = "1"
+        }, 50)
     }
   }
 
   private setupScrollAnimations() {
-    // Smooth scroll behavior
     if (typeof document !== "undefined") {
       document.documentElement.style.scrollBehavior = "smooth"
     }
@@ -125,64 +120,71 @@ export class AnimationManager {
 
   // Public methods for triggering animations
   fadeIn(selector: string, options: any = {}) {
-    anime.default({
-      targets: selector,
-      opacity: [0, 1],
-      duration: 600,
-      easing: "easeOutQuart",
-      ...options,
+    const elements = document.querySelectorAll(selector)
+    elements.forEach((el, index) => {
+      if (el instanceof HTMLElement) {
+        el.style.opacity = "0"
+        el.style.transition = `opacity ${options.duration || 600}ms ease-out`
+        setTimeout(
+          () => {
+            el.style.opacity = "1"
+          },
+          (options.delay || 0) + index * 100,
+        )
+      }
     })
   }
 
   slideInUp(selector: string, options: any = {}) {
-    anime.default({
-      targets: selector,
-      opacity: [0, 1],
-      translateY: [30, 0],
-      duration: 600,
-      easing: "easeOutQuart",
-      ...options,
+    const elements = document.querySelectorAll(selector)
+    elements.forEach((el, index) => {
+      if (el instanceof HTMLElement) {
+        el.style.opacity = "0"
+        el.style.transform = "translateY(30px)"
+        el.style.transition = `all ${options.duration || 600}ms ease-out`
+        setTimeout(
+          () => {
+            el.style.opacity = "1"
+            el.style.transform = "translateY(0)"
+          },
+          (options.delay || 0) + index * 100,
+        )
+      }
     })
   }
 
   staggerAnimation(selector: string, options: any = {}) {
-    anime.default({
-      targets: selector,
-      opacity: [0, 1],
-      translateY: [20, 0],
-      duration: 600,
-      delay: anime.stagger(100),
-      easing: "easeOutQuart",
-      ...options,
+    const elements = document.querySelectorAll(selector)
+    elements.forEach((el, index) => {
+      if (el instanceof HTMLElement) {
+        el.style.opacity = "0"
+        el.style.transform = "translateY(20px)"
+        el.style.transition = `all ${options.duration || 600}ms ease-out`
+        setTimeout(() => {
+          el.style.opacity = "1"
+          el.style.transform = "translateY(0)"
+        }, index * 100)
+      }
     })
   }
 
   pulseAnimation(selector: string) {
-    anime.default({
-      targets: selector,
-      scale: [1, 1.05, 1],
-      duration: 1000,
-      easing: "easeInOutQuart",
-      loop: true,
+    const elements = document.querySelectorAll(selector)
+    elements.forEach((el) => {
+      if (el instanceof HTMLElement) {
+        el.style.animation = "pulse 1s ease-in-out infinite"
+      }
     })
   }
 
   buttonHoverAnimation(element: HTMLElement) {
-    anime.default({
-      targets: element,
-      scale: 1.05,
-      duration: 200,
-      easing: "easeOutQuart",
-    })
+    element.style.transition = "transform 0.2s ease-out"
+    element.style.transform = "scale(1.05)"
   }
 
   buttonLeaveAnimation(element: HTMLElement) {
-    anime.default({
-      targets: element,
-      scale: 1,
-      duration: 200,
-      easing: "easeOutQuart",
-    })
+    element.style.transition = "transform 0.2s ease-out"
+    element.style.transform = "scale(1)"
   }
 }
 
