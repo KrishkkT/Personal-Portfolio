@@ -1,44 +1,33 @@
-"use client"
-
-import { useEffect } from "react"
-import Navigation from "@/components/navigation"
 import HeroSection from "@/components/hero-section"
 import AboutSection from "@/components/about-section"
 import SkillsSection from "@/components/skills-section"
-import InteractiveCLI from "@/components/interactive-cli"
-import CertificatesSection from "@/components/certificates-section"
-import TimelineSection from "@/components/timeline-section"
 import ProjectsSection from "@/components/projects-section"
-import HomeBlogSection from "@/components/home-blog-section"
+import CertificatesSection from "@/components/certificates-section"
 import ContactSection from "@/components/contact-section"
+import HomeBlogSection from "@/components/home-blog-section"
+import TimelineSection from "@/components/timeline-section"
 import Footer from "@/components/footer"
-import ClientWrapper from "@/components/client-wrapper"
+import BackToTop from "@/components/back-to-top"
+import { Suspense } from "react"
+import LoadingFallback from "@/components/loading-fallback"
 
-export default function Home() {
-  useEffect(() => {
-    // Force scroll to top on component mount
-    if (typeof window !== "undefined") {
-      window.scrollTo(0, 0)
-      document.documentElement.scrollTop = 0
-      document.body.scrollTop = 0
-    }
-  }, [])
-
+export default function HomePage() {
   return (
-    <ClientWrapper>
-      <Navigation />
-      <div id="home">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+      <Suspense fallback={<LoadingFallback />}>
         <HeroSection />
-      </div>
-      <AboutSection />
-      <SkillsSection />
-      <InteractiveCLI />
-      <CertificatesSection />
-      <TimelineSection />
-      <ProjectsSection />
-      <HomeBlogSection />
-      <ContactSection />
-      <Footer />
-    </ClientWrapper>
+        <AboutSection />
+        <SkillsSection />
+        <ProjectsSection />
+        <div id="journey">
+          <TimelineSection />
+        </div>
+        <CertificatesSection />
+        <HomeBlogSection />
+        <ContactSection />
+        <Footer />
+        <BackToTop />
+      </Suspense>
+    </div>
   )
 }

@@ -5,7 +5,6 @@ import "./globals.css"
 import Script from "next/script"
 import EnhancedPreloader from "@/components/enhanced-preloader"
 import Navigation from "@/components/navigation"
-import Footer from "@/components/footer"
 import { Toaster } from "sonner"
 import ErrorBoundary from "@/components/error-boundary"
 import { initializeSupabaseBlog } from "@/lib/blog-store-supabase"
@@ -158,7 +157,6 @@ export default function RootLayout({
           <div data-barba="wrapper">
             <Navigation />
             <main className="relative z-10">{children}</main>
-            <Footer />
           </div>
           <Toaster
             position="top-right"

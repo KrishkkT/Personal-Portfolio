@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Menu, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -36,48 +37,49 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 group" aria-label="KT Portfolio Home">
-            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-3 py-1 rounded-lg font-bold text-lg transform transition-transform duration-200 group-hover:scale-105">
+            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-3 py-1 rounded-lg font-bold text-lg transform transition-transform group-hover:scale-105">
               KT
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-1">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative text-white hover:text-yellow-400 transition-all duration-300 group px-3 py-2 rounded-lg hover:bg-yellow-400/10 hover:border hover:border-yellow-400/20"
-                aria-label={`Navigate to ${link.label} section`}
+                className="relative px-4 py-2 text-white hover:text-yellow-400 transition-all duration-300 group"
               >
-                {link.label}
-                <span className="absolute bottom-0 left-1/2 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-3/5 group-hover:left-1/5"></span>
+                <span className="relative z-10">{link.label}</span>
+                <div className="absolute inset-0 bg-yellow-400/10 border border-yellow-400/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-95 group-hover:scale-100" />
+                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-0 group-hover:w-3/5 h-0.5 bg-yellow-400 transition-all duration-300" />
               </Link>
             ))}
           </div>
 
           {/* Mobile Menu Button */}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
+            className="md:hidden text-white hover:text-yellow-400 hover:bg-yellow-400/10"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden text-white hover:text-yellow-400 transition-colors duration-200 p-2"
             aria-label="Toggle mobile menu"
             aria-expanded={isMobileMenuOpen}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          </Button>
         </div>
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-white/10 backdrop-blur-xl border-t border-white/20 mt-2 rounded-lg">
+          <div className="md:hidden bg-white/10 backdrop-blur-xl border-t border-white/20 shadow-lg">
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="block text-white hover:text-yellow-400 hover:bg-yellow-400/10 px-3 py-2 rounded-lg transition-all duration-200"
+                  className="block px-3 py-2 text-white hover:text-yellow-400 hover:bg-yellow-400/10 rounded-lg transition-all duration-300"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  aria-label={`Navigate to ${link.label} section`}
                 >
                   {link.label}
                 </Link>
