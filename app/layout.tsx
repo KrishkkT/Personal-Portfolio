@@ -7,7 +7,6 @@ import EnhancedPreloader from "@/components/enhanced-preloader"
 import Navigation from "@/components/navigation"
 import { Toaster } from "sonner"
 import ErrorBoundary from "@/components/error-boundary"
-import { initializeSupabaseBlog } from "@/lib/blog-store-supabase"
 
 const inter = Inter({ subsets: ["latin"], display: "swap" })
 
@@ -110,11 +109,6 @@ export const metadata: Metadata = {
   category: "technology",
   generator: "Next.js",
 }
-
-// Initialize blog store on app start
-initializeSupabaseBlog().catch(() => {
-  // Silent fail - app should still work with fallback data
-})
 
 export default function RootLayout({
   children,

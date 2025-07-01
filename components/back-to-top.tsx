@@ -23,11 +23,15 @@ export default function BackToTop() {
     })
 
     // Add a pulse animation when clicked
-    AnimationUtils.pulse(".back-to-top-button", {
-      scale: [1, 1.2, 1],
-      duration: 600,
-      loop: false,
-    })
+    try {
+      AnimationUtils.pulse(".back-to-top-button", {
+        scale: [1, 1.2, 1],
+        duration: 600,
+        loop: false,
+      })
+    } catch (error) {
+      console.log("Animation not available:", error)
+    }
   }
 
   useEffect(() => {
@@ -35,15 +39,17 @@ export default function BackToTop() {
     return () => window.removeEventListener("scroll", toggleVisibility)
   }, [])
 
+  if (!isVisible) return null
+
   return (
-    <div className={`back-to-top ${isVisible ? "visible" : ""}`}>
+    <div className="fixed bottom-8 right-8 z-50">
       <Button
         onClick={scrollToTop}
         size="icon"
-        className="back-to-top-button h-10 w-10 rounded-full bg-primary hover:bg-primary/90 shadow-lg"
+        className="back-to-top-button h-12 w-12 rounded-full bg-primary hover:bg-primary/90 shadow-lg transition-all duration-300 hover:shadow-xl"
         aria-label="Scroll to top"
       >
-        <ChevronUp className="h-5 w-5 text-background" />
+        <ChevronUp className="h-5 w-5 text-primary-foreground" />
       </Button>
     </div>
   )

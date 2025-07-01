@@ -1,187 +1,175 @@
-// Animation utility functions using pure CSS and Framer Motion
+// Simple animation utilities using CSS transitions and DOM manipulation
 export class AnimationUtils {
   // Fade in animation
   static fadeIn(duration = 0.5) {
     return {
-      initial: { opacity: 0 },
-      animate: { opacity: 1 },
-      transition: { duration },
+      opacity: 0,
+      transition: `opacity ${duration}s ease-in-out`,
+      "&.animate": {
+        opacity: 1,
+      },
     }
   }
 
   // Slide up animation
   static slideUp(duration = 0.5, distance = 50) {
     return {
-      initial: { opacity: 0, y: distance },
-      animate: { opacity: 1, y: 0 },
-      transition: { duration },
+      opacity: 0,
+      transform: `translateY(${distance}px)`,
+      transition: `all ${duration}s ease-out`,
+      "&.animate": {
+        opacity: 1,
+        transform: "translateY(0)",
+      },
     }
   }
 
   // Slide down animation
   static slideDown(duration = 0.5, distance = 50) {
     return {
-      initial: { opacity: 0, y: -distance },
-      animate: { opacity: 1, y: 0 },
-      transition: { duration },
-    }
-  }
-
-  // Slide left animation
-  static slideLeft(duration = 0.5, distance = 50) {
-    return {
-      initial: { opacity: 0, x: distance },
-      animate: { opacity: 1, x: 0 },
-      transition: { duration },
-    }
-  }
-
-  // Slide right animation
-  static slideRight(duration = 0.5, distance = 50) {
-    return {
-      initial: { opacity: 0, x: -distance },
-      animate: { opacity: 1, x: 0 },
-      transition: { duration },
+      opacity: 0,
+      transform: `translateY(-${distance}px)`,
+      transition: `all ${duration}s ease-out`,
+      "&.animate": {
+        opacity: 1,
+        transform: "translateY(0)",
+      },
     }
   }
 
   // Scale animation
   static scale(duration = 0.5, scale = 0.8) {
     return {
-      initial: { opacity: 0, scale },
-      animate: { opacity: 1, scale: 1 },
-      transition: { duration },
-    }
-  }
-
-  // Stagger children animation
-  static staggerChildren(staggerDelay = 0.1) {
-    return {
-      animate: {
-        transition: {
-          staggerChildren: staggerDelay,
-        },
-      },
-    }
-  }
-
-  // Bounce animation
-  static bounce(duration = 0.6) {
-    return {
-      initial: { opacity: 0, y: -50 },
-      animate: {
+      opacity: 0,
+      transform: `scale(${scale})`,
+      transition: `all ${duration}s ease-out`,
+      "&.animate": {
         opacity: 1,
-        y: 0,
-        transition: {
-          type: "spring",
-          damping: 10,
-          stiffness: 100,
-          duration,
-        },
+        transform: "scale(1)",
       },
     }
   }
 
-  // Rotate animation
-  static rotate(duration = 0.5, rotation = 180) {
-    return {
-      initial: { opacity: 0, rotate: rotation },
-      animate: { opacity: 1, rotate: 0 },
-      transition: { duration },
+  // Pulse animation - used by back-to-top component
+  static pulse(selector: string, options: { scale?: number[]; duration?: number; loop?: boolean } = {}) {
+    const { scale = [1, 1.2, 1], duration = 600, loop = false } = options
+
+    if (typeof window === "undefined") return // SSR safety
+
+    const element = document.querySelector(selector) as HTMLElement
+    if (!element) return
+
+    // Create keyframes for pulse animation
+    const keyframes = [
+      { transform: `scale(${scale[0]})` },
+      { transform: `scale(${scale[1]})` },
+      { transform: `scale(${scale[2]})` },
+    ]
+
+    const animationOptions = {
+      duration,
+      iterations: loop ? Number.POSITIVE_INFINITY : 1,
+      easing: "ease-in-out",
+    }
+
+    // Use Web Animations API if available, fallback to CSS
+    if (element.animate) {
+      element.animate(keyframes, animationOptions)
+    } else {
+      // Fallback CSS animation
+      element.style.animation = `pulse ${duration}ms ease-in-out ${loop ? "infinite" : "1"}`
     }
   }
 
-  // Flip animation
-  static flip(duration = 0.6) {
-    return {
-      initial: { opacity: 0, rotateY: 90 },
-      animate: { opacity: 1, rotateY: 0 },
-      transition: { duration },
-    }
+  // Simple CSS-based animations
+  static addFadeInClass(element: HTMLElement) {
+    if (!element) return
+    element.style.opacity = "0"
+    element.style.transition = "opacity 0.5s ease-in-out"
+
+    setTimeout(() => {
+      element.style.opacity = "1"
+    }, 10)
   }
 
-  // Pulse animation
-  static pulse(duration = 1) {
-    return {
-      animate: {
-        scale: [1, 1.05, 1],
-        transition: {
-          duration,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        },
-      },
-    }
+  static addSlideUpClass(element: HTMLElement) {
+    if (!element) return
+    element.style.opacity = "0"
+    element.style.transform = "translateY(30px)"
+    element.style.transition = "all 0.5s ease-out"
+
+    setTimeout(() => {
+      element.style.opacity = "1"
+      element.style.transform = "translateY(0)"
+    }, 10)
   }
 
-  // Float animation
-  static float(duration = 2) {
-    return {
-      animate: {
-        y: [0, -10, 0],
-        transition: {
-          duration,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        },
-      },
-    }
+  static addScaleClass(element: HTMLElement) {
+    if (!element) return
+    element.style.opacity = "0"
+    element.style.transform = "scale(0.8)"
+    element.style.transition = "all 0.5s ease-out"
+
+    setTimeout(() => {
+      element.style.opacity = "1"
+      element.style.transform = "scale(1)"
+    }, 10)
   }
 
-  // Typewriter effect
-  static typewriter(text: string, duration = 2) {
-    return {
-      initial: { width: 0 },
-      animate: { width: "auto" },
-      transition: {
-        duration,
-        ease: "linear",
-      },
-    }
-  }
+  // Float animation - used by various components
+  static float(selector: string, options: { duration?: number } = {}) {
+    const { duration = 2000 } = options
 
-  // Gradient shift animation
-  static gradientShift(duration = 3) {
-    return {
-      animate: {
-        backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-        transition: {
-          duration,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "linear",
-        },
-      },
+    if (typeof window === "undefined") return // SSR safety
+
+    const element = document.querySelector(selector) as HTMLElement
+    if (!element) return
+
+    const keyframes = [
+      { transform: "translateY(0px)" },
+      { transform: "translateY(-10px)" },
+      { transform: "translateY(0px)" },
+    ]
+
+    const animationOptions = {
+      duration,
+      iterations: Number.POSITIVE_INFINITY,
+      easing: "ease-in-out",
+    }
+
+    if (element.animate) {
+      element.animate(keyframes, animationOptions)
     }
   }
 
   // Shake animation
-  static shake(duration = 0.5) {
-    return {
-      animate: {
-        x: [0, -10, 10, -10, 10, 0],
-        transition: { duration },
-      },
-    }
-  }
+  static shake(selector: string, options: { duration?: number } = {}) {
+    const { duration = 500 } = options
 
-  // Zoom in animation
-  static zoomIn(duration = 0.5) {
-    return {
-      initial: { opacity: 0, scale: 0 },
-      animate: { opacity: 1, scale: 1 },
-      transition: { duration },
-    }
-  }
+    if (typeof window === "undefined") return // SSR safety
 
-  // Zoom out animation
-  static zoomOut(duration = 0.5) {
-    return {
-      initial: { opacity: 0, scale: 1.2 },
-      animate: { opacity: 1, scale: 1 },
-      transition: { duration },
+    const element = document.querySelector(selector) as HTMLElement
+    if (!element) return
+
+    const keyframes = [
+      { transform: "translateX(0)" },
+      { transform: "translateX(-10px)" },
+      { transform: "translateX(10px)" },
+      { transform: "translateX(-10px)" },
+      { transform: "translateX(10px)" },
+      { transform: "translateX(0)" },
+    ]
+
+    const animationOptions = {
+      duration,
+      iterations: 1,
+      easing: "ease-in-out",
+    }
+
+    if (element.animate) {
+      element.animate(keyframes, animationOptions)
     }
   }
 }
 
-// Export default for backward compatibility
 export default AnimationUtils

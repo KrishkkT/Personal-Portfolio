@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 
+// Singleton pattern for Supabase client
 let supabaseInstance: SupabaseClient | null = null
 
 export function getSupabaseClient(): SupabaseClient {
@@ -23,59 +24,34 @@ export function getSupabaseClient(): SupabaseClient {
   return supabaseInstance
 }
 
-// Export the same client for server operations
+// Server-side Supabase client
 export function getServerSupabaseClient(): SupabaseClient {
-  return getSupabaseClient()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error("Missing Supabase server environment variables")
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  })
 }
 
-// Test connection function
-export async function testSupabaseConnection(): Promise<{ success: boolean; error?: string }> {
+// Test Supabase connection
+export async function testSupabaseConnection(): Promise<boolean> {
   try {
-    const client = getSupabaseClient()
-    if (!client) {
-      return { success: false, error: "Failed to initialize Supabase client - check environment variables" }
-    }
-
-    // Test with a simple query to blog_posts table
-    const { error } = await client.from("blog_posts").select("count", { count: "exact", head: true })
-
-    if (error) {
-      return { success: false, error: `Database connection error: ${error.message}` }
-    }
-
-    return { success: true }
+    const supabase = getSupabaseClient()
+    const { error } = await supabase.from("blog_posts").select("count").limit(1)
+    return !error
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown connection error",
-    }
+    return false
   }
 }
 
-// Image upload function using Vercel Blob
-export async function uploadImage(file: File): Promise<{ url: string; error?: string }> {
-  try {
-    const formData = new FormData()
-    formData.append("file", file)
-
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || "Upload failed")
-    }
-
-    const data = await response.json()
-    return { url: data.url }
-  } catch (error) {
-    return {
-      url: "",
-      error: error instanceof Error ? error.message : "Upload failed",
-    }
-  }
-}
-
-export const supabase = getSupabaseClient()
+// Export default client for backward compatibility
+export default getSupabaseClient()
