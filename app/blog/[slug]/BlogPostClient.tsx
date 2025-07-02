@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { ArrowLeft, Calendar, Clock, User, Tag, Share2, BookOpen, Eye } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Calendar, Clock, Share2, BookOpen, User, Tag, AlertCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import type { BlogPost } from "@/types/blog"
 
@@ -15,86 +15,152 @@ interface BlogPostClientProps {
 
 export default function BlogPostClient({ slug }: BlogPostClientProps) {
   const [post, setPost] = useState<BlogPost | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [readingProgress, setReadingProgress] = useState(0)
 
   useEffect(() => {
-    const fetchPost = async () => {
-      try {
-        setLoading(true)
-        const response = await fetch(`/api/blog/${slug}`)
-
-        if (!response.ok) {
-          throw new Error("Post not found")
-        }
-
-        const data = await response.json()
-        setPost(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load post")
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchPost()
   }, [slug])
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollTop = window.scrollY
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight
-      const progress = (scrollTop / docHeight) * 100
-      setReadingProgress(Math.min(progress, 100))
-    }
+  const fetchPost = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
 
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+      const response = await fetch(`/api/blog/${slug}`)
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Blog post not found")
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      setPost(data)
+    } catch (error) {
+      console.error("Error fetching post:", error)
+      setError(error instanceof Error ? error.message : "Failed to load blog post")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    } catch {
+      return "Invalid Date"
+    }
+  }
+
+  const getReadingTime = (content: string) => {
+    const wordsPerMinute = 200
+    const wordCount = content.split(/\s+/).length
+    const readingTime = Math.ceil(wordCount / wordsPerMinute)
+    return `${readingTime} min read`
+  }
 
   const handleShare = async () => {
-    if (!post) return
+    const url = window.location.href
+    const title = post?.title || "Blog Post"
 
-    const shareData = {
-      title: post.title,
-      text: post.intro,
-      url: window.location.href,
-    }
-
-    try {
-      if (navigator.share && navigator.canShare(shareData)) {
-        await navigator.share(shareData)
-      } else {
-        await navigator.clipboard.writeText(window.location.href)
-        // You could add a toast notification here
-      }
-    } catch (err) {
-      // Fallback: copy to clipboard
+    if (navigator.share) {
       try {
-        await navigator.clipboard.writeText(window.location.href)
-      } catch (clipboardErr) {
-        // Handle clipboard error
+        await navigator.share({
+          title,
+          url,
+        })
+      } catch (error) {
+        console.log("Error sharing:", error)
+      }
+    } else {
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(url)
+        alert("Link copied to clipboard!")
+      } catch (error) {
+        console.log("Error copying to clipboard:", error)
       }
     }
   }
 
-  if (loading) {
+  const renderMarkdown = (content: string) => {
+    // Simple markdown rendering - you might want to use a proper markdown library
+    return content.split("\n").map((line, index) => {
+      // Headers
+      if (line.startsWith("### ")) {
+        return (
+          <h3 key={index} className="text-xl font-bold text-white mt-8 mb-4">
+            {line.replace("### ", "")}
+          </h3>
+        )
+      }
+      if (line.startsWith("## ")) {
+        return (
+          <h2 key={index} className="text-2xl font-bold text-white mt-8 mb-4">
+            {line.replace("## ", "")}
+          </h2>
+        )
+      }
+      if (line.startsWith("# ")) {
+        return (
+          <h1 key={index} className="text-3xl font-bold text-white mt-8 mb-4">
+            {line.replace("# ", "")}
+          </h1>
+        )
+      }
+
+      // Code blocks
+      if (line.startsWith("```")) {
+        return (
+          <div key={index} className="bg-gray-800 rounded-lg p-4 my-4 font-mono text-sm text-gray-300">
+            {line.replace(/```/g, "")}
+          </div>
+        )
+      }
+
+      // Bold text
+      const boldText = line.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-yellow-400">$1</strong>')
+
+      // Italic text
+      const italicText = boldText.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
+
+      // Links
+      const linkText = italicText.replace(
+        /\[([^\]]+)\]$$([^)]+)$$/g,
+        '<a href="$2" class="text-yellow-400 hover:text-yellow-300 underline" target="_blank" rel="noopener noreferrer">$1</a>',
+      )
+
+      // Empty lines
+      if (line.trim() === "") {
+        return <br key={index} />
+      }
+
+      // Regular paragraphs
+      return (
+        <p key={index} className="text-gray-300 leading-relaxed mb-4" dangerouslySetInnerHTML={{ __html: linkText }} />
+      )
+    })
+  }
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-20">
-        <div className="royal-container">
-          <div className="animate-pulse space-y-8" role="status" aria-label="Loading blog post">
-            <div className="h-8 bg-gray-700/50 rounded-lg w-1/4"></div>
-            <div className="h-16 bg-gray-700/50 rounded-lg"></div>
-            <div className="flex gap-4">
-              <div className="h-6 bg-gray-700/50 rounded w-32"></div>
-              <div className="h-6 bg-gray-700/50 rounded w-24"></div>
-              <div className="h-6 bg-gray-700/50 rounded w-28"></div>
-            </div>
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-4 bg-gray-700/50 rounded"></div>
-              ))}
+      <div className="min-h-screen royal-gradient">
+        <div className="royal-container py-20">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-20">
+              <Loader2 className="h-8 w-8 animate-spin text-yellow-400 mx-auto mb-4" />
+              <p className="text-gray-300">Loading article...</p>
             </div>
           </div>
         </div>
@@ -104,245 +170,151 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
 
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-20">
-        <div className="royal-container">
-          <motion.div className="text-center py-20" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <div className="midnight-glass rounded-2xl p-12 max-w-2xl mx-auto">
-              <div className="text-6xl mb-6" role="img" aria-label="Document icon">
-                📝
-              </div>
-              <h1 className="text-3xl font-bold text-white mb-4">Post Not Found</h1>
-              <p className="text-gray-300 mb-8">
-                {error || "The blog post you're looking for doesn't exist or has been removed."}
-              </p>
-              <Link href="/blog">
-                <Button className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-300 hover:to-yellow-400">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to Blog
-                </Button>
-              </Link>
-            </div>
-          </motion.div>
+      <div className="min-h-screen royal-gradient">
+        <div className="royal-container py-20">
+          <div className="max-w-4xl mx-auto">
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+              <Card className="royal-card">
+                <CardContent className="p-12">
+                  <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-6" />
+                  <h1 className="text-3xl font-bold text-white mb-4">
+                    {error === "Blog post not found" ? "Article Not Found" : "Something went wrong"}
+                  </h1>
+                  <p className="text-gray-300 mb-8">
+                    {error === "Blog post not found"
+                      ? "The article you're looking for doesn't exist or has been moved."
+                      : error || "Failed to load the article. Please try again later."}
+                  </p>
+                  <div className="flex gap-4 justify-center">
+                    <Button onClick={fetchPost} className="btn-royal">
+                      Try Again
+                    </Button>
+                    <Link href="/blog">
+                      <Button variant="outline" className="border-gray-600 text-gray-300 bg-transparent">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Blog
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      {/* Reading Progress Bar */}
-      <div className="fixed top-0 left-0 w-full h-1 bg-gray-800 z-50" role="progressbar" aria-label="Reading progress">
-        <motion.div
-          className="h-full bg-gradient-to-r from-yellow-400 to-yellow-500"
-          style={{ width: `${readingProgress}%` }}
-          initial={{ width: 0 }}
-          animate={{ width: `${readingProgress}%` }}
-          transition={{ duration: 0.1 }}
-        />
-      </div>
-
+    <div className="min-h-screen royal-gradient">
       <div className="royal-container py-20">
-        {/* Back Navigation */}
-        <motion.nav
-          className="mb-8"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6 }}
-          aria-label="Breadcrumb navigation"
-        >
-          <Link href="/blog">
-            <Button variant="ghost" className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-400/10 -ml-4">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+        <div className="max-w-4xl mx-auto">
+          {/* Navigation */}
+          <motion.div className="mb-8" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+            <Link href="/blog" className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300">
+              <ArrowLeft className="h-4 w-4" />
               Back to Blog
-            </Button>
-          </Link>
-        </motion.nav>
+            </Link>
+          </motion.div>
 
-        {/* Article Header */}
-        <motion.article
-          className="max-w-4xl mx-auto"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          {/* Hero Section */}
-          <header className="mb-12">
-            <div className="midnight-glass rounded-2xl p-8 md:p-12 border border-yellow-400/20">
-              {/* Title */}
-              <motion.h1
-                className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-              >
-                {post.title}
-              </motion.h1>
+          {/* Article Header */}
+          <motion.div
+            className="mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <Card className="royal-card">
+              <CardContent className="p-8 md:p-12">
+                {/* Featured Image */}
+                {post.imageUrls && post.imageUrls.length > 0 && (
+                  <div className="relative h-64 md:h-80 rounded-xl overflow-hidden mb-8 bg-gray-800/50">
+                    <img
+                      src={post.imageUrls[0] || "/placeholder.svg"}
+                      alt={post.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.src = "/placeholder.svg?height=400&width=800&text=Blog+Image"
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/50 to-transparent"></div>
+                  </div>
+                )}
 
-              {/* Introduction */}
-              {post.intro && (
-                <motion.p
-                  className="text-xl md:text-2xl text-gray-300 mb-8 leading-relaxed font-light"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.4 }}
-                >
-                  {post.intro}
-                </motion.p>
-              )}
+                {/* Meta Information */}
+                <div className="flex flex-wrap items-center gap-4 mb-6 text-sm text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {formatDate(post.createdAt)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {getReadingTime(post.content)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {post.author || "KT"}
+                  </div>
+                </div>
 
-              {/* Meta Information */}
-              <motion.div
-                className="flex flex-wrap items-center gap-6 text-gray-400"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.6 }}
-              >
-                <div className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                  <span className="font-medium">{post.author || "KT"}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                  <time dateTime={post.date}>
-                    {new Date(post.date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </time>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                  <span>{post.readingTime} min read</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                  <span>Article</span>
-                </div>
-              </motion.div>
+                {/* Title */}
+                <h1 className="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">{post.title}</h1>
 
-              {/* Tags */}
-              {post.tags && post.tags.length > 0 && (
-                <motion.div
-                  className="flex flex-wrap gap-2 mt-6 pt-6 border-t border-gray-700/50"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.8 }}
-                >
-                  <Tag className="h-5 w-5 text-yellow-400 mr-2" aria-hidden="true" />
+                {/* Introduction */}
+                <p className="text-xl text-gray-300 leading-relaxed mb-8">{post.intro}</p>
+
+                {/* Tags */}
+                <div className="flex flex-wrap gap-2 mb-8">
+                  <Tag className="h-4 w-4 text-gray-400 mr-2" />
                   {post.tags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="bg-yellow-400/10 text-yellow-400 border border-yellow-400/20 hover:bg-yellow-400/20 transition-colors duration-200"
-                    >
+                    <Badge key={tag} variant="outline" className="border-yellow-400/30 text-yellow-400">
                       {tag}
                     </Badge>
                   ))}
-                </motion.div>
-              )}
-            </div>
-          </header>
+                </div>
 
-          {/* Featured Image */}
-          {post.imageUrls && post.imageUrls.length > 0 && (
-            <motion.div
-              className="mb-12"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-            >
-              <div className="relative overflow-hidden rounded-2xl shadow-2xl">
-                <img
-                  src={post.imageUrls[0] || "/placeholder.svg"}
-                  alt={`Featured image for ${post.title}`}
-                  className="w-full h-64 md:h-96 object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-              </div>
-            </motion.div>
-          )}
+                {/* Share Button */}
+                <Button
+                  onClick={handleShare}
+                  variant="outline"
+                  className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 bg-transparent"
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share Article
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Article Content */}
           <motion.div
-            className="midnight-glass rounded-2xl p-8 md:p-12 border border-yellow-400/10"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <div className="prose prose-lg prose-invert max-w-none">
-              <div
-                className="text-gray-200 leading-relaxed"
-                style={{
-                  fontSize: "1.125rem",
-                  lineHeight: "1.8",
-                  fontFamily: "system-ui, -apple-system, sans-serif",
-                }}
-                dangerouslySetInnerHTML={{
-                  __html: post.content
-                    .replace(/\n\n/g, '</p><p class="mb-6">')
-                    .replace(/\n/g, "<br>")
-                    .replace(/^/, '<p class="mb-6">')
-                    .replace(/$/, "</p>")
-                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-yellow-400 font-semibold">$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em class="text-gray-300 italic">$1</em>')
-                    .replace(
-                      /`(.*?)`/g,
-                      '<code class="bg-gray-800 text-yellow-400 px-2 py-1 rounded text-sm font-mono">$1</code>',
-                    )
-                    .replace(
-                      /^### (.*$)/gm,
-                      '<h3 class="text-2xl font-bold text-white mt-12 mb-6 border-l-4 border-yellow-400 pl-4">$1</h3>',
-                    )
-                    .replace(
-                      /^## (.*$)/gm,
-                      '<h2 class="text-3xl font-bold text-white mt-16 mb-8 gradient-text">$1</h2>',
-                    )
-                    .replace(
-                      /^# (.*$)/gm,
-                      '<h1 class="text-4xl font-bold text-white mt-20 mb-10 gradient-text">$1</h1>',
-                    ),
-                }}
-              />
-            </div>
-          </motion.div>
-
-          {/* Article Footer */}
-          <motion.footer
-            className="mt-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.8 }}
-          >
-            <Card className="midnight-glass border-yellow-400/20">
-              <CardContent className="p-8">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div className="text-center md:text-left">
-                    <h3 className="text-xl font-semibold text-white mb-2">Enjoyed this article?</h3>
-                    <p className="text-gray-300">Share it with others or explore more content.</p>
-                  </div>
-                  <div className="flex gap-4">
-                    <Button
-                      variant="outline"
-                      className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 bg-transparent"
-                      onClick={handleShare}
-                      aria-label="Share this article"
-                    >
-                      <Share2 className="mr-2 h-4 w-4" />
-                      Share
-                    </Button>
-                    <Link href="/blog">
-                      <Button className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-300 hover:to-yellow-400">
-                        <Eye className="mr-2 h-4 w-4" />
-                        More Articles
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
+            <Card className="royal-card">
+              <CardContent className="p-8 md:p-12">
+                <div className="prose prose-lg prose-invert max-w-none">{renderMarkdown(post.content)}</div>
               </CardContent>
             </Card>
-          </motion.footer>
-        </motion.article>
+          </motion.div>
+
+          {/* Back to Blog */}
+          <motion.div
+            className="mt-12 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Link href="/blog">
+              <Button className="btn-royal">
+                <BookOpen className="h-4 w-4 mr-2" />
+                Read More Articles
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
       </div>
     </div>
   )

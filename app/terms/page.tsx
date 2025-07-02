@@ -52,8 +52,8 @@ export default function TermsPage() {
                   </p>
                   <p>
                     These Terms and Conditions govern your use of the Website operated by KT ("we", "us", or "our"). The
-                    Website provides portfolio information, project showcases, and interactive tools for educational and
-                    professional purposes.
+                    Website provides portfolio information, project showcases, and professional content for educational
+                    and business purposes.
                   </p>
                 </div>
               </CardContent>
@@ -93,34 +93,32 @@ export default function TermsPage() {
               </CardContent>
             </Card>
 
-            {/* Interactive CLI Tool */}
+            {/* Website Content */}
             <Card className="royal-card">
               <CardContent className="p-8">
                 <div className="flex items-center gap-3 mb-6">
                   <Globe className="h-6 w-6 text-yellow-400" />
-                  <h2 className="text-2xl font-bold text-white">Interactive CLI Tool</h2>
+                  <h2 className="text-2xl font-bold text-white">Website Content</h2>
                 </div>
 
                 <div className="space-y-4 text-gray-300">
                   <p>
-                    Our Website includes an interactive Command Line Interface (CLI) tool that provides information
-                    about your device and network connection. By using this tool, you acknowledge and agree that:
+                    Our Website contains portfolio information, project showcases, blog articles, and professional
+                    content. By using this Website, you acknowledge and agree that:
                   </p>
                   <ul className="space-y-2 ml-4">
-                    <li>
-                      • The CLI tool accesses your IP address and device information for demonstration purposes only
-                    </li>
-                    <li>• All CLI commands and outputs are processed locally in your browser</li>
-                    <li>• No CLI data is stored on our servers or transmitted to third parties</li>
-                    <li>• The tool is provided for educational and demonstration purposes</li>
-                    <li>• You use the CLI tool at your own risk and discretion</li>
+                    <li>• All content is provided for informational and educational purposes only</li>
+                    <li>• Project demonstrations and code samples are for illustrative purposes</li>
+                    <li>• Blog articles represent personal opinions and experiences</li>
+                    <li>• You use the information at your own risk and discretion</li>
+                    <li>• We are not responsible for any decisions made based on the content</li>
                   </ul>
 
                   <div className="bg-blue-400/10 border border-blue-400/20 rounded-lg p-4 mt-6">
-                    <p className="text-blue-400 font-semibold">Privacy Note:</p>
+                    <p className="text-blue-400 font-semibold">Professional Note:</p>
                     <p className="text-gray-300 mt-2">
-                      The CLI tool uses the ipify.org API to demonstrate IP address lookup functionality. This is a
-                      legitimate service used for educational purposes only.
+                      This Website serves as a professional portfolio showcasing skills, projects, and expertise in web
+                      development, cybersecurity, and technology.
                     </p>
                   </div>
                 </div>
@@ -154,7 +152,7 @@ export default function TermsPage() {
 
                   <p>
                     Nothing on this Website constitutes, or is meant to constitute, advice of any kind. If you require
-                    advice in relation to any legal, financial, or medical matter you should consult an appropriate
+                    advice in relation to any legal, financial, or technical matter you should consult an appropriate
                     professional.
                   </p>
                 </div>

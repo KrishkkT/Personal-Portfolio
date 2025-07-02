@@ -89,7 +89,7 @@ export default function ContactSection() {
 
       if (response.ok) {
         setSubmitStatus("success")
-        setSubmitMessage("Thank you! Your message landed safely — I'll circle back shortly.")
+        setSubmitMessage("Thank you! Your message landed safely �� I'll circle back shortly.")
         setFormData({ name: "", email: "", subject: "", message: "" })
         setErrors({})
       } else {

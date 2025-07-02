@@ -5,8 +5,9 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Lock, User, Eye, EyeOff, Shield, Sparkles, Zap } from "lucide-react"
+import { Lock, User, Eye, EyeOff, Shield, Sparkles, Zap, ArrowLeft } from "lucide-react"
 import { motion } from "framer-motion"
+import Link from "next/link"
 import BlogManagement from "./BlogManagement"
 
 export default function BlogManagementPage() {
@@ -51,16 +52,25 @@ export default function BlogManagementPage() {
   if (isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed top-4 left-4 right-4 z-50 flex justify-between items-center">
+          <Link href="/" className="text-yellow-400 hover:text-yellow-300 transition-colors">
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 backdrop-blur-sm bg-transparent"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Home
+            </Button>
+          </Link>
           <Button
             onClick={handleLogout}
             variant="outline"
             size="sm"
-            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 backdrop-blur-sm bg-transparent text-xs sm:text-sm"
+            className="border-red-400/30 text-red-400 hover:bg-red-400/10 backdrop-blur-sm bg-transparent"
           >
-            <Lock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Logout</span>
-            <span className="sm:hidden">Out</span>
+            <Lock className="h-4 w-4 mr-2" />
+            Logout
           </Button>
         </div>
         <BlogManagement />
@@ -75,6 +85,20 @@ export default function BlogManagementPage() {
         <div className="absolute -top-40 -right-40 w-60 h-60 sm:w-80 sm:h-80 bg-yellow-400/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-60 h-60 sm:w-80 sm:h-80 bg-blue-400/10 rounded-full blur-3xl"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-72 h-72 sm:w-96 sm:h-96 bg-purple-400/5 rounded-full blur-3xl"></div>
+      </div>
+
+      {/* Navigation */}
+      <div className="absolute top-6 left-6 z-10">
+        <Link href="/" className="text-yellow-400 hover:text-yellow-300 transition-colors">
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 backdrop-blur-sm bg-transparent"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Portfolio
+          </Button>
+        </Link>
       </div>
 
       {/* Floating Elements */}
@@ -128,7 +152,7 @@ export default function BlogManagementPage() {
               transition={{ duration: 0.6, delay: 0.4 }}
             >
               <CardTitle className="text-2xl sm:text-3xl text-white font-bold mb-2">Content Management</CardTitle>
-              <p className="text-gray-300 text-xs sm:text-sm">Secure access to content management system</p>
+              <p className="text-gray-300 text-xs sm:text-sm">Secure access to portfolio content management system</p>
             </motion.div>
 
             {/* Feature Icons */}
@@ -145,8 +169,8 @@ export default function BlogManagementPage() {
               </div>
               <div className="flex items-center gap-1 sm:gap-2 text-xs text-gray-400">
                 <Zap className="h-3 w-3 text-blue-400" />
-                <span className="hidden sm:inline">Real-time Preview</span>
-                <span className="sm:hidden">Preview</span>
+                <span className="hidden sm:inline">Real-time Management</span>
+                <span className="sm:hidden">Management</span>
               </div>
             </motion.div>
           </CardHeader>
@@ -255,7 +279,7 @@ export default function BlogManagementPage() {
               transition={{ duration: 0.6, delay: 1.4 }}
               className="mt-4 sm:mt-6 text-center"
             >
-              <p className="text-xs text-gray-500">🔒 Secured with enterprise-grade encryption</p>
+              <p className="text-xs text-gray-500">🔒 Secured with enterprise-grade authentication</p>
             </motion.div>
           </CardContent>
         </Card>

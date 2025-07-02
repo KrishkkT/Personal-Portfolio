@@ -47,13 +47,13 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://kjt.vercel.app"),
   title: {
-    default: "KT - Full Stack Developer & Cybersecurity Enthusiast and Specialist",
+    default: "KT - Cybersecurity Aspiring Professional",
     template: "%s | KT Portfolio",
   },
   description:
-    "Krish Thakker - Cybersecurity, Cloud & Full Stack Development Enthusiast. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
+    "Krish Thakker - It started with curiosity—how do systems work, and how can they break? Now, I'm focused on turning that curiosity into action by combining cybersecurity with automation to build things that are both secure and meaningful.",
   keywords: keywords,
-  authors: [{ name: "Krish Thakker", url: "https://kjt.vercel.app" }],
+  authors: [{ name: "Krish Thakker", url: "https://krishthakker.tech" }],
   creator: "Krish Thakker",
   publisher: "Krish Thakker",
   formatDetection: {
@@ -68,17 +68,17 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "KT - Full Stack Developer & Cybersecurity Enthusiast and Specialist",
+    title: "KT - Passionate About Cybersecurity & Innovation",
     description:
-      "Krish Thakker - Cybersecurity, Cloud & Full Stack Development Enthusiast. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
-    url: "https://kjt.vercel.app",
+      "Krish Thakker - It started with curiosity—how do systems work, and how can they break? Now, I'm focused on turning that curiosity into action by combining cybersecurity with automation to build things that are both secure and meaningful.",
+    url: "https://krishthakker.tech",
     siteName: "KT Portfolio",
     images: [
       {
         url: "/icon",
         width: 1200,
         height: 630,
-        alt: "Krish Thakker - Full Stack Developer & Cybersecurity Specialist",
+        alt: "Krish Thakker - Passionate About Cybersecurity & Innovation",
       },
     ],
     locale: "en_US",
@@ -86,9 +86,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "KT - Full Stack Developer & Cybersecurity Enthusiast & Specialist",
+    title: "KT - Passionate About Cybersecurity & Innovation",
     description:
-      "Cybersecurity, Cloud & Full Stack Development Enthusiast. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
+      "It started with curiosity—how do systems work, and how can they break? Now, I'm focused on turning that curiosity into action by combining cybersecurity with automation to build things that are both secure and meaningful.",
     images: ["/icon"],
     creator: "@krishthakker08",
   },
@@ -104,7 +104,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: "google-site-verification-code",
+    google: "QaiaeL9bLstYRJQ2d81_Boxs22j9QRYvEifbC8cQ5i0",
   },
   category: "technology",
   generator: "Next.js",
@@ -171,16 +171,16 @@ export default function RootLayout({
                 "@context": "https://schema.org",
                 "@type": "Person",
                 name: "Krish Thakker",
-                url: "https://kjt.vercel.app",
-                image: "https://kjt.vercel.app/icon",
+                url: "https://krishthakker.tech",
+                image: "https://krishthakker.tech/icon",
                 sameAs: ["https://github.com/krishkkt", "https://linkedin.com/in/krishthakker08"],
-                jobTitle: "Full Stack Developer & Cybersecurity Enthusiast & Specialist",
+                jobTitle: "Passionate About Cybersecurity & Innovation",
                 worksFor: {
                   "@type": "Organization",
                   name: "Independent Professional",
                 },
                 description:
-                  "Cybersecurity, Cloud & Full Stack Development Enthusiast. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
+                  "It started with curiosity—how do systems work, and how can they break? Now, I'm focused on turning that curiosity into action by combining cybersecurity with automation to build things that are both secure and meaningful.",
                 knowsAbout: [
                   "Full Stack Development",
                   "Cybersecurity",
@@ -201,17 +201,17 @@ export default function RootLayout({
               __html: JSON.stringify({
                 "@context": "https://schema.org",
                 "@type": "WebSite",
-                url: "https://kjt.vercel.app",
-                name: "KT - Full Stack Developer & Cybersecurity Specialist",
+                url: "https://krishthakker.tech",
+                name: "KT - Passionate about Cybersecurity & Innovation",
                 description:
-                  "Professional portfolio of Krish Thakker, showcasing expertise in Full Stack Development, Cybersecurity, and Cloud Computing.",
+                  "It started with curiosity—how do systems work, and how can they break? Now, I'm focused on turning that curiosity into action by combining cybersecurity with automation to build things that are both secure and meaningful.",
                 author: {
                   "@type": "Person",
                   name: "Krish Thakker",
                 },
                 potentialAction: {
                   "@type": "SearchAction",
-                  target: "https://kjt.vercel.app/search?q={search_term_string}",
+                  target: "https://krishthakker.tech/search?q={search_term_string}",
                   "query-input": "required name=search_term_string",
                 },
               }),
