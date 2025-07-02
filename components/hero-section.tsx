@@ -254,7 +254,7 @@ export default function HeroSection() {
               transition={{ delay: 0.9, duration: 0.8 }}
               itemProp="jobTitle"
             >
-              Cybersecurity, Artificial Intelligence & Full Stack Developer Enthusiast
+              From Curiosity to Cybersecurity: Automating What Matters
             </motion.h3>
           </motion.div>
 
@@ -265,8 +265,7 @@ export default function HeroSection() {
             transition={{ delay: 1.1, duration: 0.8 }}
             itemProp="description"
           >
-            Soaring through Cybersecurity, Cloud, and Full Stack Development to engineer secure, seamless, and
-            breakthrough digital experiences with React, Next.js, and modern web technologies.
+            It all started with simple curiosity: how do systems work, and how can they be broken? I enjoy diving into SOC workflows, bug bounty research, and smart system designWhether I'm analyzing threats, automating tasks, or building AI-powered workflows.
           </motion.p>
 
           <motion.div
