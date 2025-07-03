@@ -54,7 +54,18 @@ export default function BlogManagementPage() {
   if (isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-        <BlogManagement onLogout={handleLogout} />
+        <div className="fixed top-4 right-4 z-50">
+          <Button
+            onClick={handleLogout}
+            variant="outline"
+            size="sm"
+            className="border-red-400/30 text-red-400 hover:bg-red-400/10 backdrop-blur-sm bg-gray-900/50"
+          >
+            <Lock className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+        <BlogManagement />
       </div>
     )
   }

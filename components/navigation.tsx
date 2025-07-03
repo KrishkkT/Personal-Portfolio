@@ -4,10 +4,17 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { usePathname } from "next/navigation"
 
 export default function Navigation() {
+  const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Hide navigation on admin pages
+  if (pathname?.startsWith("/kjt-golb")) {
+    return null
+  }
 
   useEffect(() => {
     const handleScroll = () => {

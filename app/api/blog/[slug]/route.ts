@@ -1,61 +1,39 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-// Mock data for fallback
-const mockPost = {
-  id: "1",
-  title: "Getting Started with Next.js",
-  slug: "getting-started-with-nextjs",
-  content:
-    "# Getting Started with Next.js\n\nNext.js is a powerful React framework that makes building web applications easier and more efficient.\n\n## Key Features\n\n- Server-side rendering\n- Static site generation\n- API routes\n- Built-in CSS support\n\n## Installation\n\n```bash\nnpx create-next-app@latest my-app\ncd my-app\nnpm run dev\n```\n\nThat's it! You now have a Next.js application running.",
-  excerpt: "Learn how to get started with Next.js, the React framework for production applications.",
-  tags: ["nextjs", "react", "web-development"],
-  published: true,
-  createdAt: "2024-01-15T10:00:00Z",
-  updatedAt: "2024-01-15T10:00:00Z",
-}
+import { blogStoreSupabase } from "@/lib/blog-store-supabase"
 
 export async function GET(request: NextRequest, { params }: { params: { slug: string } }) {
   try {
     const { slug } = params
-
-    // In a real application, you would fetch from your database here
-    // For now, we'll return mock data to prevent 500 errors
+    console.log("Blog API GET single post:", slug)
 
     if (!slug) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Slug is required",
-        },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: "Slug parameter is required" }, { status: 400 })
     }
 
-    // Return mock post data
-    const post = {
-      ...mockPost,
-      slug: slug,
-      title: `Blog Post: ${slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}`,
+    const post = await blogStoreSupabase.getPost(slug)
+
+    if (!post) {
+      console.log("Blog post not found:", slug)
+      return NextResponse.json({ error: "Blog post not found" }, { status: 404 })
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        post: post,
+    console.log("Blog API returning post:", post.id)
+
+    return NextResponse.json(post, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
       },
-      { status: 200 },
-    )
+    })
   } catch (error) {
-    console.error(`Error in GET /api/blog/${params.slug}:`, error)
-
-    // Return fallback data instead of error
+    console.error("Blog API [slug] GET Error:", error)
     return NextResponse.json(
       {
-        success: true,
-        post: mockPost,
-        message: "Using fallback data",
+        error: "Failed to fetch blog post",
+        message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 200 },
+      { status: 500 },
     )
   }
 }
@@ -64,45 +42,34 @@ export async function PUT(request: NextRequest, { params }: { params: { slug: st
   try {
     const { slug } = params
     const body = await request.json()
+    console.log("Blog API PUT request:", slug, body)
 
     if (!slug) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Slug is required",
-        },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: "Slug parameter is required" }, { status: 400 })
     }
 
-    // In a real application, you would update in your database here
-    // For now, we'll return a success response to prevent 500 errors
+    const post = await blogStoreSupabase.updatePost(slug, body)
 
-    const updatedPost = {
-      ...mockPost,
-      ...body,
-      slug: slug,
-      updatedAt: new Date().toISOString(),
+    if (!post) {
+      return NextResponse.json({ error: "Failed to update blog post or post not found" }, { status: 404 })
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        post: updatedPost,
-        message: "Post updated successfully (mock response)",
+    console.log("Blog API updated post:", post.id)
+
+    return NextResponse.json(post, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
       },
-      { status: 200 },
-    )
+    })
   } catch (error) {
-    console.error(`Error in PUT /api/blog/${params.slug}:`, error)
-
-    // Return success response even on error to prevent 500
+    console.error("Blog API [slug] PUT Error:", error)
     return NextResponse.json(
       {
-        success: true,
-        message: "Post update simulated (fallback response)",
+        error: "Failed to update blog post",
+        message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 200 },
+      { status: 500 },
     )
   }
 }
@@ -110,37 +77,37 @@ export async function PUT(request: NextRequest, { params }: { params: { slug: st
 export async function DELETE(request: NextRequest, { params }: { params: { slug: string } }) {
   try {
     const { slug } = params
+    console.log("Blog API DELETE request:", slug)
 
     if (!slug) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Slug is required",
-        },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: "Slug parameter is required" }, { status: 400 })
     }
 
-    // In a real application, you would delete from your database here
-    // For now, we'll return a success response to prevent 500 errors
+    const success = await blogStoreSupabase.deletePost(slug)
+
+    if (!success) {
+      return NextResponse.json({ error: "Failed to delete blog post or post not found" }, { status: 404 })
+    }
+
+    console.log("Blog API deleted post:", slug)
 
     return NextResponse.json(
+      { success: true, message: "Blog post deleted successfully" },
       {
-        success: true,
-        message: "Post deleted successfully (mock response)",
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-      { status: 200 },
     )
   } catch (error) {
-    console.error(`Error in DELETE /api/blog/${params.slug}:`, error)
-
-    // Return success response even on error to prevent 500
+    console.error("Blog API [slug] DELETE Error:", error)
     return NextResponse.json(
       {
-        success: true,
-        message: "Post deletion simulated (fallback response)",
+        error: "Failed to delete blog post",
+        message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 200 },
+      { status: 500 },
     )
   }
 }
