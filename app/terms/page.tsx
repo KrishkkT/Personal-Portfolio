@@ -1,254 +1,224 @@
-"use client"
-
-import { motion } from "framer-motion"
-import { ArrowLeft, FileText, AlertTriangle, Scale, Globe, Shield, Users } from "lucide-react"
+import type { Metadata } from "next"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Shield, FileText, Users, Lock, Eye, AlertTriangle, Mail, Scale } from "lucide-react"
 import Link from "next/link"
-import { Card, CardContent } from "@/components/ui/card"
+
+export const metadata: Metadata = {
+  title: "Terms of Service | KT Portfolio",
+  description: "Terms of service and conditions for using KT Portfolio website and services.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+}
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen royal-gradient">
-      <div className="royal-container py-20">
-        <motion.div
-          className="max-w-4xl mx-auto"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="container mx-auto px-4 py-20">
+        <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-16">
-            <Link href="/" className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 mb-8">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Portfolio
-            </Link>
-
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <FileText className="h-8 w-8 text-yellow-400" />
-              <h1 className="text-5xl font-bold text-white">
-                Terms & <span className="gradient-text">Conditions</span>
-              </h1>
+          <div className="text-center mb-12">
+            <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <Scale className="h-8 w-8 text-gray-900" />
             </div>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-              Please read these terms and conditions carefully before using our portfolio website and services.
-            </p>
-            <p className="text-sm text-gray-400 mt-4">Last updated: December 2024</p>
+            <h1 className="text-4xl font-bold text-white mb-4">Terms of Service</h1>
+            <p className="text-gray-300 text-lg">Please read these terms carefully before using our services</p>
+            <p className="text-gray-400 text-sm mt-2">Last updated: January 2024</p>
           </div>
 
-          {/* Content */}
+          {/* Terms Content */}
           <div className="space-y-8">
             {/* Acceptance of Terms */}
-            <Card className="royal-card">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Scale className="h-6 w-6 text-yellow-400" />
-                  <h2 className="text-2xl font-bold text-white">Acceptance of Terms</h2>
-                </div>
-
-                <div className="space-y-4 text-gray-300">
-                  <p>
-                    By accessing and using this portfolio website ("the Website"), you accept and agree to be bound by
-                    the terms and provision of this agreement. If you do not agree to abide by the above, please do not
-                    use this service.
-                  </p>
-                  <p>
-                    These Terms and Conditions govern your use of the Website operated by KT ("we", "us", or "our"). The
-                    Website provides portfolio information, project showcases, and professional content for educational
-                    and business purposes.
-                  </p>
-                </div>
+            <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <FileText className="h-6 w-6 text-yellow-400" />
+                  1. Acceptance of Terms
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-gray-300 space-y-4">
+                <p>
+                  By accessing and using KT Portfolio ("the Service"), you accept and agree to be bound by the terms and
+                  provision of this agreement. If you do not agree to abide by the above, please do not use this
+                  service.
+                </p>
+                <p>
+                  These Terms of Service constitute a legally binding agreement between you and KT Portfolio regarding
+                  your use of the Service.
+                </p>
               </CardContent>
             </Card>
 
             {/* Use License */}
-            <Card className="royal-card">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <FileText className="h-6 w-6 text-yellow-400" />
-                  <h2 className="text-2xl font-bold text-white">Use License</h2>
-                </div>
-
-                <div className="space-y-4 text-gray-300">
-                  <p>
-                    Permission is granted to temporarily download one copy of the materials on the Website for personal,
-                    non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and
-                    under this license you may not:
-                  </p>
-                  <ul className="space-y-2 ml-4">
-                    <li>• Modify or copy the materials</li>
-                    <li>
-                      • Use the materials for any commercial purpose or for any public display (commercial or
-                      non-commercial)
-                    </li>
-                    <li>• Attempt to decompile or reverse engineer any software contained on the Website</li>
-                    <li>• Remove any copyright or other proprietary notations from the materials</li>
-                    <li>• Use automated systems to access or scrape the Website</li>
-                  </ul>
-                  <p>
-                    This license shall automatically terminate if you violate any of these restrictions and may be
-                    terminated by us at any time. Upon terminating your viewing of these materials or upon the
-                    termination of this license, you must destroy any downloaded materials in your possession whether in
-                    electronic or printed format.
-                  </p>
-                </div>
+            <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <Shield className="h-6 w-6 text-blue-400" />
+                  2. Use License
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-gray-300 space-y-4">
+                <p>
+                  Permission is granted to temporarily access the materials on KT Portfolio for personal, non-commercial
+                  transitory viewing only. This is the grant of a license, not a transfer of title, and under this
+                  license you may not:
+                </p>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li>modify or copy the materials</li>
+                  <li>use the materials for any commercial purpose or for any public display</li>
+                  <li>attempt to reverse engineer any software contained on the website</li>
+                  <li>remove any copyright or other proprietary notations from the materials</li>
+                </ul>
+                <p>
+                  This license shall automatically terminate if you violate any of these restrictions and may be
+                  terminated by KT Portfolio at any time.
+                </p>
               </CardContent>
             </Card>
 
-            {/* Website Content */}
-            <Card className="royal-card">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Globe className="h-6 w-6 text-yellow-400" />
-                  <h2 className="text-2xl font-bold text-white">Website Content</h2>
-                </div>
-
-                <div className="space-y-4 text-gray-300">
-                  <p>
-                    Our Website contains portfolio information, project showcases, blog articles, and professional
-                    content. By using this Website, you acknowledge and agree that:
-                  </p>
-                  <ul className="space-y-2 ml-4">
-                    <li>• All content is provided for informational and educational purposes only</li>
-                    <li>• Project demonstrations and code samples are for illustrative purposes</li>
-                    <li>• Blog articles represent personal opinions and experiences</li>
-                    <li>• You use the information at your own risk and discretion</li>
-                    <li>• We are not responsible for any decisions made based on the content</li>
-                  </ul>
-
-                  <div className="bg-blue-400/10 border border-blue-400/20 rounded-lg p-4 mt-6">
-                    <p className="text-blue-400 font-semibold">Professional Note:</p>
-                    <p className="text-gray-300 mt-2">
-                      This Website serves as a professional portfolio showcasing skills, projects, and expertise in web
-                      development, cybersecurity, and technology.
-                    </p>
-                  </div>
-                </div>
+            {/* User Responsibilities */}
+            <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <Users className="h-6 w-6 text-green-400" />
+                  3. User Responsibilities
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-gray-300 space-y-4">
+                <p>As a user of this Service, you agree to:</p>
+                <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li>Use the Service only for lawful purposes</li>
+                  <li>Not interfere with or disrupt the Service or servers</li>
+                  <li>Not attempt to gain unauthorized access to any part of the Service</li>
+                  <li>Respect the intellectual property rights of others</li>
+                  <li>Not engage in any activity that could harm or impair the Service</li>
+                </ul>
               </CardContent>
             </Card>
 
-            {/* Disclaimer */}
-            <Card className="royal-card">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <AlertTriangle className="h-6 w-6 text-yellow-400" />
-                  <h2 className="text-2xl font-bold text-white">Disclaimer</h2>
-                </div>
-
-                <div className="space-y-4 text-gray-300">
-                  <p>
-                    The materials on the Website are provided on an 'as is' basis. To the fullest extent permitted by
-                    law, this Company:
-                  </p>
-                  <ul className="space-y-2 ml-4">
-                    <li>• Excludes all representations and warranties relating to this Website and its contents</li>
-                    <li>
-                      • Excludes all liability for damages arising out of or in connection with your use of this Website
-                    </li>
-                    <li>• Does not warrant that the Website will be constantly available, or available at all</li>
-                    <li>
-                      • Does not warrant that the information on this Website is complete, true, accurate, or
-                      non-misleading
-                    </li>
-                  </ul>
-
-                  <p>
-                    Nothing on this Website constitutes, or is meant to constitute, advice of any kind. If you require
-                    advice in relation to any legal, financial, or technical matter you should consult an appropriate
-                    professional.
-                  </p>
-                </div>
+            {/* Privacy and Data */}
+            <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <Lock className="h-6 w-6 text-purple-400" />
+                  4. Privacy and Data Protection
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-gray-300 space-y-4">
+                <p>
+                  Your privacy is important to us. Our collection and use of personal information is governed by our
+                  Privacy Policy, which is incorporated into these Terms by reference.
+                </p>
+                <p>
+                  We implement appropriate security measures to protect your personal information against unauthorized
+                  access, alteration, disclosure, or destruction.
+                </p>
+                <p>
+                  For detailed information about how we handle your data, please review our{" "}
+                  <Link href="/privacy" className="text-yellow-400 hover:text-yellow-300 underline">
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
               </CardContent>
             </Card>
 
-            {/* Limitations */}
-            <Card className="royal-card">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Shield className="h-6 w-6 text-yellow-400" />
-                  <h2 className="text-2xl font-bold text-white">Limitations</h2>
-                </div>
-
-                <div className="space-y-4 text-gray-300">
-                  <p>
-                    In no event shall KT or its suppliers be liable for any damages (including, without limitation,
-                    damages for loss of data or profit, or due to business interruption) arising out of the use or
-                    inability to use the materials on the Website, even if KT or an authorized representative has been
-                    notified orally or in writing of the possibility of such damage. Because some jurisdictions do not
-                    allow limitations on implied warranties, or limitations of liability for consequential or incidental
-                    damages, these limitations may not apply to you.
-                  </p>
-
-                  <div className="bg-yellow-400/10 border border-yellow-400/20 rounded-lg p-4 mt-6">
-                    <p className="text-yellow-400 font-semibold">Important:</p>
-                    <p className="text-gray-300 mt-2">
-                      This Website is a portfolio showcase and educational platform. Any projects, code samples, or
-                      tools demonstrated are for illustrative purposes and should not be used in production environments
-                      without proper testing and security review.
-                    </p>
-                  </div>
-                </div>
+            {/* Content and Intellectual Property */}
+            <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <Eye className="h-6 w-6 text-indigo-400" />
+                  5. Content and Intellectual Property
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-gray-300 space-y-4">
+                <p>
+                  All content on KT Portfolio, including but not limited to text, graphics, logos, images, and software,
+                  is the property of KT Portfolio or its content suppliers and is protected by copyright and other
+                  intellectual property laws.
+                </p>
+                <p>
+                  You may not reproduce, distribute, modify, create derivative works of, publicly display, publicly
+                  perform, republish, download, store, or transmit any of the material on our Service without prior
+                  written consent.
+                </p>
               </CardContent>
             </Card>
 
-            {/* User Conduct */}
-            <Card className="royal-card">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Users className="h-6 w-6 text-yellow-400" />
-                  <h2 className="text-2xl font-bold text-white">User Conduct</h2>
-                </div>
+            {/* Disclaimers */}
+            <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <AlertTriangle className="h-6 w-6 text-orange-400" />
+                  6. Disclaimers
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-gray-300 space-y-4">
+                <p>
+                  The information on this website is provided on an "as is" basis. To the fullest extent permitted by
+                  law, KT Portfolio excludes all representations, warranties, conditions and terms whether express or
+                  implied.
+                </p>
+                <p>
+                  KT Portfolio shall not be liable for any damages arising from the use or inability to use the
+                  materials on its website, even if KT Portfolio or an authorized representative has been notified
+                  orally or in writing of the possibility of such damage.
+                </p>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-4 text-gray-300">
-                  <p>You agree not to use the Website to:</p>
-                  <ul className="space-y-2 ml-4">
-                    <li>• Violate any applicable local, state, national, or international law or regulation</li>
-                    <li>
-                      • Transmit, or procure the sending of, any advertising or promotional material without our prior
-                      written consent
-                    </li>
-                    <li>
-                      • Impersonate or attempt to impersonate the Company, a Company employee, another user, or any
-                      other person or entity
-                    </li>
-                    <li>
-                      • Engage in any other conduct that restricts or inhibits anyone's use or enjoyment of the Website
-                    </li>
-                    <li>• Use the Website in any manner that could disable, overburden, damage, or impair the site</li>
-                    <li>
-                      • Use any robot, spider, or other automatic device to access the Website for any purpose without
-                      our prior written permission
-                    </li>
-                  </ul>
-                </div>
+            {/* Modifications */}
+            <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <FileText className="h-6 w-6 text-cyan-400" />
+                  7. Modifications to Terms
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-gray-300 space-y-4">
+                <p>
+                  KT Portfolio may revise these Terms of Service at any time without notice. By using this Service, you
+                  are agreeing to be bound by the then current version of these Terms of Service.
+                </p>
+                <p>
+                  We recommend that you periodically review these Terms to stay informed of any changes. Your continued
+                  use of the Service after any modifications indicates your acceptance of the modified terms.
+                </p>
               </CardContent>
             </Card>
 
             {/* Contact Information */}
-            <Card className="royal-card">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Globe className="h-6 w-6 text-yellow-400" />
-                  <h2 className="text-2xl font-bold text-white">Contact Information</h2>
-                </div>
-
-                <div className="space-y-4 text-gray-300">
-                  <p>If you have any questions about these Terms and Conditions, please contact us at:</p>
-                  <div className="space-y-2 ml-4">
-                    <p>Email: kjthakker8@gmail.com</p>
-                    <p>Website: kjt.vercel.app</p>
-                  </div>
-
-                  <p className="mt-6">
-                    These terms and conditions are effective as of December 2024. We reserve the right to update or
-                    change our Terms and Conditions at any time without prior notice. Your continued use of the Service
-                    after we post any modifications to the Terms and Conditions on this page will constitute your
-                    acknowledgment of the modifications and your consent to abide and be bound by the modified Terms and
-                    Conditions.
-                  </p>
-                </div>
+            <Card className="bg-gray-800/50 border-gray-700/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3 text-white">
+                  <Mail className="h-6 w-6 text-red-400" />
+                  8. Contact Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-gray-300 space-y-4">
+                <p>
+                  If you have any questions about these Terms of Service, please contact us through the contact form on
+                  our website or via email.
+                </p>
+                <p>
+                  We will make every effort to respond to your inquiries in a timely manner and address any concerns you
+                  may have regarding these terms.
+                </p>
               </CardContent>
             </Card>
           </div>
-        </motion.div>
+
+          {/* Footer */}
+          <div className="mt-12 text-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-yellow-400 hover:text-yellow-300 transition-colors"
+            >
+              ← Back to Portfolio
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )

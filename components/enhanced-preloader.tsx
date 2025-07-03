@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, Zap, Star, Diamond } from "lucide-react"
 
 export default function EnhancedPreloader() {
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
@@ -14,110 +13,88 @@ export default function EnhancedPreloader() {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(interval)
-          setTimeout(() => {
-            setLoading(false)
-          }, 800)
+          setTimeout(() => setIsLoading(false), 500)
           return 100
         }
-        return Math.min(prev + Math.random() * 15, 100)
+        return prev + Math.random() * 15
       })
-    }, 150)
+    }, 100)
 
     return () => clearInterval(interval)
   }, [])
 
-  if (!loading) return null
-
   return (
     <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center royal-gradient"
-        initial={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        {/* Particles */}
-        <div className="absolute inset-0 overflow-hidden">
-          {[...Array(20)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full bg-yellow-400/30"
-              style={{
-                width: `${Math.random() * 20 + 5}px`,
-                height: `${Math.random() * 20 + 5}px`,
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                x: [0, Math.random() * 100 - 50],
-                y: [0, Math.random() * 100 - 50],
-                opacity: [0, 0.8, 0],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Number.POSITIVE_INFINITY,
-                delay: i * 0.1,
-              }}
-            />
-          ))}
-        </div>
-
-        <div className="text-center space-y-8 z-10">
-          {/* Animated Logo */}
-          <div className="relative w-32 h-32 mx-auto">
-            <motion.div
-              className="absolute inset-0 flex items-center justify-center"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-            >
-              <Sparkles className="h-12 w-12 text-yellow-400" />
-            </motion.div>
-
-            <motion.div
-              className="absolute top-0 left-1/2 transform -translate-x-1/2"
-              animate={{
-                y: [0, -10, 0],
-                opacity: [0.5, 1, 0.5],
-              }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-            >
-              <Star className="h-6 w-6 text-yellow-400" />
-            </motion.div>
-
-            <motion.div
-              className="absolute bottom-0 right-0"
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 1, 0.3],
-              }}
-              transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY, delay: 0.5 }}
-            >
-              <Zap className="h-8 w-8 text-yellow-400" />
-            </motion.div>
-
-            <motion.div
-              className="absolute bottom-0 left-0"
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.3, 0.8, 0.3],
-              }}
-              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, delay: 0.8 }}
-            >
-              <Diamond className="h-7 w-7 text-yellow-400" />
-            </motion.div>
+      {isLoading && (
+        <motion.div
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+        >
+          {/* Background Effects */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-400/5 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-400/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
           </div>
 
-          {/* Loading Text */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <h1 className="text-4xl font-bold text-white mb-2">
-              <span className="gradient-text">KT</span>
-            </h1>
-            <p className="text-gray-300">Initializing Excellence...</p>
-          </motion.div>
+          {/* Main Content */}
+          <div className="relative z-10 text-center">
+            {/* Logo */}
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ duration: 0.8, type: "spring", stiffness: 200 }}
+              className="w-20 h-20 mx-auto mb-8 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-2xl flex items-center justify-center shadow-lg shadow-yellow-400/25"
+            >
+              <span className="text-2xl font-bold text-gray-900">KT</span>
+            </motion.div>
 
-          {/* Progress Bar */}
-          <div className="w-64 mx-auto">
-            <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+            {/* Animated Icons */}
+            <div className="flex justify-center items-center gap-4 mb-8">
+              <motion.div
+                animate={{
+                  y: [0, -10, 0],
+                  rotate: [0, 180, 360],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                }}
+                className="w-6 h-6 bg-yellow-400 rounded-full"
+              />
+              <motion.div
+                animate={{
+                  scale: [1, 1.2, 1],
+                  rotate: [0, 45, 0],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                  delay: 0.2,
+                }}
+                className="w-4 h-4 bg-yellow-400 transform rotate-45"
+              />
+              <motion.div
+                animate={{
+                  y: [0, -8, 0],
+                  x: [0, 5, 0],
+                }}
+                transition={{
+                  duration: 1.8,
+                  repeat: Number.POSITIVE_INFINITY,
+                  ease: "easeInOut",
+                  delay: 0.4,
+                }}
+                className="w-5 h-5 bg-yellow-400"
+                style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }}
+              />
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-64 h-1 bg-gray-700 rounded-full mx-auto mb-4 overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full"
                 initial={{ width: "0%" }}
@@ -125,10 +102,19 @@ export default function EnhancedPreloader() {
                 transition={{ duration: 0.3 }}
               />
             </div>
-            <p className="text-sm text-gray-400 mt-2">{Math.round(progress)}%</p>
+
+            {/* Progress Text */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-gray-400 text-sm"
+            >
+              {Math.round(progress)}%
+            </motion.p>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   )
 }
