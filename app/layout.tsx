@@ -45,7 +45,7 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://krishthakker.tech"),
+  metadataBase: new URL("https://kjt.vercel.app"),
   title: {
     default: "KT - Cybersecurity Aspiring Professional",
     template: "%s | KT Portfolio",
@@ -110,28 +110,6 @@ export const metadata: Metadata = {
   generator: "Next.js",
 }
 
-function LayoutContent({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <EnhancedPreloader />
-      <div data-barba="wrapper">
-        <Navigation />
-        <main className="relative z-10">{children}</main>
-      </div>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: "rgb(31 41 55)",
-            color: "rgb(243 244 246)",
-            border: "1px solid rgb(75 85 99)",
-          },
-        }}
-      />
-    </>
-  )
-}
-
 export default function RootLayout({
   children,
 }: {
@@ -169,7 +147,21 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} antialiased`}>
         <ErrorBoundary>
-          <LayoutContent>{children}</LayoutContent>
+          <EnhancedPreloader />
+          <div data-barba="wrapper">
+            <Navigation />
+            <main className="relative z-10">{children}</main>
+          </div>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: "rgb(31 41 55)",
+                color: "rgb(243 244 246)",
+                border: "1px solid rgb(75 85 99)",
+              },
+            }}
+          />
 
           <Script
             id="schema-person"

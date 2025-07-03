@@ -143,52 +143,112 @@ export class AnimationUtils {
   }
 
   // Fade in animation
-  static fadeIn = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.6, ease: "easeOut" },
+  static fadeIn(
+    selector: string | HTMLElement,
+    options: {
+      duration?: number
+      delay?: number
+    } = {},
+  ) {
+    if (!this.isClient) return Promise.resolve()
+
+    try {
+      const elements = typeof selector === "string" ? document.querySelectorAll(selector) : [selector]
+
+      const promises = Array.from(elements).map((element) => {
+        if (!(element instanceof HTMLElement)) return Promise.resolve()
+
+        const { duration = 500, delay = 0 } = options
+
+        if (this.isAnimationSupported) {
+          return element.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration,
+            delay,
+            fill: "forwards",
+            easing: "ease-out",
+          }).finished
+        } else {
+          // CSS fallback
+          setTimeout(() => {
+            element.style.transition = `opacity ${duration}ms ease-out`
+            element.style.opacity = "1"
+          }, delay)
+          return new Promise((resolve) => setTimeout(resolve, duration + delay))
+        }
+      })
+
+      return Promise.all(promises)
+    } catch (error) {
+      console.warn("Animation error:", error)
+      return Promise.resolve()
+    }
   }
 
   // Slide up animation
-  static slideUp = {
-    initial: { opacity: 0, y: 30 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.8, ease: "easeOut" },
-  }
+  static slideUp(
+    selector: string | HTMLElement,
+    options: {
+      distance?: number
+      duration?: number
+      delay?: number
+    } = {},
+  ) {
+    if (!this.isClient) return Promise.resolve()
 
-  // Scale in animation
-  static scaleIn = {
-    initial: { opacity: 0, scale: 0.9 },
-    animate: { opacity: 1, scale: 1 },
-    transition: { duration: 0.6, ease: "easeOut" },
-  }
+    try {
+      const elements = typeof selector === "string" ? document.querySelectorAll(selector) : [selector]
 
-  // Stagger container animation
-  static staggerContainer = {
-    animate: {
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  }
+      const promises = Array.from(elements).map((element) => {
+        if (!(element instanceof HTMLElement)) return Promise.resolve()
 
-  // Stagger item animation
-  static staggerItem = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
+        const { distance = 30, duration = 600, delay = 0 } = options
+
+        if (this.isAnimationSupported) {
+          return element.animate(
+            [
+              {
+                opacity: 0,
+                transform: `translateY(${distance}px)`,
+              },
+              {
+                opacity: 1,
+                transform: "translateY(0)",
+              },
+            ],
+            {
+              duration,
+              delay,
+              fill: "forwards",
+              easing: "ease-out",
+            },
+          ).finished
+        } else {
+          // CSS fallback
+          setTimeout(() => {
+            element.style.transition = `all ${duration}ms ease-out`
+            element.style.opacity = "1"
+            element.style.transform = "translateY(0)"
+          }, delay)
+          return new Promise((resolve) => setTimeout(resolve, duration + delay))
+        }
+      })
+
+      return Promise.all(promises)
+    } catch (error) {
+      console.warn("Animation error:", error)
+      return Promise.resolve()
+    }
   }
 }
 
 // Export default and named exports
+export default AnimationUtils
+
+// Simple animation utilities object
 export const animationUtils = {
   pulse: AnimationUtils.pulse.bind(AnimationUtils),
   float: AnimationUtils.float.bind(AnimationUtils),
   shake: AnimationUtils.shake.bind(AnimationUtils),
-  fadeIn: AnimationUtils.fadeIn,
-  slideUp: AnimationUtils.slideUp,
-  scaleIn: AnimationUtils.scaleIn,
-  staggerContainer: AnimationUtils.staggerContainer,
-  staggerItem: AnimationUtils.staggerItem,
+  fadeIn: AnimationUtils.fadeIn.bind(AnimationUtils),
+  slideUp: AnimationUtils.slideUp.bind(AnimationUtils),
 }
-
-export default AnimationUtils
