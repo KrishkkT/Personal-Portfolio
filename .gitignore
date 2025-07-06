@@ -10,17 +10,20 @@
 /.next/
 /out/
 
-# Production
+# Build
 /build
+/dist
 
 # Misc
 .DS_Store
+Thumbs.db
 *.pem
 
-# Debug
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Local env files
 .env
@@ -28,17 +31,27 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.*.local
 
-# Vercel
+# Vercel (Deployment)
 .vercel
+.vercelignore
 
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# IDE
+# IDEs & Editors
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
 # OS
 Thumbs.db
+
+# Custom/Temporary
+components.json
+*.log
