@@ -45,6 +45,15 @@
   --glass-background: rgba(255, 255, 255, 0.05);
 }
 
+@keyframes blink {
+  0%, 100% { opacity: 1 }
+  50% { opacity: 0 }
+}
+.animate-blink {
+  animation: blink 1s step-start infinite;
+}
+
+
 /* Dark theme by default */
 .dark {
   --background: 222.2 84% 4.9%;

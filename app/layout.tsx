@@ -47,7 +47,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://kjt.vercel.app"),
   title: {
-    default: "KT - Cybersecurity Aspiring Professional",
+    default: "Krish Thakker - Cybersecurity Aspiring Professional",
     template: "%s | KT Portfolio",
   },
   description:
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "KT - Passionate About Cybersecurity & Innovation",
+    title: "Krish Thakker - Passionate About Cybersecurity & Innovation",
     description:
       "Krish Thakker - It started with curiosity—how do systems work, and how can they break? Now, I'm focused on turning that curiosity into action by combining cybersecurity with automation to build things that are both secure and meaningful.",
     url: "https://krishthakker.tech",

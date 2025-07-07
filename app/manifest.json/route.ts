@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "KT - Cybersecurity, AI & Developer Portfolio",
+    name: "Krish Thakker - Cybersecurity, AI & Developer Portfolio",
     short_name: "KT Portfolio",
     description:
       "Professional portfolio of Krish Thakker, showcasing expertise in Development, Cybersecurity, CLoud and AI.",

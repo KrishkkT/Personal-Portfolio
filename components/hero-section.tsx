@@ -28,6 +28,56 @@ export default function HeroSection() {
     }
   }
 
+   const typewriterPhrases = [
+    "From curiosity to cyber mastery",
+    "Cybersecurity Learner",
+    "SOC & Automation",
+    "Bug Hunter",
+  ]
+
+  const [currentText, setCurrentText] = useState("")
+  const [phraseIndex, setPhraseIndex] = useState(0)
+  const [charIndex, setCharIndex] = useState(0)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+
+  useEffect(() => {
+    if (isPaused) return
+
+    const currentPhrase = typewriterPhrases[phraseIndex]
+    const delay = isDeleting ? 150 : 100
+
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        const nextText = currentPhrase.substring(0, charIndex + 1)
+        setCurrentText(nextText)
+        setCharIndex((prev) => prev + 1)
+
+        if (nextText === currentPhrase) {
+          setIsPaused(true)
+          setTimeout(() => {
+            setIsDeleting(true)
+            setIsPaused(false)
+          }, 2000)
+        }
+      } else {
+        const words = currentText.trim().split(" ")
+        if (words.length > 1) {
+          words.pop()
+          setCurrentText(words.join(" ") + " ")
+        } else {
+          setCurrentText("")
+          setCharIndex(0)
+          setIsDeleting(false)
+          setPhraseIndex((prev) => (prev + 1) % typewriterPhrases.length)
+        }
+      }
+    }, delay)
+
+    return () => clearTimeout(timeout)
+  }, [charIndex, isDeleting, phraseIndex, currentText, isPaused])
+
+
   return (
     <section
       id="home"
@@ -254,8 +304,10 @@ export default function HeroSection() {
               transition={{ delay: 0.9, duration: 0.8 }}
               itemProp="jobTitle"
             >
-              From Curiosity to Cybersecurity: Automating What Matters
+              {currentText}
+              <span className="animate-blink">|</span>
             </motion.h3>
+
           </motion.div>
 
           <motion.p
@@ -265,7 +317,7 @@ export default function HeroSection() {
             transition={{ delay: 1.1, duration: 0.8 }}
             itemProp="description"
           >
-            It all started with simple curiosity: how do systems work, and how can they be broken? I enjoy diving into SOC workflows, bug bounty research, and smart system designWhether I'm analyzing threats, automating tasks, or building AI-powered workflows.
+            It started with curiosity—how systems work and how they can break. Now I dive into SOC workflows, hunt bugs, build AI-powered automations, and design smarter systems.
           </motion.p>
 
           <motion.div

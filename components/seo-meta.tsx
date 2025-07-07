@@ -15,7 +15,7 @@ interface SeoMetaProps {
 }
 
 export default function SeoMeta({
-  title = "KT - Cybersecurity & AI developer",
+  title = "Krish Thakker - Cybersecurity & AI developer",
   description = "Krish Thakker - Cybersecurity, AI & Cloud Enthusiast with expertise in Development. Delivering secure, scalable web applications with React, Next.js, and modern security practices.",
   keywords = [],
   ogImage = "/images/profile.jpg",
@@ -25,7 +25,7 @@ export default function SeoMeta({
   canonicalPath,
 }: SeoMetaProps) {
   const pathname = usePathname()
-  const baseUrl = "https://kjt.vercel.app"
+  const baseUrl = "https://krishthakker.tech"
   const canonicalUrl = canonicalPath ? `${baseUrl}${canonicalPath}` : `${baseUrl}${pathname}`
 
   const defaultKeywords = [
