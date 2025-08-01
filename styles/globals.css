@@ -10,15 +10,26 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  .animation-delay-500 {
+    animation-delay: 0.5s;
+  }
+  .animation-delay-1000 {
+    animation-delay: 1s;
+  }
 }
+
 @keyframes blink {
-  0%, 100% { opacity: 1 }
-  50% { opacity: 0 }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 .animate-blink {
   animation: blink 1s step-start infinite;
 }
-
 
 @layer base {
   :root {
