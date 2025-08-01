@@ -1,100 +1,203 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Menu, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { usePathname } from "next/navigation"
+import { motion, AnimatePresence } from "framer-motion"
+import { Menu, X, Home, User, Briefcase, Award, FileText, Mail } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+
+const navItems = [
+  { name: "Home", href: "/", icon: Home, id: "home" },
+  { name: "About", href: "/#about", icon: User, id: "about" },
+  { name: "Projects", href: "/#projects", icon: Briefcase, id: "projects" },
+  { name: "Certificates", href: "/certificates", icon: Award, id: "certificates" },
+  { name: "Experience", href: "/experience", icon: FileText, id: "experience" },
+  { name: "Contact", href: "/#contact", icon: Mail, id: "contact" },
+]
 
 export default function Navigation() {
   const pathname = usePathname()
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const router = useRouter()
+  const [isOpen, setIsOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [activeSection, setActiveSection] = useState("home")
 
-  // Hide navigation on admin pages
-  if (pathname?.startsWith("/kjt-golb")) {
+  // Don't show navigation on management dashboard
+  if (pathname === "/kjt-golb") {
     return null
   }
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50)
+      setScrolled(window.scrollY > 50)
+
+      // Update active section based on scroll position
+      const sections = ["home", "about", "projects", "contact"]
+      const current = sections.find((section) => {
+        const element = document.getElementById(section)
+        if (element) {
+          const rect = element.getBoundingClientRect()
+          return rect.top <= 100 && rect.bottom >= 100
+        }
+        return false
+      })
+
+      if (current) {
+        setActiveSection(current)
+      }
     }
 
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const navLinks = [
-    { href: "/#about", label: "About" },
-    { href: "/#projects", label: "Projects" },
-    { href: "/#journey", label: "Journey" },
-    { href: "/#certificates", label: "Certificates" },
-    { href: "/#blog", label: "Blog" },
-    { href: "/#contact", label: "Contact" },
-  ]
+  const handleNavClick = (href: string, id: string) => {
+    setIsOpen(false)
+
+    if (href.startsWith("/#")) {
+      // Hash navigation
+      const targetId = href.substring(2)
+      if (pathname === "/") {
+        // Already on home page, just scroll
+        const element = document.getElementById(targetId)
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" })
+        }
+      } else {
+        // Navigate to home page with hash
+        router.push("/")
+        setTimeout(() => {
+          const element = document.getElementById(targetId)
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth" })
+          }
+        }, 100)
+      }
+    } else if (href === "/") {
+      // Home navigation
+      if (pathname === "/") {
+        // Already on home, scroll to top
+        window.scrollTo({ top: 0, behavior: "smooth" })
+      } else {
+        // Navigate to home
+        router.push("/")
+      }
+    } else {
+      // Regular navigation
+      router.push(href)
+    }
+  }
 
   return (
-    <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-white/10 backdrop-blur-xl border-b border-white/20 shadow-lg shadow-black/5" : "bg-transparent"
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2 group" aria-label="KT Portfolio Home">
-            <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-3 py-1 rounded-lg font-bold text-lg transform transition-transform group-hover:scale-105">
-              KT
+    <>
+      {/* Desktop Navigation */}
+      <motion.nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled ? "bg-gray-900/95 backdrop-blur-md shadow-lg" : "bg-transparent"
+        }`}
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <motion.div
+              className="flex-shrink-0 cursor-pointer"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleNavClick("/", "home")}
+            >
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center">
+                  <span className="text-black font-bold text-sm">KT</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Desktop Menu */}
+            <div className="hidden md:block">
+              <div className="ml-10 flex items-baseline space-x-4">
+                {navItems.map((item) => {
+                  const isActive =
+                    (pathname === "/" && item.href.startsWith("/#") && activeSection === item.id) ||
+                    (pathname !== "/" && pathname === item.href) ||
+                    (item.href === "/" && pathname === "/")
+
+                  return (
+                    <motion.button
+                      key={item.name}
+                      onClick={() => handleNavClick(item.href, item.id)}
+                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 flex items-center space-x-1 ${
+                        isActive
+                          ? "text-yellow-400 bg-yellow-400/10"
+                          : "text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/5"
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.name}</span>
+                    </motion.button>
+                  )
+                })}
+              </div>
             </div>
-          </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="relative px-4 py-2 text-white hover:text-yellow-400 transition-all duration-300 group"
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <motion.button
+                onClick={() => setIsOpen(!isOpen)}
+                className="text-gray-300 hover:text-yellow-400 p-2"
+                whileTap={{ scale: 0.95 }}
               >
-                <span className="relative z-10">{link.label}</span>
-                <div className="absolute inset-0 bg-yellow-400/10 border border-yellow-400/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-95 group-hover:scale-100" />
-                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-0 group-hover:w-3/5 h-0.5 bg-yellow-400 transition-all duration-300" />
-              </Link>
-            ))}
+                {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              </motion.button>
+            </div>
           </div>
-
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="md:hidden text-white hover:text-yellow-400 hover:bg-yellow-400/10"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle mobile menu"
-            aria-expanded={isMobileMenuOpen}
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </Button>
         </div>
 
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-white/10 backdrop-blur-xl border-t border-white/20 shadow-lg">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="block px-3 py-2 text-white hover:text-yellow-400 hover:bg-yellow-400/10 rounded-lg transition-all duration-300"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </nav>
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              className="md:hidden bg-gray-900/95 backdrop-blur-md"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="px-2 pt-2 pb-3 space-y-1">
+                {navItems.map((item) => {
+                  const isActive =
+                    (pathname === "/" && item.href.startsWith("/#") && activeSection === item.id) ||
+                    (pathname !== "/" && pathname === item.href) ||
+                    (item.href === "/" && pathname === "/")
+
+                  return (
+                    <motion.button
+                      key={item.name}
+                      onClick={() => handleNavClick(item.href, item.id)}
+                      className={`w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 flex items-center space-x-2 ${
+                        isActive
+                          ? "text-yellow-400 bg-yellow-400/10"
+                          : "text-gray-300 hover:text-yellow-400 hover:bg-yellow-400/5"
+                      }`}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.name}</span>
+                    </motion.button>
+                  )
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.nav>
+
+      {/* Spacer for fixed navigation */}
+      <div className="h-16" />
+    </>
   )
 }

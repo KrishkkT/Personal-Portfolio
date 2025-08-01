@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server"
 export function middleware(request: NextRequest) {
   const response = NextResponse.next()
 
-  // Comprehensive security headers
+  // Security headers
   response.headers.set("X-Frame-Options", "DENY")
   response.headers.set("X-Content-Type-Options", "nosniff")
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin")
@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: https: blob:",
     "font-src 'self' https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co https://vercel.live wss://*.supabase.co",
+    "connect-src 'self' https://*.supabase.co https://vercel.live wss://*.supabase.co https://api.ipify.org",
     "media-src 'self' data: blob:",
     "object-src 'none'",
     "base-uri 'self'",
@@ -30,21 +30,21 @@ export function middleware(request: NextRequest) {
 
   response.headers.set("Content-Security-Policy", csp)
 
-  // Cache Control for different resource types
+  // Cache Control
   if (
     request.nextUrl.pathname.startsWith("/images/") ||
     request.nextUrl.pathname.startsWith("/icons/") ||
-    request.nextUrl.pathname.startsWith("/fonts/")
+    request.nextUrl.pathname.startsWith("/fonts/") ||
+    request.nextUrl.pathname.startsWith("/audio/")
   ) {
     response.headers.set("Cache-Control", "public, max-age=31536000, immutable")
   }
 
-  // API Routes Cache Control
   if (request.nextUrl.pathname.startsWith("/api/")) {
     response.headers.set("Cache-Control", "no-store, max-age=0")
   }
 
-  // Handle blog management authentication
+  // Blog management authentication
   if (request.nextUrl.pathname.startsWith("/kjt-golb")) {
     const authHeader = request.headers.get("authorization")
 
@@ -70,7 +70,12 @@ function isValidAuthHeader(authHeader: string): boolean {
   try {
     const credentials = Buffer.from(base64Credentials, "base64").toString("utf-8")
     const [username, password] = credentials.split(":")
-    return username === "thekjt" && password === "passissecret"
+
+    // Use environment variables for credentials
+    const validUsername = process.env.ADMIN_USERNAME || "thekjt"
+    const validPassword = process.env.ADMIN_PASSWORD || "passissecret"
+
+    return username === validUsername && password === validPassword
   } catch {
     return false
   }

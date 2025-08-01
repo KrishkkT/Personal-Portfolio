@@ -1,13 +1,37 @@
 "use client"
 
-import { Github, Linkedin, Mail, Heart, Shield, Zap, Code, Sparkles } from "lucide-react"
+import { Github, Linkedin, Mail, Heart } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import Script from "next/script"
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear()
+
+  const socialLinks = [
+    {
+      name: "GitHub",
+      href: "https://github.com/krishkkt",
+      icon: Github,
+    },
+    {
+      name: "LinkedIn",
+      href: "https://linkedin.com/in/krishthakker08",
+      icon: Linkedin,
+    },
+    {
+      name: "Email",
+      href: "mailto:kjthakker8@gmail.com",
+      icon: Mail,
+    },
+  ]
+
   return (
-    <footer className="relative overflow-hidden" itemScope itemType="https://schema.org/WPFooter">
+    <footer
+      className="relative bg-slate-900/50 backdrop-blur-sm border-t border-slate-700/50"
+      itemScope
+      itemType="https://schema.org/WPFooter"
+    >
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900/95 via-blue-900/90 to-purple-900/95 z-10"></div>
@@ -34,7 +58,7 @@ export default function Footer() {
               ease: "easeInOut",
             }}
           >
-            <Code className="h-16 w-16" />
+            {/* Code icon here */}
           </motion.div>
 
           <motion.div
@@ -50,7 +74,7 @@ export default function Footer() {
               delay: 2,
             }}
           >
-            <Sparkles className="h-12 w-12" />
+            {/* Sparkles icon here */}
           </motion.div>
 
           <motion.div
@@ -66,195 +90,68 @@ export default function Footer() {
               delay: 4,
             }}
           >
-            <Shield className="h-20 w-20" />
+            {/* Shield icon here */}
           </motion.div>
         </div>
       </div>
 
-      <div className="relative z-20 py-16">
+      <div className="relative z-20 py-12">
         <div className="royal-container">
-          <div className="grid md:grid-cols-4 gap-8">
-            {/* Brand */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+            {/* Logo and Description */}
             <motion.div
-              className="space-y-6 md:col-span-2"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              itemScope
-              itemType="https://schema.org/Organization"
+              className="text-center md:text-left"
             >
-              <div className="flex items-center space-x-3">
-                <div className="relative">
-                  <motion.div
-                    className="absolute -top-2 -right-2"
-                    animate={{
-                      rotate: [0, 180, 360],
-                      scale: [1, 1.2, 1],
-                    }}
-                    transition={{
-                      duration: 4,
-                      repeat: Number.POSITIVE_INFINITY,
-                      ease: "easeInOut",
-                    }}
-                    aria-hidden="true"
-                  >
-                    <Sparkles className="h-4 w-4 text-yellow-400" />
-                  </motion.div>
-                </div>
-                <span className="text-3xl font-bold gradient-text" itemProp="name">
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black px-3 py-1 rounded-lg font-bold text-xl">
                   KT
-                </span>
+                </div>
+                <span className="text-xl font-bold text-white">Portfolio</span>
               </div>
-              <p className="text-gray-300 text-lg leading-relaxed max-w-md" itemProp="description">
-                Cybersecurity & Cloud Enthusiast | Red & Blue Team Learner | Crafting extraordinary digital experiences
-                that set new industry standards
+              <p className="text-gray-400 text-sm max-w-xs" itemProp="description">
+                Cybersecurity Specialist & Full Stack Developer passionate about building secure, innovative solutions.
               </p>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <Shield className="h-4 w-4 text-yellow-400" aria-hidden="true" />
-                <span>Built on a runway of trusted, premium security practices</span>
-              </div>
             </motion.div>
 
-            {/* Quick Links */}
+            {/* Social Links */}
             <motion.div
-              className="space-y-6"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
               viewport={{ once: true }}
+              className="flex justify-center gap-6"
             >
-              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Code className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                Quick Links
-              </h3>
-              <nav aria-label="Footer Navigation">
-                <div className="space-y-3">
-                  {[
-                    { name: "About", href: "#about" },
-                    { name: "Skills", href: "#skills" },
-                    { name: "Projects", href: "/projects" },
-                    { name: "Certificates", href: "/certificates" },
-                    { name: "Contact", href: "#contact" },
-                  ].map((link, index) => (
-                    <motion.div key={link.name} whileHover={{ x: 8 }} transition={{ duration: 0.2 }}>
-                      <Link
-                        href={link.href}
-                        className="block text-gray-400 hover:text-yellow-400 transition-colors duration-300"
-                        aria-label={`Navigate to ${link.name} section`}
-                      >
-                        {link.name}
-                      </Link>
-                    </motion.div>
-                  ))}
-                </div>
-              </nav>
-            </motion.div>
-
-            {/* Contact & Social */}
-            <motion.div
-              className="space-y-6"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              viewport={{ once: true }}
-              itemScope
-              itemType="https://schema.org/Person"
-            >
-              <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-yellow-400" aria-hidden="true" />
-                Connect
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-gray-300">
-                  <Mail className="h-4 w-4 text-yellow-400" aria-hidden="true" />
-                  <span itemProp="email">kjthakker8@gmail.com</span>
-                </div>
-                <div className="flex items-center gap-3 text-gray-300">
-                  <Shield className="h-4 w-4 text-yellow-400" aria-hidden="true" />
-                  <span itemProp="address">Gujarat, India</span>
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <h4 className="font-semibold mb-4 text-white">Follow the Journey</h4>
-                <div className="flex gap-4">
-                  <motion.a
-                    href="https://github.com/krishkkt"
-                    className="p-3 midnight-glass rounded-lg hover:bg-yellow-400/10 transition-colors group"
-                    whileHover={{ scale: 1.1, y: -2 }}
-                    whileTap={{ scale: 0.9 }}
-                    aria-label="GitHub Profile"
-                    itemProp="sameAs"
-                  >
-                    <Github className="h-5 w-5 text-gray-400 group-hover:text-yellow-400 transition-colors" />
-                  </motion.a>
-                  <motion.a
-                    href="https://linkedin.com/in/krishthakker08"
-                    className="p-3 midnight-glass rounded-lg hover:bg-yellow-400/10 transition-colors group"
-                    whileHover={{ scale: 1.1, y: -2 }}
-                    whileTap={{ scale: 0.9 }}
-                    aria-label="LinkedIn Profile"
-                    itemProp="sameAs"
-                  >
-                    <Linkedin className="h-5 w-5 text-gray-400 group-hover:text-yellow-400 transition-colors" />
-                  </motion.a>
-                  <motion.a
-                    href="mailto:kjthakker8@gmail.com"
-                    className="p-3 midnight-glass rounded-lg hover:bg-yellow-400/10 transition-colors group"
-                    whileHover={{ scale: 1.1, y: -2 }}
-                    whileTap={{ scale: 0.9 }}
-                    aria-label="Send Email"
-                  >
-                    <Mail className="h-5 w-5 text-gray-400 group-hover:text-yellow-400 transition-colors" />
-                  </motion.a>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Bottom Section */}
-          <div className="border-t border-yellow-400/20 mt-12 pt-8">
-            <motion.div
-              className="flex flex-col md:flex-row items-center justify-between gap-4"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              viewport={{ once: true }}
-            >
-              <p className="text-gray-400 flex items-center gap-2 flex-wrap">
-                Crafted with
-                <motion.span
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                  aria-hidden="true"
+              {socialLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative p-3 bg-slate-800/50 rounded-lg border border-slate-700/50 hover:border-yellow-400/50 transition-all duration-300"
+                  aria-label={link.name}
+                  itemProp="sameAs"
                 >
-                  <Heart className="h-4 w-4 text-red-500" />
-                </motion.span>
-                <Zap className="h-4 w-4 text-yellow-500" aria-hidden="true" />& secured with
-                <Shield className="h-4 w-4 text-blue-500" aria-hidden="true" />
-                by KT
-              </p>
+                  <link.icon className="h-5 w-5 text-gray-400 group-hover:text-yellow-400 transition-colors duration-300" />
+                  <div className="absolute inset-0 bg-yellow-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </Link>
+              ))}
+            </motion.div>
 
-              <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span>© {new Date().getFullYear()} All rights reserved.</span>
-                <div className="flex items-center gap-4">
-                  <Link href="/privacy" className="hover:text-yellow-400 transition-colors" aria-label="Privacy Policy">
-                    Privacy Policy
-                  </Link>
-                  <Link
-                    href="/terms"
-                    className="hover:text-yellow-400 transition-colors"
-                    aria-label="Terms & Conditions"
-                  >
-                    Terms & Conditions
-                  </Link>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 text-yellow-400" aria-hidden="true" />
-                  <span className="text-yellow-400">Navigator's Select</span>
-                </div>
-              </div>
+            {/* Copyright */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="text-center md:text-right"
+            >
+              <p className="text-gray-400 text-sm flex items-center justify-center md:justify-end gap-1">
+                © {currentYear} Made with <Heart className="h-4 w-4 text-red-500" /> by Krish Thakker
+              </p>
             </motion.div>
           </div>
         </div>

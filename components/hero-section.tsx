@@ -4,10 +4,13 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowDown, Mail, Sparkles, Zap, Star, Diamond } from "lucide-react"
 import { motion } from "framer-motion"
+import { dataStore } from "@/lib/data-store"
+import type { HeroSection as HeroSectionType } from "@/lib/data-store"
 
 export default function HeroSection() {
   const [isHovered, setIsHovered] = useState(false)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [heroData, setHeroData] = useState<HeroSectionType | null>(null)
 
   useEffect(() => {
     // Mark initial load as complete after preloader
@@ -16,6 +19,19 @@ export default function HeroSection() {
     }, 3000)
 
     return () => clearTimeout(timer)
+  }, [])
+
+  // Load hero data
+  useEffect(() => {
+    const loadHeroData = async () => {
+      try {
+        const data = await dataStore.getHeroSection()
+        setHeroData(data)
+      } catch (error) {
+        console.error("Error loading hero data:", error)
+      }
+    }
+    loadHeroData()
   }, [])
 
   const handleSmoothScroll = (targetId: string) => {
@@ -28,11 +44,11 @@ export default function HeroSection() {
     }
   }
 
-   const typewriterPhrases = [
-    "From curiosity to cyber mastery",
-    "Cybersecurity Learner",
-    "SOC & Automation",
-    "Bug Hunter",
+  const typewriterPhrases = [
+    "Cybersecurity Specialist & Full Stack Developer",
+    "SOC Analyst & Security Automation Expert",
+    "Bug Hunter & Penetration Testing Enthusiast",
+    "Cloud Security & AI-Driven Solutions Builder",
   ]
 
   const [currentText, setCurrentText] = useState("")
@@ -77,6 +93,15 @@ export default function HeroSection() {
     return () => clearTimeout(timeout)
   }, [charIndex, isDeleting, phraseIndex, currentText, isPaused])
 
+  // Don't render if hero section is not visible
+  if (heroData && !heroData.visible) {
+    return null
+  }
+
+  const name = heroData?.name || "Krish Thakker"
+  const description =
+    heroData?.description ||
+    "Building secure, scalable digital solutions through cybersecurity expertise and innovative development."
 
   return (
     <section
@@ -244,59 +269,15 @@ export default function HeroSection() {
             animate={{ y: 0 }}
             transition={{ delay: 0.3, duration: 1, ease: "easeOut" }}
           >
-            <motion.div
-              className="flex items-center justify-center gap-2 md:gap-4 mb-4 md:mb-6"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.5, duration: 0.8, ease: "backOut" }}
+            <motion.h1
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.3 }}
+              itemProp="headline"
             >
-              <motion.div
-                animate={{
-                  rotate: [0, 180, 360],
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: "easeInOut",
-                }}
-                aria-hidden="true"
-              >
-                <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-yellow-400" />
-              </motion.div>
-              <motion.h1
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold"
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.3 }}
-                itemProp="headline"
-              >
-                <span className="gradient-text"></span>
-              </motion.h1>
-              <motion.div
-                animate={{
-                  rotate: [0, -180, -360],
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: "easeInOut",
-                }}
-                aria-hidden="true"
-              >
-                <Sparkles className="h-6 w-6 md:h-8 md:w-8 text-yellow-400" />
-              </motion.div>
-            </motion.div>
+              <span className="gradient-text">{name}</span>
+            </motion.h1>
 
-            <motion.h2
-              className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-semibold text-gray-200 px-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.7, duration: 0.8 }}
-              itemProp="name"
-            >
-              Hi, I am Krish Thakker
-            </motion.h2>
             <motion.h3
               className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-yellow-400/80 font-light px-4"
               initial={{ opacity: 0 }}
@@ -307,7 +288,6 @@ export default function HeroSection() {
               {currentText}
               <span className="animate-blink">|</span>
             </motion.h3>
-
           </motion.div>
 
           <motion.p
@@ -317,7 +297,7 @@ export default function HeroSection() {
             transition={{ delay: 1.1, duration: 0.8 }}
             itemProp="description"
           >
-            It started with curiosity—how systems work and how they can break. Now I dive into SOC workflows, hunt bugs, build AI-powered automations, and design smarter systems.
+            {description}
           </motion.p>
 
           <motion.div
@@ -343,7 +323,7 @@ export default function HeroSection() {
               <Button
                 size="lg"
                 variant="outline"
-                className="midnight-glass text-white border-yellow-400/30 hover:border-yellow-400/50 px-6 md:px-8 py-3 md:py-4 text-base md:text-lg w-full sm:w-auto"
+                className="midnight-glass text-white border-yellow-400/30 hover:border-yellow-400/50 px-6 md:px-8 py-3 md:py-4 text-base md:text-lg w-full sm:w-auto bg-transparent"
                 onClick={() => handleSmoothScroll("contact")}
                 aria-label="Contact Krish Thakker"
               >

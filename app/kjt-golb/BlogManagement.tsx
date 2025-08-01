@@ -29,6 +29,12 @@ import {
   TrendingUp,
   AlertCircle,
   Loader2,
+  Eye,
+  EyeOff,
+  Home,
+  UserCircle,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
@@ -43,6 +49,10 @@ import type {
   CreateProject,
   Experience,
   CreateExperience,
+  HeroSection,
+  CreateHeroSection,
+  AboutSection,
+  CreateAboutSection,
 } from "@/lib/data-store"
 
 export default function BlogManagement() {
@@ -76,6 +86,8 @@ export default function BlogManagement() {
     image: "",
     level: "",
     hours: "",
+    visible: true,
+    order: 0,
   })
 
   // Projects state
@@ -92,6 +104,8 @@ export default function BlogManagement() {
     liveUrl: "",
     githubUrl: "",
     status: "Live",
+    visible: true,
+    order: 0,
   })
 
   // Experience state
@@ -105,6 +119,31 @@ export default function BlogManagement() {
     type: "Education",
     achievements: [],
     skills: [],
+    visible: true,
+    order: 0,
+  })
+
+  // Hero section state
+  const [heroSection, setHeroSection] = useState<HeroSection | null>(null)
+  const [isHeroDialogOpen, setIsHeroDialogOpen] = useState(false)
+  const [heroFormData, setHeroFormData] = useState<CreateHeroSection>({
+    name: "Krish Thakker",
+    title: "Cybersecurity Specialist & Full Stack Developer",
+    description:
+      "Building secure, scalable digital solutions through cybersecurity expertise and innovative development.",
+    profileImage: "/images/profile.jpg",
+    visible: true,
+  })
+
+  // About section state
+  const [aboutSection, setAboutSection] = useState<AboutSection | null>(null)
+  const [isAboutDialogOpen, setIsAboutDialogOpen] = useState(false)
+  const [aboutFormData, setAboutFormData] = useState<CreateAboutSection>({
+    title: "About Me",
+    description:
+      "I am a passionate Cybersecurity Specialist and Full Stack Developer with expertise in penetration testing, cloud security, and modern web development. I love creating secure, innovative solutions that make a difference.",
+    profileImage: "/images/profile.jpg",
+    visible: true,
   })
 
   const [activeTab, setActiveTab] = useState("overview")
@@ -128,17 +167,41 @@ export default function BlogManagement() {
   const loadAllData = async () => {
     setIsLoading(true)
     try {
-      const [postsData, certificatesData, projectsData, experienceData] = await Promise.all([
+      const [postsData, certificatesData, projectsData, experienceData, heroData, aboutData] = await Promise.all([
         blogStoreSupabase.getAllPosts(true),
         dataStore.getAllCertificates(true),
         dataStore.getAllProjects(true),
         dataStore.getAllExperience(true),
+        dataStore.getHeroSection(),
+        dataStore.getAboutSection(),
       ])
 
       setPosts(postsData)
       setCertificates(certificatesData)
       setProjects(projectsData)
       setExperience(experienceData)
+      setHeroSection(heroData)
+      setAboutSection(aboutData)
+
+      // Set form data if sections exist, otherwise keep defaults
+      if (heroData) {
+        setHeroFormData({
+          name: heroData.name,
+          title: heroData.title,
+          description: heroData.description,
+          profileImage: heroData.profileImage,
+          visible: heroData.visible,
+        })
+      }
+
+      if (aboutData) {
+        setAboutFormData({
+          title: aboutData.title,
+          description: aboutData.description,
+          profileImage: aboutData.profileImage,
+          visible: aboutData.visible,
+        })
+      }
 
       setStats({
         totalPosts: postsData.length,
@@ -153,6 +216,129 @@ export default function BlogManagement() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Visibility toggle functions
+  const toggleVisibility = async (type: string, id: string, currentVisibility: boolean) => {
+    try {
+      if (type === "certificate") {
+        const cert = certificates.find((c) => c.id === id)
+        if (cert) {
+          await dataStore.updateCertificate(id, { ...cert, visible: !currentVisibility })
+        }
+      } else if (type === "project") {
+        const proj = projects.find((p) => p.id === id)
+        if (proj) {
+          await dataStore.updateProject(id, { ...proj, visible: !currentVisibility })
+        }
+      } else if (type === "experience") {
+        const exp = experience.find((e) => e.id === id)
+        if (exp) {
+          await dataStore.updateExperience(id, { ...exp, visible: !currentVisibility })
+        }
+      }
+      await loadAllData()
+      toast.success(`Item ${!currentVisibility ? "shown" : "hidden"} on website`)
+    } catch (error) {
+      console.error("Error toggling visibility:", error)
+      toast.error("Failed to update visibility")
+    }
+  }
+
+  // Order change functions
+  const moveItem = async (type: string, id: string, direction: "up" | "down") => {
+    try {
+      let items: any[] = []
+      if (type === "certificate") items = [...certificates].sort((a, b) => a.order - b.order)
+      else if (type === "project") items = [...projects].sort((a, b) => a.order - b.order)
+      else if (type === "experience") items = [...experience].sort((a, b) => a.order - b.order)
+
+      const currentIndex = items.findIndex((item) => item.id === id)
+      if (currentIndex === -1) return
+
+      const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+      if (newIndex < 0 || newIndex >= items.length) return
+
+      // Swap the items
+      const itemA = items[currentIndex]
+      const itemB = items[newIndex]
+
+      // Update orders
+      const updates = [
+        { id: itemA.id, order: itemB.order },
+        { id: itemB.id, order: itemA.order },
+      ]
+
+      if (type === "certificate") {
+        await dataStore.updateCertificateOrder(updates)
+      } else if (type === "project") {
+        await dataStore.updateProjectOrder(updates)
+      } else if (type === "experience") {
+        await dataStore.updateExperienceOrder(updates)
+      }
+
+      await loadAllData()
+      toast.success("Order updated successfully")
+    } catch (error) {
+      console.error("Error updating order:", error)
+      toast.error("Failed to update order")
+    }
+  }
+
+  // Hero section functions
+  const handleSubmitHero = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!heroFormData.name.trim() || !heroFormData.title.trim()) {
+      toast.error("Name and title are required")
+      return
+    }
+
+    setSubmitStatus({ message: "Saving...", type: "loading" })
+
+    try {
+      await dataStore.updateHeroSection(heroFormData)
+      await loadAllData()
+      setIsHeroDialogOpen(false)
+      toast.success("Hero section updated successfully")
+      setSubmitStatus({ message: "Success!", type: "success" })
+    } catch (error) {
+      console.error("Error saving hero section:", error)
+      const errorMessage = error instanceof Error ? error.message : "Failed to save hero section"
+      toast.error(errorMessage)
+      setSubmitStatus({ message: errorMessage, type: "error" })
+    }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 3000)
+  }
+
+  // About section functions
+  const handleSubmitAbout = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!aboutFormData.title.trim() || !aboutFormData.description.trim()) {
+      toast.error("Title and description are required")
+      return
+    }
+
+    setSubmitStatus({ message: "Saving...", type: "loading" })
+
+    try {
+      await dataStore.updateAboutSection(aboutFormData)
+      await loadAllData()
+      setIsAboutDialogOpen(false)
+      toast.success("About section updated successfully")
+      setSubmitStatus({ message: "Success!", type: "success" })
+    } catch (error) {
+      console.error("Error saving about section:", error)
+      const errorMessage = error instanceof Error ? error.message : "Failed to save about section"
+      toast.error(errorMessage)
+      setSubmitStatus({ message: errorMessage, type: "error" })
+    }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 3000)
   }
 
   // Blog functions
@@ -295,6 +481,8 @@ export default function BlogManagement() {
       image: "",
       level: "",
       hours: "",
+      visible: true,
+      order: 0,
     })
     setEditingCertificate(null)
   }
@@ -364,6 +552,8 @@ export default function BlogManagement() {
       liveUrl: "",
       githubUrl: "",
       status: "Live",
+      visible: true,
+      order: 0,
     })
     setEditingProject(null)
   }
@@ -430,6 +620,8 @@ export default function BlogManagement() {
       type: "Education",
       achievements: [],
       skills: [],
+      visible: true,
+      order: 0,
     })
     setEditingExperience(null)
   }
@@ -463,8 +655,8 @@ export default function BlogManagement() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">Content Management Dashboard</h1>
-          <p className="text-gray-300 text-sm sm:text-base">Manage your portfolio content across all sections</p>
+          <h1 className="text-2xl sm:text-4xl font-bold text-gray-200 mb-2">Content Management Dashboard</h1>
+          <p className="text-gray-400 text-sm sm:text-base">Manage your portfolio content across all sections</p>
         </motion.div>
 
         {/* Status Message */}
@@ -494,18 +686,34 @@ export default function BlogManagement() {
         </AnimatePresence>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 bg-gray-800/50 border border-yellow-400/20 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 bg-gray-800/50 border border-yellow-400/20 h-auto p-1">
             <TabsTrigger
               value="overview"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
             >
               <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Overview</span>
               <span className="sm:hidden">Stats</span>
             </TabsTrigger>
             <TabsTrigger
+              value="hero"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
+            >
+              <Home className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Hero</span>
+              <span className="sm:hidden">Hero</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="about"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
+            >
+              <UserCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">About</span>
+              <span className="sm:hidden">About</span>
+            </TabsTrigger>
+            <TabsTrigger
               value="blogs"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
             >
               <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Blogs ({stats.totalPosts})</span>
@@ -513,7 +721,7 @@ export default function BlogManagement() {
             </TabsTrigger>
             <TabsTrigger
               value="certificates"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
             >
               <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Certificates ({stats.totalCertificates})</span>
@@ -521,7 +729,7 @@ export default function BlogManagement() {
             </TabsTrigger>
             <TabsTrigger
               value="projects"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
             >
               <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Projects ({stats.totalProjects})</span>
@@ -529,7 +737,7 @@ export default function BlogManagement() {
             </TabsTrigger>
             <TabsTrigger
               value="experience"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3"
+              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
             >
               <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Experience ({stats.totalExperience})</span>
@@ -540,7 +748,7 @@ export default function BlogManagement() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-4 sm:space-y-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              <Card className="royal-card">
+              <Card className="bg-gray-800/50 border-gray-700">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -552,7 +760,7 @@ export default function BlogManagement() {
                 </CardContent>
               </Card>
 
-              <Card className="royal-card">
+              <Card className="bg-gray-800/50 border-gray-700">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -564,7 +772,7 @@ export default function BlogManagement() {
                 </CardContent>
               </Card>
 
-              <Card className="royal-card">
+              <Card className="bg-gray-800/50 border-gray-700">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -576,7 +784,7 @@ export default function BlogManagement() {
                 </CardContent>
               </Card>
 
-              <Card className="royal-card">
+              <Card className="bg-gray-800/50 border-gray-700">
                 <CardContent className="p-4 sm:p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -589,23 +797,42 @@ export default function BlogManagement() {
               </Card>
             </div>
 
-            <Card className="royal-card">
+            <Card className="bg-gray-800/50 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2 text-lg sm:text-xl">
+                <CardTitle className="text-gray-200 flex items-center gap-2 text-lg sm:text-xl">
                   <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
                   Quick Actions
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <CardContent className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
+                <Button
+                  onClick={() => setIsHeroDialogOpen(true)}
+                  className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/30 text-xs sm:text-sm py-2 sm:py-3"
+                  variant="outline"
+                >
+                  <Home className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Edit Hero</span>
+                  <span className="sm:hidden">Hero</span>
+                </Button>
+                <Button
+                  onClick={() => setIsAboutDialogOpen(true)}
+                  className="bg-blue-400/20 text-blue-400 border-blue-400/30 hover:bg-blue-400/30 text-xs sm:text-sm py-2 sm:py-3"
+                  variant="outline"
+                >
+                  <UserCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Edit About</span>
+                  <span className="sm:hidden">About</span>
+                </Button>
                 <Button
                   onClick={() => {
                     resetPostForm()
                     setIsDialogOpen(true)
                   }}
-                  className="btn-royal text-black font-semibold text-xs sm:text-sm py-2 sm:py-3"
+                  className="bg-green-400/20 text-green-400 border-green-400/30 hover:bg-green-400/30 text-xs sm:text-sm py-2 sm:py-3"
+                  variant="outline"
                 >
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">New Blog Post</span>
+                  <span className="hidden sm:inline">New Blog</span>
                   <span className="sm:hidden">Blog</span>
                 </Button>
                 <Button
@@ -613,10 +840,11 @@ export default function BlogManagement() {
                     resetCertificateForm()
                     setIsCertDialogOpen(true)
                   }}
-                  className="btn-royal text-black font-semibold text-xs sm:text-sm py-2 sm:py-3"
+                  className="bg-purple-400/20 text-purple-400 border-purple-400/30 hover:bg-purple-400/30 text-xs sm:text-sm py-2 sm:py-3"
+                  variant="outline"
                 >
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">New Certificate</span>
+                  <span className="hidden sm:inline">New Cert</span>
                   <span className="sm:hidden">Cert</span>
                 </Button>
                 <Button
@@ -624,7 +852,8 @@ export default function BlogManagement() {
                     resetProjectForm()
                     setIsProjectDialogOpen(true)
                   }}
-                  className="btn-royal text-black font-semibold text-xs sm:text-sm py-2 sm:py-3"
+                  className="bg-orange-400/20 text-orange-400 border-orange-400/30 hover:bg-orange-400/30 text-xs sm:text-sm py-2 sm:py-3"
+                  variant="outline"
                 >
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   <span className="hidden sm:inline">New Project</span>
@@ -635,7 +864,8 @@ export default function BlogManagement() {
                     resetExperienceForm()
                     setIsExpDialogOpen(true)
                   }}
-                  className="btn-royal text-black font-semibold text-xs sm:text-sm py-2 sm:py-3"
+                  className="bg-cyan-400/20 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/30 text-xs sm:text-sm py-2 sm:py-3"
+                  variant="outline"
                 >
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   <span className="hidden sm:inline">New Experience</span>
@@ -645,10 +875,243 @@ export default function BlogManagement() {
             </Card>
           </TabsContent>
 
+          {/* Hero Section Tab */}
+          <TabsContent value="hero" className="space-y-4 sm:space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Hero Section</h2>
+              <Dialog open={isHeroDialogOpen} onOpenChange={setIsHeroDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/30 text-xs sm:text-sm"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Edit Hero</span>
+                    <span className="sm:hidden">Edit</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-yellow-400/20">
+                  <DialogHeader>
+                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">Edit Hero Section</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmitHero} className="space-y-4 sm:space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                      <div>
+                        <Label htmlFor="hero-name" className="text-gray-300 text-sm">
+                          Name *
+                        </Label>
+                        <Input
+                          id="hero-name"
+                          value={heroFormData.name}
+                          onChange={(e) => setHeroFormData({ ...heroFormData, name: e.target.value })}
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="hero-title" className="text-gray-300 text-sm">
+                          Title *
+                        </Label>
+                        <Input
+                          id="hero-title"
+                          value={heroFormData.title}
+                          onChange={(e) => setHeroFormData({ ...heroFormData, title: e.target.value })}
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="hero-description" className="text-gray-300 text-sm">
+                        Description *
+                      </Label>
+                      <Textarea
+                        id="hero-description"
+                        value={heroFormData.description}
+                        onChange={(e) => setHeroFormData({ ...heroFormData, description: e.target.value })}
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
+                        rows={3}
+                        required
+                      />
+                    </div>
+                    <ImageUpload
+                      value={heroFormData.profileImage || ""}
+                      onChange={(url) => setHeroFormData({ ...heroFormData, profileImage: url })}
+                      label="Profile Image"
+                      placeholder="Enter image URL or upload profile image"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="hero-visible"
+                        checked={heroFormData.visible}
+                        onCheckedChange={(checked) => setHeroFormData({ ...heroFormData, visible: checked })}
+                      />
+                      <Label htmlFor="hero-visible" className="text-gray-300 text-sm">
+                        Visible on website
+                      </Label>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/30 text-sm"
+                        variant="outline"
+                      >
+                        Update Hero Section
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsHeroDialogOpen(false)}
+                        className="border-gray-600 text-gray-300 text-sm"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {heroSection && (
+              <Card className="bg-gray-800/50 border-gray-700">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{heroSection.name}</h3>
+                        <Badge
+                          variant={heroSection.visible ? "default" : "secondary"}
+                          className="w-fit bg-green-500/20 text-green-400 border-green-400/30"
+                        >
+                          {heroSection.visible ? "Visible" : "Hidden"}
+                        </Badge>
+                      </div>
+                      <p className="text-gray-400 mb-2 text-sm sm:text-base">{heroSection.title}</p>
+                      <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">{heroSection.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-400">
+                        Updated: {new Date(heroSection.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* About Section Tab */}
+          <TabsContent value="about" className="space-y-4 sm:space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">About Section</h2>
+              <Dialog open={isAboutDialogOpen} onOpenChange={setIsAboutDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    className="bg-blue-400/20 text-blue-400 border-blue-400/30 hover:bg-blue-400/30 text-xs sm:text-sm"
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span className="hidden sm:inline">Edit About</span>
+                    <span className="sm:hidden">Edit</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-blue-400/20">
+                  <DialogHeader>
+                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">Edit About Section</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmitAbout} className="space-y-4 sm:space-y-6">
+                    <div>
+                      <Label htmlFor="about-title" className="text-gray-300 text-sm">
+                        Title *
+                      </Label>
+                      <Input
+                        id="about-title"
+                        value={aboutFormData.title}
+                        onChange={(e) => setAboutFormData({ ...aboutFormData, title: e.target.value })}
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="about-description" className="text-gray-300 text-sm">
+                        Description *
+                      </Label>
+                      <Textarea
+                        id="about-description"
+                        value={aboutFormData.description}
+                        onChange={(e) => setAboutFormData({ ...aboutFormData, description: e.target.value })}
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
+                        rows={6}
+                        required
+                      />
+                    </div>
+                    <ImageUpload
+                      value={aboutFormData.profileImage || ""}
+                      onChange={(url) => setAboutFormData({ ...aboutFormData, profileImage: url })}
+                      label="Profile Image"
+                      placeholder="Enter image URL or upload profile image"
+                    />
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="about-visible"
+                        checked={aboutFormData.visible}
+                        onCheckedChange={(checked) => setAboutFormData({ ...aboutFormData, visible: checked })}
+                      />
+                      <Label htmlFor="about-visible" className="text-gray-300 text-sm">
+                        Visible on website
+                      </Label>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="submit"
+                        className="bg-blue-400/20 text-blue-400 border-blue-400/30 hover:bg-blue-400/30 text-sm"
+                        variant="outline"
+                      >
+                        Update About Section
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsAboutDialogOpen(false)}
+                        className="border-gray-600 text-gray-300 text-sm"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {aboutSection && (
+              <Card className="bg-gray-800/50 border-gray-700">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                    <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{aboutSection.title}</h3>
+                        <Badge
+                          variant={aboutSection.visible ? "default" : "secondary"}
+                          className="w-fit bg-green-500/20 text-green-400 border-green-400/30"
+                        >
+                          {aboutSection.visible ? "Visible" : "Hidden"}
+                        </Badge>
+                      </div>
+                      <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-3">{aboutSection.description}</p>
+                      <p className="text-xs sm:text-sm text-gray-400">
+                        Updated: {new Date(aboutSection.updatedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
           {/* Blogs Tab */}
           <TabsContent value="blogs" className="space-y-4 sm:space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">Blog Posts</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Blog Posts</h2>
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -656,7 +1119,8 @@ export default function BlogManagement() {
                       resetPostForm()
                       setIsDialogOpen(true)
                     }}
-                    className="btn-royal text-black font-semibold text-xs sm:text-sm"
+                    className="bg-green-400/20 text-green-400 border-green-400/30 hover:bg-green-400/30 text-xs sm:text-sm"
+                    variant="outline"
                     size="sm"
                   >
                     <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
@@ -664,9 +1128,9 @@ export default function BlogManagement() {
                     <span className="sm:hidden">New</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto midnight-glass border-yellow-400/20">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-green-400/20">
                   <DialogHeader>
-                    <DialogTitle className="text-white text-lg sm:text-xl">
+                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">
                       {editingPost ? "Edit Blog Post" : "Create New Blog Post"}
                     </DialogTitle>
                   </DialogHeader>
@@ -690,7 +1154,7 @@ export default function BlogManagement() {
                               setFormData((prev) => ({ ...prev, slug }))
                             }
                           }}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                           required
                         />
                       </div>
@@ -702,7 +1166,7 @@ export default function BlogManagement() {
                           id="slug"
                           value={formData.slug}
                           onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                           required
                         />
                       </div>
@@ -715,7 +1179,7 @@ export default function BlogManagement() {
                         id="intro"
                         value={formData.intro}
                         onChange={(e) => setFormData({ ...formData, intro: e.target.value })}
-                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         rows={3}
                         required
                       />
@@ -729,7 +1193,7 @@ export default function BlogManagement() {
                           id="content"
                           value={formData.content}
                           onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                           rows={12}
                           required
                           placeholder="Write your content here... You can use markdown syntax:
@@ -777,7 +1241,7 @@ Or use the image upload below to get URLs"
                         id="tags"
                         value={formData.tags.join(", ")}
                         onChange={(e) => handleTagsChange(e.target.value, (tags) => setFormData({ ...formData, tags }))}
-                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                       />
                     </div>
                     <ImageUpload
@@ -797,7 +1261,11 @@ Or use the image upload below to get URLs"
                       </Label>
                     </div>
                     <div className="flex gap-2">
-                      <Button type="submit" className="btn-royal text-black font-semibold text-sm">
+                      <Button
+                        type="submit"
+                        className="bg-green-400/20 text-green-400 border-green-400/30 hover:bg-green-400/30 text-sm"
+                        variant="outline"
+                      >
                         {editingPost ? "Update Post" : "Create Post"}
                       </Button>
                       <Button
@@ -816,25 +1284,35 @@ Or use the image upload below to get URLs"
 
             <div className="grid gap-4 sm:gap-6">
               {posts.map((post) => (
-                <Card key={post.id} className="royal-card">
+                <Card key={post.id} className="bg-gray-800/50 border-gray-700">
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                       <div className="flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                          <h3 className="text-lg sm:text-xl font-semibold text-white">{post.title}</h3>
-                          <Badge variant={post.published ? "default" : "secondary"} className="w-fit">
+                          <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{post.title}</h3>
+                          <Badge
+                            variant={post.published ? "default" : "secondary"}
+                            className="w-fit bg-green-500/20 text-green-400 border-green-400/30"
+                          >
                             {post.published ? "Published" : "Draft"}
                           </Badge>
                         </div>
                         <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">{post.intro}</p>
                         <div className="flex flex-wrap gap-1 mb-3">
                           {post.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
+                            <Badge
+                              key={tag}
+                              variant="outline"
+                              className="text-xs bg-blue-500/20 text-blue-400 border-blue-400/30"
+                            >
                               {tag}
                             </Badge>
                           ))}
                           {post.tags.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-gray-500/20 text-gray-400 border-gray-400/30"
+                            >
                               +{post.tags.length - 3}
                             </Badge>
                           )}
@@ -860,7 +1338,7 @@ Or use the image upload below to get URLs"
                             })
                             setIsDialogOpen(true)
                           }}
-                          className="border-yellow-400/30 text-yellow-400 text-xs sm:text-sm"
+                          className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 text-xs sm:text-sm"
                         >
                           <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
@@ -868,7 +1346,7 @@ Or use the image upload below to get URLs"
                           size="sm"
                           variant="outline"
                           onClick={() => handleDeletePost(post.slug)}
-                          className="border-red-400/30 text-red-400 text-xs sm:text-sm"
+                          className="border-red-400/30 text-red-400 hover:bg-red-400/10 text-xs sm:text-sm"
                         >
                           <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
@@ -883,7 +1361,7 @@ Or use the image upload below to get URLs"
           {/* Certificates Tab */}
           <TabsContent value="certificates" className="space-y-4 sm:space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">Certificates</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Certificates</h2>
               <Dialog open={isCertDialogOpen} onOpenChange={setIsCertDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -891,7 +1369,8 @@ Or use the image upload below to get URLs"
                       resetCertificateForm()
                       setIsCertDialogOpen(true)
                     }}
-                    className="btn-royal text-black font-semibold text-xs sm:text-sm"
+                    className="bg-purple-400/20 text-purple-400 border-purple-400/30 hover:bg-purple-400/30 text-xs sm:text-sm"
+                    variant="outline"
                     size="sm"
                   >
                     <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
@@ -899,9 +1378,9 @@ Or use the image upload below to get URLs"
                     <span className="sm:hidden">New</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto midnight-glass border-yellow-400/20">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-purple-400/20">
                   <DialogHeader>
-                    <DialogTitle className="text-white text-lg sm:text-xl">
+                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">
                       {editingCertificate ? "Edit Certificate" : "Add New Certificate"}
                     </DialogTitle>
                   </DialogHeader>
@@ -915,7 +1394,7 @@ Or use the image upload below to get URLs"
                           id="cert-title"
                           value={certFormData.title}
                           onChange={(e) => setCertFormData({ ...certFormData, title: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                           required
                         />
                       </div>
@@ -927,7 +1406,7 @@ Or use the image upload below to get URLs"
                           id="cert-issuer"
                           value={certFormData.issuer}
                           onChange={(e) => setCertFormData({ ...certFormData, issuer: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                           required
                         />
                       </div>
@@ -941,7 +1420,7 @@ Or use the image upload below to get URLs"
                           id="cert-date"
                           value={certFormData.date}
                           onChange={(e) => setCertFormData({ ...certFormData, date: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                           required
                         />
                       </div>
@@ -953,7 +1432,7 @@ Or use the image upload below to get URLs"
                           id="cert-level"
                           value={certFormData.level}
                           onChange={(e) => setCertFormData({ ...certFormData, level: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         />
                       </div>
                       <div>
@@ -964,7 +1443,7 @@ Or use the image upload below to get URLs"
                           id="cert-hours"
                           value={certFormData.hours}
                           onChange={(e) => setCertFormData({ ...certFormData, hours: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         />
                       </div>
                     </div>
@@ -976,7 +1455,7 @@ Or use the image upload below to get URLs"
                         id="cert-description"
                         value={certFormData.description}
                         onChange={(e) => setCertFormData({ ...certFormData, description: e.target.value })}
-                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         rows={3}
                         required
                       />
@@ -991,7 +1470,7 @@ Or use the image upload below to get URLs"
                         onChange={(e) =>
                           handleTagsChange(e.target.value, (skills) => setCertFormData({ ...certFormData, skills }))
                         }
-                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                       />
                     </div>
                     <ImageUpload
@@ -1009,7 +1488,7 @@ Or use the image upload below to get URLs"
                           value={certFormData.status}
                           onValueChange={(value) => setCertFormData({ ...certFormData, status: value })}
                         >
-                          <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white text-sm">
+                          <SelectTrigger className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1019,19 +1498,35 @@ Or use the image upload below to get URLs"
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="flex items-center space-x-2 pt-6">
-                        <Switch
-                          id="cert-verified"
-                          checked={certFormData.verified}
-                          onCheckedChange={(checked) => setCertFormData({ ...certFormData, verified: checked })}
-                        />
-                        <Label htmlFor="cert-verified" className="text-gray-300 text-sm">
-                          Verified
-                        </Label>
+                      <div className="flex items-center space-x-4 pt-6">
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="cert-verified"
+                            checked={certFormData.verified}
+                            onCheckedChange={(checked) => setCertFormData({ ...certFormData, verified: checked })}
+                          />
+                          <Label htmlFor="cert-verified" className="text-gray-300 text-sm">
+                            Verified
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="cert-visible"
+                            checked={certFormData.visible}
+                            onCheckedChange={(checked) => setCertFormData({ ...certFormData, visible: checked })}
+                          />
+                          <Label htmlFor="cert-visible" className="text-gray-300 text-sm">
+                            Visible
+                          </Label>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button type="submit" className="btn-royal text-black font-semibold text-sm">
+                      <Button
+                        type="submit"
+                        className="bg-purple-400/20 text-purple-400 border-purple-400/30 hover:bg-purple-400/30 text-sm"
+                        variant="outline"
+                      >
                         {editingCertificate ? "Update Certificate" : "Add Certificate"}
                       </Button>
                       <Button
@@ -1049,87 +1544,142 @@ Or use the image upload below to get URLs"
             </div>
 
             <div className="grid gap-4 sm:gap-6">
-              {certificates.map((certificate) => (
-                <Card key={certificate.id} className="royal-card">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                          <h3 className="text-lg sm:text-xl font-semibold text-white">{certificate.title}</h3>
-                          {certificate.verified && (
-                            <Badge className="bg-green-500/20 text-green-400 border-green-400/30 w-fit">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Verified
+              {certificates
+                .sort((a, b) => a.order - b.order)
+                .map((certificate, index) => (
+                  <Card key={certificate.id} className="bg-gray-800/50 border-gray-700">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                        <div className="flex-1">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                            <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{certificate.title}</h3>
+                            {certificate.verified && (
+                              <Badge className="bg-green-500/20 text-green-400 border-green-400/30 w-fit">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Verified
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="w-fit bg-blue-500/20 text-blue-400 border-blue-400/30">
+                              {certificate.status}
                             </Badge>
-                          )}
-                          <Badge variant="outline" className="w-fit">
-                            {certificate.status}
-                          </Badge>
+                            <Badge
+                              variant={certificate.visible ? "default" : "secondary"}
+                              className={`w-fit ${
+                                certificate.visible
+                                  ? "bg-green-500/20 text-green-400 border-green-400/30"
+                                  : "bg-gray-500/20 text-gray-400 border-gray-400/30"
+                              }`}
+                            >
+                              {certificate.visible ? "Visible" : "Hidden"}
+                            </Badge>
+                          </div>
+                          <p className="text-gray-400 mb-2 text-sm sm:text-base">{certificate.issuer}</p>
+                          <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">
+                            {certificate.description}
+                          </p>
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {certificate.skills.slice(0, 3).map((skill) => (
+                              <Badge
+                                key={skill}
+                                variant="outline"
+                                className="text-xs bg-purple-500/20 text-purple-400 border-purple-400/30"
+                              >
+                                {skill}
+                              </Badge>
+                            ))}
+                            {certificate.skills.length > 3 && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-gray-500/20 text-gray-400 border-gray-400/30"
+                              >
+                                +{certificate.skills.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs sm:text-sm text-gray-400">
+                            Date: {certificate.date} | Level: {certificate.level} | Hours: {certificate.hours}
+                          </p>
                         </div>
-                        <p className="text-gray-400 mb-2 text-sm sm:text-base">{certificate.issuer}</p>
-                        <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">
-                          {certificate.description}
-                        </p>
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {certificate.skills.slice(0, 3).map((skill) => (
-                            <Badge key={skill} variant="outline" className="text-xs">
-                              {skill}
-                            </Badge>
-                          ))}
-                          {certificate.skills.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{certificate.skills.length - 3}
-                            </Badge>
-                          )}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleVisibility("certificate", certificate.id, certificate.visible)}
+                            className={`text-xs sm:text-sm ${
+                              certificate.visible
+                                ? "border-orange-400/30 text-orange-400 hover:bg-orange-400/10"
+                                : "border-green-400/30 text-green-400 hover:bg-green-400/10"
+                            }`}
+                          >
+                            {certificate.visible ? (
+                              <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
+                            ) : (
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveItem("certificate", certificate.id, "up")}
+                            disabled={index === 0}
+                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
+                          >
+                            <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveItem("certificate", certificate.id, "down")}
+                            disabled={index === certificates.length - 1}
+                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
+                          >
+                            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingCertificate(certificate)
+                              setCertFormData({
+                                title: certificate.title,
+                                issuer: certificate.issuer,
+                                date: certificate.date,
+                                description: certificate.description,
+                                skills: certificate.skills,
+                                verified: certificate.verified,
+                                status: certificate.status,
+                                image: certificate.image,
+                                level: certificate.level,
+                                hours: certificate.hours,
+                                visible: certificate.visible,
+                                order: certificate.order,
+                              })
+                              setIsCertDialogOpen(true)
+                            }}
+                            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 text-xs sm:text-sm"
+                          >
+                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteCertificate(certificate.id)}
+                            className="border-red-400/30 text-red-400 hover:bg-red-400/10 text-xs sm:text-sm"
+                          >
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-400">
-                          Date: {certificate.date} | Level: {certificate.level} | Hours: {certificate.hours}
-                        </p>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingCertificate(certificate)
-                            setCertFormData({
-                              title: certificate.title,
-                              issuer: certificate.issuer,
-                              date: certificate.date,
-                              description: certificate.description,
-                              skills: certificate.skills,
-                              verified: certificate.verified,
-                              status: certificate.status,
-                              image: certificate.image,
-                              level: certificate.level,
-                              hours: certificate.hours,
-                            })
-                            setIsCertDialogOpen(true)
-                          }}
-                          className="border-yellow-400/30 text-yellow-400 text-xs sm:text-sm"
-                        >
-                          <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteCertificate(certificate.id)}
-                          className="border-red-400/30 text-red-400 text-xs sm:text-sm"
-                        >
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
             </div>
           </TabsContent>
 
           {/* Projects Tab */}
           <TabsContent value="projects" className="space-y-4 sm:space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">Projects</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Projects</h2>
               <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -1137,7 +1687,8 @@ Or use the image upload below to get URLs"
                       resetProjectForm()
                       setIsProjectDialogOpen(true)
                     }}
-                    className="btn-royal text-black font-semibold text-xs sm:text-sm"
+                    className="bg-orange-400/20 text-orange-400 border-orange-400/30 hover:bg-orange-400/30 text-xs sm:text-sm"
+                    variant="outline"
                     size="sm"
                   >
                     <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
@@ -1145,9 +1696,9 @@ Or use the image upload below to get URLs"
                     <span className="sm:hidden">New</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto midnight-glass border-yellow-400/20">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-orange-400/20">
                   <DialogHeader>
-                    <DialogTitle className="text-white text-lg sm:text-xl">
+                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">
                       {editingProject ? "Edit Project" : "Add New Project"}
                     </DialogTitle>
                   </DialogHeader>
@@ -1160,7 +1711,7 @@ Or use the image upload below to get URLs"
                         id="project-title"
                         value={projectFormData.title}
                         onChange={(e) => setProjectFormData({ ...projectFormData, title: e.target.value })}
-                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         required
                       />
                     </div>
@@ -1172,7 +1723,7 @@ Or use the image upload below to get URLs"
                         id="project-description"
                         value={projectFormData.description}
                         onChange={(e) => setProjectFormData({ ...projectFormData, description: e.target.value })}
-                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         rows={3}
                         required
                       />
@@ -1186,7 +1737,7 @@ Or use the image upload below to get URLs"
                           id="project-category"
                           value={projectFormData.category}
                           onChange={(e) => setProjectFormData({ ...projectFormData, category: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         />
                       </div>
                       <div>
@@ -1197,7 +1748,7 @@ Or use the image upload below to get URLs"
                           value={projectFormData.status}
                           onValueChange={(value) => setProjectFormData({ ...projectFormData, status: value })}
                         >
-                          <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white text-sm">
+                          <SelectTrigger className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1218,7 +1769,7 @@ Or use the image upload below to get URLs"
                           id="project-live-url"
                           value={projectFormData.liveUrl}
                           onChange={(e) => setProjectFormData({ ...projectFormData, liveUrl: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         />
                       </div>
                       <div>
@@ -1229,7 +1780,7 @@ Or use the image upload below to get URLs"
                           id="project-github-url"
                           value={projectFormData.githubUrl}
                           onChange={(e) => setProjectFormData({ ...projectFormData, githubUrl: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         />
                       </div>
                     </div>
@@ -1251,21 +1802,37 @@ Or use the image upload below to get URLs"
                             setProjectFormData({ ...projectFormData, technologies }),
                           )
                         }
-                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                       />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="project-featured"
-                        checked={projectFormData.featured}
-                        onCheckedChange={(checked) => setProjectFormData({ ...projectFormData, featured: checked })}
-                      />
-                      <Label htmlFor="project-featured" className="text-gray-300 text-sm">
-                        Featured Project
-                      </Label>
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="project-featured"
+                          checked={projectFormData.featured}
+                          onCheckedChange={(checked) => setProjectFormData({ ...projectFormData, featured: checked })}
+                        />
+                        <Label htmlFor="project-featured" className="text-gray-300 text-sm">
+                          Featured Project
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="project-visible"
+                          checked={projectFormData.visible}
+                          onCheckedChange={(checked) => setProjectFormData({ ...projectFormData, visible: checked })}
+                        />
+                        <Label htmlFor="project-visible" className="text-gray-300 text-sm">
+                          Visible on website
+                        </Label>
+                      </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button type="submit" className="btn-royal text-black font-semibold text-sm">
+                      <Button
+                        type="submit"
+                        className="bg-orange-400/20 text-orange-400 border-orange-400/30 hover:bg-orange-400/30 text-sm"
+                        variant="outline"
+                      >
                         {editingProject ? "Update Project" : "Add Project"}
                       </Button>
                       <Button
@@ -1283,104 +1850,159 @@ Or use the image upload below to get URLs"
             </div>
 
             <div className="grid gap-4 sm:gap-6">
-              {projects.map((project) => (
-                <Card key={project.id} className="royal-card">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                          <h3 className="text-lg sm:text-xl font-semibold text-white">{project.title}</h3>
-                          {project.featured && (
-                            <Badge className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 w-fit">
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              Featured
+              {projects
+                .sort((a, b) => a.order - b.order)
+                .map((project, index) => (
+                  <Card key={project.id} className="bg-gray-800/50 border-gray-700">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                        <div className="flex-1">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                            <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{project.title}</h3>
+                            {project.featured && (
+                              <Badge className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 w-fit">
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                Featured
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="w-fit bg-blue-500/20 text-blue-400 border-blue-400/30">
+                              {project.status}
                             </Badge>
-                          )}
-                          <Badge variant="outline" className="w-fit">
-                            {project.status}
-                          </Badge>
-                        </div>
-                        <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">{project.description}</p>
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {project.technologies.slice(0, 3).map((tech) => (
-                            <Badge key={tech} variant="outline" className="text-xs">
-                              {tech}
-                            </Badge>
-                          ))}
-                          {project.technologies.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{project.technologies.length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex gap-4 text-xs sm:text-sm text-gray-400">
-                          {project.liveUrl && (
-                            <a
-                              href={project.liveUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 hover:text-yellow-400"
+                            <Badge
+                              variant={project.visible ? "default" : "secondary"}
+                              className={`w-fit ${
+                                project.visible
+                                  ? "bg-green-500/20 text-green-400 border-green-400/30"
+                                  : "bg-gray-500/20 text-gray-400 border-gray-400/30"
+                              }`}
                             >
-                              <ExternalLink className="h-3 w-3" />
-                              Live Demo
-                            </a>
-                          )}
-                          {project.githubUrl && (
-                            <a
-                              href={project.githubUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 hover:text-yellow-400"
-                            >
-                              <Github className="h-3 w-3" />
-                              Source Code
-                            </a>
-                          )}
+                              {project.visible ? "Visible" : "Hidden"}
+                            </Badge>
+                          </div>
+                          <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">{project.description}</p>
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {project.technologies.slice(0, 3).map((tech) => (
+                              <Badge
+                                key={tech}
+                                variant="outline"
+                                className="text-xs bg-orange-500/20 text-orange-400 border-orange-400/30"
+                              >
+                                {tech}
+                              </Badge>
+                            ))}
+                            {project.technologies.length > 3 && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-gray-500/20 text-gray-400 border-gray-400/30"
+                              >
+                                +{project.technologies.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex gap-4 text-xs sm:text-sm text-gray-400">
+                            {project.liveUrl && (
+                              <a
+                                href={project.liveUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-yellow-400"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                                Live Demo
+                              </a>
+                            )}
+                            {project.githubUrl && (
+                              <a
+                                href={project.githubUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 hover:text-yellow-400"
+                              >
+                                <Github className="h-3 w-3" />
+                                Source Code
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleVisibility("project", project.id, project.visible)}
+                            className={`text-xs sm:text-sm ${
+                              project.visible
+                                ? "border-orange-400/30 text-orange-400 hover:bg-orange-400/10"
+                                : "border-green-400/30 text-green-400 hover:bg-green-400/10"
+                            }`}
+                          >
+                            {project.visible ? (
+                              <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
+                            ) : (
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveItem("project", project.id, "up")}
+                            disabled={index === 0}
+                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
+                          >
+                            <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveItem("project", project.id, "down")}
+                            disabled={index === projects.length - 1}
+                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
+                          >
+                            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingProject(project)
+                              setProjectFormData({
+                                title: project.title,
+                                description: project.description,
+                                image: project.image,
+                                technologies: project.technologies,
+                                category: project.category,
+                                featured: project.featured,
+                                liveUrl: project.liveUrl,
+                                githubUrl: project.githubUrl,
+                                status: project.status,
+                                visible: project.visible,
+                                order: project.order,
+                              })
+                              setIsProjectDialogOpen(true)
+                            }}
+                            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 text-xs sm:text-sm"
+                          >
+                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteProject(project.id)}
+                            className="border-red-400/30 text-red-400 hover:bg-red-400/10 text-xs sm:text-sm"
+                          >
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingProject(project)
-                            setProjectFormData({
-                              title: project.title,
-                              description: project.description,
-                              image: project.image,
-                              technologies: project.technologies,
-                              category: project.category,
-                              featured: project.featured,
-                              liveUrl: project.liveUrl,
-                              githubUrl: project.githubUrl,
-                              status: project.status,
-                            })
-                            setIsProjectDialogOpen(true)
-                          }}
-                          className="border-yellow-400/30 text-yellow-400 text-xs sm:text-sm"
-                        >
-                          <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteProject(project.id)}
-                          className="border-red-400/30 text-red-400 text-xs sm:text-sm"
-                        >
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
             </div>
           </TabsContent>
 
           {/* Experience Tab */}
           <TabsContent value="experience" className="space-y-4 sm:space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-white">Experience</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Experience</h2>
               <Dialog open={isExpDialogOpen} onOpenChange={setIsExpDialogOpen}>
                 <DialogTrigger asChild>
                   <Button
@@ -1388,7 +2010,8 @@ Or use the image upload below to get URLs"
                       resetExperienceForm()
                       setIsExpDialogOpen(true)
                     }}
-                    className="btn-royal text-black font-semibold text-xs sm:text-sm"
+                    className="bg-cyan-400/20 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/30 text-xs sm:text-sm"
+                    variant="outline"
                     size="sm"
                   >
                     <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
@@ -1396,9 +2019,9 @@ Or use the image upload below to get URLs"
                     <span className="sm:hidden">New</span>
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto midnight-glass border-yellow-400/20">
+                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-cyan-400/20">
                   <DialogHeader>
-                    <DialogTitle className="text-white text-lg sm:text-xl">
+                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">
                       {editingExperience ? "Edit Experience" : "Add New Experience"}
                     </DialogTitle>
                   </DialogHeader>
@@ -1412,7 +2035,7 @@ Or use the image upload below to get URLs"
                           id="exp-title"
                           value={expFormData.title}
                           onChange={(e) => setExpFormData({ ...expFormData, title: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                           required
                         />
                       </div>
@@ -1424,7 +2047,7 @@ Or use the image upload below to get URLs"
                           id="exp-organization"
                           value={expFormData.organization}
                           onChange={(e) => setExpFormData({ ...expFormData, organization: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                           required
                         />
                       </div>
@@ -1438,7 +2061,7 @@ Or use the image upload below to get URLs"
                           id="exp-year"
                           value={expFormData.year}
                           onChange={(e) => setExpFormData({ ...expFormData, year: e.target.value })}
-                          className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                           required
                         />
                       </div>
@@ -1450,7 +2073,7 @@ Or use the image upload below to get URLs"
                           value={expFormData.type}
                           onValueChange={(value) => setExpFormData({ ...expFormData, type: value })}
                         >
-                          <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white text-sm">
+                          <SelectTrigger className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -1475,7 +2098,7 @@ Or use the image upload below to get URLs"
                             setExpFormData({ ...expFormData, achievements }),
                           )
                         }
-                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                         rows={3}
                       />
                     </div>
@@ -1489,11 +2112,25 @@ Or use the image upload below to get URLs"
                         onChange={(e) =>
                           handleTagsChange(e.target.value, (skills) => setExpFormData({ ...expFormData, skills }))
                         }
-                        className="bg-gray-800/50 border-gray-700 text-white text-sm"
+                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
                       />
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="exp-visible"
+                        checked={expFormData.visible}
+                        onCheckedChange={(checked) => setExpFormData({ ...expFormData, visible: checked })}
+                      />
+                      <Label htmlFor="exp-visible" className="text-gray-300 text-sm">
+                        Visible on website
+                      </Label>
+                    </div>
                     <div className="flex gap-2">
-                      <Button type="submit" className="btn-royal text-black font-semibold text-sm">
+                      <Button
+                        type="submit"
+                        className="bg-cyan-400/20 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/30 text-sm"
+                        variant="outline"
+                      >
                         {editingExperience ? "Update Experience" : "Add Experience"}
                       </Button>
                       <Button
@@ -1511,83 +2148,141 @@ Or use the image upload below to get URLs"
             </div>
 
             <div className="grid gap-4 sm:gap-6">
-              {experience.map((exp) => (
-                <Card key={exp.id} className="royal-card">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                          <h3 className="text-lg sm:text-xl font-semibold text-white">{exp.title}</h3>
-                          <Badge variant="outline" className="w-fit">
-                            {exp.type}
-                          </Badge>
-                        </div>
-                        <p className="text-gray-400 mb-2 text-sm sm:text-base">{exp.organization}</p>
-                        <p className="text-yellow-400 mb-3 text-sm sm:text-base">{exp.year}</p>
-                        {exp.achievements.length > 0 && (
-                          <div className="mb-3">
-                            <h4 className="text-sm font-semibold text-gray-300 mb-2">Achievements:</h4>
-                            <ul className="space-y-1">
-                              {exp.achievements.slice(0, 2).map((achievement, index) => (
-                                <li key={index} className="flex items-start gap-2 text-xs sm:text-sm text-gray-300">
-                                  <Diamond className="h-3 w-3 text-yellow-400 mt-1 flex-shrink-0" />
-                                  {achievement}
-                                </li>
-                              ))}
-                              {exp.achievements.length > 2 && (
-                                <li className="text-xs sm:text-sm text-gray-400 ml-5">
-                                  +{exp.achievements.length - 2} more achievements
-                                </li>
-                              )}
-                            </ul>
+              {experience
+                .sort((a, b) => a.order - b.order)
+                .map((exp, index) => (
+                  <Card key={exp.id} className="bg-gray-800/50 border-gray-700">
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                        <div className="flex-1">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                            <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{exp.title}</h3>
+                            <Badge variant="outline" className="w-fit bg-blue-500/20 text-blue-400 border-blue-400/30">
+                              {exp.type}
+                            </Badge>
+                            <Badge
+                              variant={exp.visible ? "default" : "secondary"}
+                              className={`w-fit ${
+                                exp.visible
+                                  ? "bg-green-500/20 text-green-400 border-green-400/30"
+                                  : "bg-gray-500/20 text-gray-400 border-gray-400/30"
+                              }`}
+                            >
+                              {exp.visible ? "Visible" : "Hidden"}
+                            </Badge>
                           </div>
-                        )}
-                        <div className="flex flex-wrap gap-1">
-                          {exp.skills.slice(0, 3).map((skill) => (
-                            <Badge key={skill} variant="outline" className="text-xs">
-                              {skill}
-                            </Badge>
-                          ))}
-                          {exp.skills.length > 3 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{exp.skills.length - 3}
-                            </Badge>
+                          <p className="text-gray-400 mb-2 text-sm sm:text-base">{exp.organization}</p>
+                          <p className="text-yellow-400 mb-3 text-sm sm:text-base">{exp.year}</p>
+                          {exp.achievements.length > 0 && (
+                            <div className="mb-3">
+                              <h4 className="text-sm font-semibold text-gray-300 mb-2">Achievements:</h4>
+                              <ul className="space-y-1">
+                                {exp.achievements.slice(0, 2).map((achievement, achievementIndex) => (
+                                  <li
+                                    key={achievementIndex}
+                                    className="flex items-start gap-2 text-xs sm:text-sm text-gray-300"
+                                  >
+                                    <Diamond className="h-3 w-3 text-yellow-400 mt-1 flex-shrink-0" />
+                                    {achievement}
+                                  </li>
+                                ))}
+                                {exp.achievements.length > 2 && (
+                                  <li className="text-xs sm:text-sm text-gray-400 ml-5">
+                                    +{exp.achievements.length - 2} more achievements
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
                           )}
+                          <div className="flex flex-wrap gap-1">
+                            {exp.skills.slice(0, 3).map((skill) => (
+                              <Badge
+                                key={skill}
+                                variant="outline"
+                                className="text-xs bg-cyan-500/20 text-cyan-400 border-cyan-400/30"
+                              >
+                                {skill}
+                              </Badge>
+                            ))}
+                            {exp.skills.length > 3 && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs bg-gray-500/20 text-gray-400 border-gray-400/30"
+                              >
+                                +{exp.skills.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => toggleVisibility("experience", exp.id, exp.visible)}
+                            className={`text-xs sm:text-sm ${
+                              exp.visible
+                                ? "border-orange-400/30 text-orange-400 hover:bg-orange-400/10"
+                                : "border-green-400/30 text-green-400 hover:bg-green-400/10"
+                            }`}
+                          >
+                            {exp.visible ? (
+                              <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
+                            ) : (
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveItem("experience", exp.id, "up")}
+                            disabled={index === 0}
+                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
+                          >
+                            <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => moveItem("experience", exp.id, "down")}
+                            disabled={index === experience.length - 1}
+                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
+                          >
+                            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setEditingExperience(exp)
+                              setExpFormData({
+                                year: exp.year,
+                                title: exp.title,
+                                organization: exp.organization,
+                                type: exp.type,
+                                achievements: exp.achievements,
+                                skills: exp.skills,
+                                visible: exp.visible,
+                                order: exp.order,
+                              })
+                              setIsExpDialogOpen(true)
+                            }}
+                            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 text-xs sm:text-sm"
+                          >
+                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeleteExperience(exp.id)}
+                            className="border-red-400/30 text-red-400 hover:bg-red-400/10 text-xs sm:text-sm"
+                          >
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingExperience(exp)
-                            setExpFormData({
-                              year: exp.year,
-                              title: exp.title,
-                              organization: exp.organization,
-                              type: exp.type,
-                              achievements: exp.achievements,
-                              skills: exp.skills,
-                            })
-                            setIsExpDialogOpen(true)
-                          }}
-                          className="border-yellow-400/30 text-yellow-400 text-xs sm:text-sm"
-                        >
-                          <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeleteExperience(exp.id)}
-                          className="border-red-400/30 text-red-400 text-xs sm:text-sm"
-                        >
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
             </div>
           </TabsContent>
         </Tabs>
