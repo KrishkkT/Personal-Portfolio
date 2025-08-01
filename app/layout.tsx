@@ -1,83 +1,35 @@
 import type React from "react"
-import type { Metadata, Viewport } from "next"
+import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import Script from "next/script"
-import EnhancedPreloader from "@/components/enhanced-preloader"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/toaster"
+import { Suspense } from "react"
+import LoadingFallback from "@/components/loading-fallback"
 import Navigation from "@/components/navigation"
-import { Toaster } from "sonner"
-import ErrorBoundary from "@/components/error-boundary"
 
-const inter = Inter({ subsets: ["latin"], display: "swap" })
-
-const keywords = [
-  "Krish Thakker",
-  "Full Stack Developer",
-  "Cybersecurity Specialist",
-  "Cloud Computing",
-  "Web Development",
-  "React Developer",
-  "Next.js",
-  "TypeScript",
-  "UI/UX Design",
-  "Portfolio",
-  "Software Engineer",
-  "Frontend Developer",
-  "Backend Developer",
-  "Gujarat Developer",
-  "India Tech",
-  "Ethical Hacking",
-  "Cloud Security",
-  "Web Security",
-  "Professional Portfolio",
-]
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#111827" },
-  ],
-}
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kjt.vercel.app"),
-  title: {
-    default: "Krish Thakker - Cybersecurity Specialist & Full Stack Developer",
-    template: "%s | KT Portfolio",
-  },
+  title: "Krish Thakker - Cybersecurity Specialist & Full Stack Developer",
   description:
-    "Krish Thakker - Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions with expertise in penetration testing, cloud security, and modern web development.",
-  keywords: keywords,
-  authors: [{ name: "Krish Thakker", url: "https://krishthakker.tech" }],
+    "Building secure, scalable digital solutions through cybersecurity expertise and innovative development.",
+  keywords: ["cybersecurity", "full stack developer", "web development", "security", "portfolio"],
+  authors: [{ name: "Krish Thakker" }],
   creator: "Krish Thakker",
   publisher: "Krish Thakker",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  alternates: {
-    canonical: "/",
-    languages: {
-      "en-US": "/en-US",
-    },
-  },
   openGraph: {
     title: "Krish Thakker - Cybersecurity Specialist & Full Stack Developer",
     description:
-      "Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions with expertise in penetration testing, cloud security, and modern web development.",
-    url: "https://krishthakker.tech",
-    siteName: "KT Portfolio",
+      "Building secure, scalable digital solutions through cybersecurity expertise and innovative development.",
+    url: "https://krishthakker.com",
+    siteName: "Krish Thakker Portfolio",
     images: [
       {
-        url: "/icon",
+        url: "/images/profile.jpg",
         width: 1200,
         height: 630,
-        alt: "Krish Thakker Portfolio",
+        alt: "Krish Thakker - Cybersecurity Specialist & Full Stack Developer",
       },
     ],
     locale: "en_US",
@@ -87,9 +39,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Krish Thakker - Cybersecurity Specialist & Full Stack Developer",
     description:
-      "Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions.",
-    images: ["/icon"],
-    creator: "@krishthakker08",
+      "Building secure, scalable digital solutions through cybersecurity expertise and innovative development.",
+    images: ["/images/profile.jpg"],
   },
   robots: {
     index: true,
@@ -102,11 +53,16 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: "QaiaeL9bLstYRJQ2d81_Boxs22j9QRYvEifbC8cQ5i0",
-  },
-  category: "technology",
-  generator: "Next.js",
+    generator: 'v0.dev'
+}
+
+function LayoutContent({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <Navigation />
+      {children}
+    </>
+  )
 }
 
 export default function RootLayout({
@@ -115,109 +71,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                if (typeof window !== 'undefined') {
-                  window.history.scrollRestoration = 'manual';
-                  window.scrollTo(0, 0);
-                  document.documentElement.scrollTop = 0;
-                  if (document.body) document.body.scrollTop = 0;
-                }
-              })();
-            `,
-          }}
-        />
-        <link rel="preload" href="/fonts/Inter-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
-        <link rel="preload" href="/fonts/Inter-Bold.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
-        <link rel="preload" href="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Netflix-Intro-Sound-Effect-MWXvtNsw95Lf2Jl9Y6MwaYDQZzlWnW.mp3" as="audio" />
-        <meta name="theme-color" content="#111827" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="KT Portfolio" />
-        <meta name="application-name" content="KT Portfolio" />
-        <meta name="msapplication-TileColor" content="#111827" />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body className={`${inter.className} antialiased`}>
-        <ErrorBoundary>
-          <EnhancedPreloader />
-          <div data-barba="wrapper">
-            <Navigation />
-            <main className="relative z-10">{children}</main>
-          </div>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: "rgb(31 41 55)",
-                color: "rgb(243 244 246)",
-                border: "1px solid rgb(75 85 99)",
-              },
-            }}
-          />
-
-          <Script
-            id="schema-person"
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "Person",
-                name: "Krish Thakker",
-                url: "https://krishthakker.tech",
-                image: "https://krishthakker.tech/icon",
-                sameAs: ["https://github.com/krishkkt", "https://linkedin.com/in/krishthakker08"],
-                jobTitle: "Cybersecurity Specialist & Full Stack Developer",
-                worksFor: {
-                  "@type": "Organization",
-                  name: "Independent Professional",
-                },
-                description:
-                  "Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions with expertise in penetration testing, cloud security, and modern web development.",
-                knowsAbout: [
-                  "Full Stack Development",
-                  "Cybersecurity",
-                  "Cloud Computing",
-                  "React",
-                  "Next.js",
-                  "TypeScript",
-                  "Ethical Hacking",
-                ],
-              }),
-            }}
-          />
-
-          <Script
-            id="schema-website"
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "WebSite",
-                url: "https://krishthakker.tech",
-                name: "KT - Cybersecurity Specialist & Full Stack Developer",
-                description:
-                  "Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions with expertise in penetration testing, cloud security, and modern web development.",
-                author: {
-                  "@type": "Person",
-                  name: "Krish Thakker",
-                },
-                potentialAction: {
-                  "@type": "SearchAction",
-                  target: "https://krishthakker.tech/search?q={search_term_string}",
-                  "query-input": "required name=search_term_string",
-                },
-              }),
-            }}
-          />
-        </ErrorBoundary>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+          <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   )

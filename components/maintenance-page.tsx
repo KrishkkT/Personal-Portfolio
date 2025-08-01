@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Wrench, Clock, Mail } from "lucide-react"
+import { Wrench } from "lucide-react"
 
 export default function MaintenancePage() {
   const [dots, setDots] = useState("")
@@ -34,16 +34,15 @@ export default function MaintenancePage() {
 
         {/* Main Content */}
         <div className="space-y-6">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">Under Maintenance</h1>
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">Reboot in progress...</h1>
 
-          <div className="text-xl md:text-2xl text-blue-200 mb-8">Site will be back soon{dots}</div>
-
+          <div className="text-xl md:text-2xl text-blue-200 mb-8">Loading Something better{dots}</div>
         </div>
 
         {/* Contact Info */}
         <div className="mt-12 pt-8 border-t border-white/10">
           <p className="text-gray-400 text-sm">
-            Need immediate assistance? Contact us at{" "}
+            Contact me at{" "}
             <a
               href="mailto:kjthakker8@gmail.com"
               className="text-blue-400 hover:text-blue-300 transition-colors underline"
