@@ -45,9 +45,8 @@ export default function HeroSection() {
   }
 
   const typewriterPhrases = [
-    "Cybersecurity Specialist & Full Stack Developer",
     "SOC Analyst & Security Automation Expert",
-    "Bug Hunter & Penetration Testing Enthusiast",
+    "Cloud-Focused Security Engineer",
     "Cloud Security & AI-Driven Solutions Builder",
   ]
 
