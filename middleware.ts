@@ -44,43 +44,11 @@ export function middleware(request: NextRequest) {
     response.headers.set("Cache-Control", "no-store, max-age=0")
   }
 
-  // Blog management authentication
-  if (request.nextUrl.pathname.startsWith("/kjt-golb")) {
-    const authHeader = request.headers.get("authorization")
-
-    if (!authHeader || !isValidAuthHeader(authHeader)) {
-      return new NextResponse(null, {
-        status: 401,
-        headers: {
-          "WWW-Authenticate": 'Basic realm="Blog Management", charset="UTF-8"',
-        },
-      })
-    }
-  }
+  // Removed Basic authentication for /kjt-golb - now handled by React component
 
   return response
 }
 
-function isValidAuthHeader(authHeader: string): boolean {
-  if (!authHeader.startsWith("Basic ")) return false
-
-  const base64Credentials = authHeader.split(" ")[1]
-  if (!base64Credentials) return false
-
-  try {
-    const credentials = Buffer.from(base64Credentials, "base64").toString("utf-8")
-    const [username, password] = credentials.split(":")
-
-    // Use environment variables for credentials
-    const validUsername = process.env.ADMIN_USERNAME || "thekjt"
-    const validPassword = process.env.ADMIN_PASSWORD || "passissecret"
-
-    return username === validUsername && password === validPassword
-  } catch {
-    return false
-  }
-}
-
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)", "/kjt-golb/:path*"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)"],
 }
