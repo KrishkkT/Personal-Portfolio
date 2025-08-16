@@ -12,7 +12,30 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Plus, Edit, Trash2, FileText, Award, Briefcase, User, ExternalLink, Github, CheckCircle, Diamond, Sparkles, BarChart3, TrendingUp, AlertCircle, Loader2, Eye, EyeOff, Home, UserCircle, ChevronUp, ChevronDown } from 'lucide-react'
+import {
+  Plus,
+  Edit,
+  Trash2,
+  FileText,
+  Award,
+  Briefcase,
+  User,
+  ExternalLink,
+  Github,
+  CheckCircle,
+  Diamond,
+  Sparkles,
+  BarChart3,
+  TrendingUp,
+  AlertCircle,
+  Loader2,
+  Eye,
+  EyeOff,
+  Home,
+  UserCircle,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { blogStoreSupabase } from "@/lib/blog-store-supabase"
@@ -200,7 +223,7 @@ export default function BlogManagement() {
   const toggleVisibility = async (type: string, id: string, currentVisibility: boolean) => {
     try {
       setSubmitStatus({ message: "Updating visibility...", type: "loading" })
-      
+
       if (type === "certificate") {
         await dataStore.updateCertificate(id, { visible: !currentVisibility })
         toast.success(`Certificate ${!currentVisibility ? "shown" : "hidden"} on website`)
@@ -211,7 +234,7 @@ export default function BlogManagement() {
         await dataStore.updateExperience(id, { visible: !currentVisibility })
         toast.success(`Experience ${!currentVisibility ? "shown" : "hidden"} on website`)
       }
-      
+
       await loadAllData()
       setSubmitStatus({ message: "Visibility updated!", type: "success" })
     } catch (error) {
@@ -225,32 +248,55 @@ export default function BlogManagement() {
     }, 2000)
   }
 
-  // Order change functions
+  // Order change functions - FIXED VERSION
   const moveItem = async (type: string, id: string, direction: "up" | "down") => {
     try {
       setSubmitStatus({ message: "Updating order...", type: "loading" })
-      
+
       let items: any[] = []
-      if (type === "certificate") items = [...certificates].sort((a, b) => a.order - b.order)
-      else if (type === "project") items = [...projects].sort((a, b) => a.order - b.order)
-      else if (type === "experience") items = [...experience].sort((a, b) => a.order - b.order)
+      if (type === "certificate") {
+        items = [...certificates].sort((a, b) => a.order - b.order)
+      } else if (type === "project") {
+        items = [...projects].sort((a, b) => a.order - b.order)
+      } else if (type === "experience") {
+        items = [...experience].sort((a, b) => a.order - b.order)
+      }
+
+      console.log(`Moving ${type} ${id} ${direction}`)
+      console.log(
+        "Current items order:",
+        items.map((item) => ({ id: item.id, title: item.title, order: item.order })),
+      )
 
       const currentIndex = items.findIndex((item) => item.id === id)
-      if (currentIndex === -1) return
+      if (currentIndex === -1) {
+        console.error("Item not found in list")
+        return
+      }
 
       const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
-      if (newIndex < 0 || newIndex >= items.length) return
+      if (newIndex < 0 || newIndex >= items.length) {
+        console.log("Cannot move item - already at boundary")
+        return
+      }
 
-      // Swap the items
-      const itemA = items[currentIndex]
-      const itemB = items[newIndex]
+      // Get the two items to swap
+      const currentItem = items[currentIndex]
+      const targetItem = items[newIndex]
 
-      // Update orders
+      console.log(
+        `Swapping orders: ${currentItem.title} (${currentItem.order}) <-> ${targetItem.title} (${targetItem.order})`,
+      )
+
+      // Create the update array with swapped orders
       const updates = [
-        { id: itemA.id, order: itemB.order },
-        { id: itemB.id, order: itemA.order },
+        { id: currentItem.id, order: targetItem.order },
+        { id: targetItem.id, order: currentItem.order },
       ]
 
+      console.log("Updates to apply:", updates)
+
+      // Apply the updates
       if (type === "certificate") {
         await dataStore.updateCertificateOrder(updates)
       } else if (type === "project") {
@@ -259,6 +305,7 @@ export default function BlogManagement() {
         await dataStore.updateExperienceOrder(updates)
       }
 
+      // Reload data to reflect changes
       await loadAllData()
       toast.success("Order updated successfully")
       setSubmitStatus({ message: "Order updated!", type: "success" })
@@ -1604,7 +1651,8 @@ Or use the image upload below to get URLs"
                             )}
                           </div>
                           <p className="text-xs sm:text-sm text-gray-400">
-                            Date: {certificate.date} | Level: {certificate.level} | Hours: {certificate.hours}
+                            Date: {certificate.date} | Level: {certificate.level} | Hours: {certificate.hours} | Order:{" "}
+                            {certificate.order}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -1907,7 +1955,7 @@ Or use the image upload below to get URLs"
                               </Badge>
                             )}
                           </div>
-                          <div className="flex gap-4 text-xs sm:text-sm text-gray-400">
+                          <div className="flex gap-4 text-xs sm:text-sm text-gray-400 mb-2">
                             {project.liveUrl && (
                               <a
                                 href={project.liveUrl}
@@ -1931,6 +1979,7 @@ Or use the image upload below to get URLs"
                               </a>
                             )}
                           </div>
+                          <p className="text-xs sm:text-sm text-gray-400">Order: {project.order}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button
