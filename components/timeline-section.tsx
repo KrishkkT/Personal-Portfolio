@@ -36,7 +36,8 @@ export default function TimelineSection() {
   useEffect(() => {
     const loadExperience = async () => {
       try {
-        const data = await dataStore.getAllExperience(true)
+        // Remove the 'true' parameter to only get visible experience
+        const data = await dataStore.getAllExperience()
         setExperience(data.slice(0, 4)) // Show only first 4 items
       } catch (error) {
         console.error("Error loading experience:", error)

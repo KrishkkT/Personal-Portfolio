@@ -18,7 +18,8 @@ export default function ProjectsSection() {
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        const data = await dataStore.getAllProjects(true)
+        // Remove the 'true' parameter to only get visible projects
+        const data = await dataStore.getAllProjects()
         // Show only first 4 projects on homepage
         setProjects(data.slice(0, 4))
       } catch (error) {

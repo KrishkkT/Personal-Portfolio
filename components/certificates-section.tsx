@@ -18,7 +18,8 @@ export default function CertificatesSection() {
   useEffect(() => {
     const loadCertificates = async () => {
       try {
-        const data = await dataStore.getAllCertificates(true)
+        // Remove the 'true' parameter to only get visible certificates
+        const data = await dataStore.getAllCertificates()
         // Show only first 4 certificates on homepage
         setCertificates(data.slice(0, 4))
       } catch (error) {

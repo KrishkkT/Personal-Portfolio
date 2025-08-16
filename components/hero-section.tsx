@@ -45,9 +45,9 @@ export default function HeroSection() {
   }
 
   const typewriterPhrases = [
-    "SOC Analyst & Security Automation Expert",
-    "Cloud-Focused Security Engineer",
-    "Cloud Security & AI-Driven Solutions Builder",
+    "Cloud Infrastructure and Monitoring",
+    "Cybersecurity Enthusiast",
+    "AI and IT Systems and Automation",
   ]
 
   const [currentText, setCurrentText] = useState("")

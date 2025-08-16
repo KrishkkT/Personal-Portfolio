@@ -1,14 +1,14 @@
 "use client"
-
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { ShieldCheck, Brain, Cloud, Sparkles, Star, LayoutDashboard } from "lucide-react"
+import { Sparkles, Star } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
+import { dataStore } from "@/lib/data-store"
+import type { AboutSection as AboutSectionType } from "@/lib/data-store"
 
 export default function AboutSection() {
   const [isVisible, setIsVisible] = useState(false)
+  const [aboutData, setAboutData] = useState<AboutSectionType | null>(null)
   const sectionRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -27,6 +27,28 @@ export default function AboutSection() {
 
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    const loadAboutData = async () => {
+      try {
+        const data = await dataStore.getAboutSection()
+        setAboutData(data)
+      } catch (error) {
+        console.error("Error loading about data:", error)
+      }
+    }
+    loadAboutData()
+  }, [])
+
+  if (aboutData && !aboutData.visible) {
+    return null
+  }
+
+  const aboutTitle = aboutData?.title || "About Me"
+  const aboutDescription =
+    aboutData?.description ||
+    "Explore the craft, skill, and commitment behind building thoughtful digital experiences that make a real difference in cybersecurity and web development."
+  const profileImage = aboutData?.profileImage || "/images/profile.jpg"
 
   return (
     <section
@@ -60,7 +82,15 @@ export default function AboutSection() {
               <Star className="h-6 w-6 text-yellow-400" />
             </motion.div>
             <h2 id="about-heading" className="text-5xl font-bold text-white" itemProp="headline">
-              About <span className="gradient-text">Me</span>
+              {aboutTitle.split(" ").map((word, index) =>
+                word.toLowerCase() === "me" ? (
+                  <span key={index} className="gradient-text">
+                    {word}
+                  </span>
+                ) : (
+                  <span key={index}>{word} </span>
+                ),
+              )}
             </h2>
             <motion.div
               animate={{
@@ -78,8 +108,7 @@ export default function AboutSection() {
             </motion.div>
           </div>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed" itemProp="description">
-            Explore the craft, skill, and commitment behind building thoughtful digital experiences that make a real
-            difference in cybersecurity and web development.
+            {aboutDescription}
           </p>
         </motion.div>
 
@@ -152,7 +181,7 @@ export default function AboutSection() {
 
               <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.3 }} className="royal-border">
                 <Image
-                  src="/images/profile.jpg"
+                  src={profileImage || "/placeholder.svg"}
                   alt="Krish Thakker - Cybersecurity Specialist and Full Stack Developer"
                   width={450}
                   height={450}
@@ -187,8 +216,6 @@ export default function AboutSection() {
                 impactful digital solutions.
               </p>
             </div>
-
-            
           </motion.div>
         </div>
       </div>
