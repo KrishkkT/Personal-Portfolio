@@ -17,6 +17,7 @@ export interface Certificate {
   image: string
   level: string
   hours: string
+  category: string
   visible: boolean
   order: number
   createdAt: string
@@ -34,6 +35,7 @@ export interface CreateCertificate {
   image: string
   level: string
   hours: string
+  category: string
   visible?: boolean
   order?: number
 }
@@ -160,6 +162,7 @@ class DataStore {
           image: cert.image || "/placeholder.svg?height=200&width=400&text=Certificate",
           level: cert.level || "",
           hours: cert.hours || "",
+          category: cert.category || "Professional",
           visible: cert.visible ?? true,
           order: cert.order ?? 0,
           createdAt: cert.created_at,
@@ -196,6 +199,7 @@ class DataStore {
           image: certificate.image,
           level: certificate.level,
           hours: certificate.hours,
+          category: certificate.category,
           visible: certificate.visible ?? true,
           order: certificate.order ?? nextOrder,
         },
@@ -219,6 +223,7 @@ class DataStore {
       image: data.image,
       level: data.level,
       hours: data.hours,
+      category: data.category,
       visible: data.visible,
       order: data.order,
       createdAt: data.created_at,
@@ -240,6 +245,7 @@ class DataStore {
         image: certificate.image,
         level: certificate.level,
         hours: certificate.hours,
+        category: certificate.category,
         visible: certificate.visible,
         order: certificate.order,
         updated_at: new Date().toISOString(),
@@ -264,6 +270,7 @@ class DataStore {
       image: data.image,
       level: data.level,
       hours: data.hours,
+      category: data.category,
       visible: data.visible,
       order: data.order,
       createdAt: data.created_at,
