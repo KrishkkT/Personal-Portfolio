@@ -231,23 +231,23 @@ class DataStore {
     }
   }
 
-  async updateCertificate(id: string, certificate: CreateCertificate): Promise<Certificate> {
+  async updateCertificate(id: string, certificate: Partial<CreateCertificate>): Promise<Certificate> {
     const { data, error } = await supabase
       .from("certificates")
       .update({
-        title: certificate.title,
-        issuer: certificate.issuer,
-        date: certificate.date,
-        description: certificate.description,
-        skills: certificate.skills,
-        verified: certificate.verified,
-        status: certificate.status,
-        image: certificate.image,
-        level: certificate.level,
-        hours: certificate.hours,
-        category: certificate.category,
-        visible: certificate.visible,
-        order: certificate.order,
+        ...(certificate.title !== undefined && { title: certificate.title }),
+        ...(certificate.issuer !== undefined && { issuer: certificate.issuer }),
+        ...(certificate.date !== undefined && { date: certificate.date }),
+        ...(certificate.description !== undefined && { description: certificate.description }),
+        ...(certificate.skills !== undefined && { skills: certificate.skills }),
+        ...(certificate.verified !== undefined && { verified: certificate.verified }),
+        ...(certificate.status !== undefined && { status: certificate.status }),
+        ...(certificate.image !== undefined && { image: certificate.image }),
+        ...(certificate.level !== undefined && { level: certificate.level }),
+        ...(certificate.hours !== undefined && { hours: certificate.hours }),
+        ...(certificate.category !== undefined && { category: certificate.category }),
+        ...(certificate.visible !== undefined && { visible: certificate.visible }),
+        ...(certificate.order !== undefined && { order: certificate.order }),
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -280,25 +280,23 @@ class DataStore {
 
   async updateCertificateOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      // Use Promise.allSettled to handle individual failures
-      const results = await Promise.allSettled(
-        items.map((item) =>
-          supabase
-            .from("certificates")
-            .update({ order: item.order, updated_at: new Date().toISOString() })
-            .eq("id", item.id),
-        ),
-      )
+      for (const item of items) {
+        const { error } = await supabase
+          .from("certificates")
+          .update({ 
+            order: item.order, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq("id", item.id)
 
-      // Check for any failures
-      const failures = results.filter((result) => result.status === "rejected")
-      if (failures.length > 0) {
-        console.error("Some certificate order updates failed:", failures)
-        throw new Error(`Failed to update ${failures.length} certificate orders`)
+        if (error) {
+          console.error(`Failed to update certificate ${item.id}:`, error)
+          throw new Error(`Failed to update certificate order: ${error.message}`)
+        }
       }
     } catch (error) {
       console.error("Error updating certificate order:", error)
-      throw new Error("Failed to update certificate order")
+      throw error
     }
   }
 
@@ -402,21 +400,21 @@ class DataStore {
     }
   }
 
-  async updateProject(id: string, project: CreateProject): Promise<Project> {
+  async updateProject(id: string, project: Partial<CreateProject>): Promise<Project> {
     const { data, error } = await supabase
       .from("projects")
       .update({
-        title: project.title,
-        description: project.description,
-        image: project.image,
-        technologies: project.technologies,
-        category: project.category,
-        featured: project.featured,
-        live_url: project.liveUrl,
-        github_url: project.githubUrl,
-        status: project.status,
-        visible: project.visible,
-        order: project.order,
+        ...(project.title !== undefined && { title: project.title }),
+        ...(project.description !== undefined && { description: project.description }),
+        ...(project.image !== undefined && { image: project.image }),
+        ...(project.technologies !== undefined && { technologies: project.technologies }),
+        ...(project.category !== undefined && { category: project.category }),
+        ...(project.featured !== undefined && { featured: project.featured }),
+        ...(project.liveUrl !== undefined && { live_url: project.liveUrl }),
+        ...(project.githubUrl !== undefined && { github_url: project.githubUrl }),
+        ...(project.status !== undefined && { status: project.status }),
+        ...(project.visible !== undefined && { visible: project.visible }),
+        ...(project.order !== undefined && { order: project.order }),
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -447,25 +445,23 @@ class DataStore {
 
   async updateProjectOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      // Use Promise.allSettled to handle individual failures
-      const results = await Promise.allSettled(
-        items.map((item) =>
-          supabase
-            .from("projects")
-            .update({ order: item.order, updated_at: new Date().toISOString() })
-            .eq("id", item.id),
-        ),
-      )
+      for (const item of items) {
+        const { error } = await supabase
+          .from("projects")
+          .update({ 
+            order: item.order, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq("id", item.id)
 
-      // Check for any failures
-      const failures = results.filter((result) => result.status === "rejected")
-      if (failures.length > 0) {
-        console.error("Some project order updates failed:", failures)
-        throw new Error(`Failed to update ${failures.length} project orders`)
+        if (error) {
+          console.error(`Failed to update project ${item.id}:`, error)
+          throw new Error(`Failed to update project order: ${error.message}`)
+        }
       }
     } catch (error) {
       console.error("Error updating project order:", error)
-      throw new Error("Failed to update project order")
+      throw error
     }
   }
 
@@ -560,18 +556,18 @@ class DataStore {
     }
   }
 
-  async updateExperience(id: string, experience: CreateExperience): Promise<Experience> {
+  async updateExperience(id: string, experience: Partial<CreateExperience>): Promise<Experience> {
     const { data, error } = await supabase
       .from("experience")
       .update({
-        year: experience.year,
-        title: experience.title,
-        organization: experience.organization,
-        type: experience.type,
-        achievements: experience.achievements,
-        skills: experience.skills,
-        visible: experience.visible,
-        order: experience.order,
+        ...(experience.year !== undefined && { year: experience.year }),
+        ...(experience.title !== undefined && { title: experience.title }),
+        ...(experience.organization !== undefined && { organization: experience.organization }),
+        ...(experience.type !== undefined && { type: experience.type }),
+        ...(experience.achievements !== undefined && { achievements: experience.achievements }),
+        ...(experience.skills !== undefined && { skills: experience.skills }),
+        ...(experience.visible !== undefined && { visible: experience.visible }),
+        ...(experience.order !== undefined && { order: experience.order }),
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
@@ -599,25 +595,23 @@ class DataStore {
 
   async updateExperienceOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      // Use Promise.allSettled to handle individual failures
-      const results = await Promise.allSettled(
-        items.map((item) =>
-          supabase
-            .from("experience")
-            .update({ order: item.order, updated_at: new Date().toISOString() })
-            .eq("id", item.id),
-        ),
-      )
+      for (const item of items) {
+        const { error } = await supabase
+          .from("experience")
+          .update({ 
+            order: item.order, 
+            updated_at: new Date().toISOString() 
+          })
+          .eq("id", item.id)
 
-      // Check for any failures
-      const failures = results.filter((result) => result.status === "rejected")
-      if (failures.length > 0) {
-        console.error("Some experience order updates failed:", failures)
-        throw new Error(`Failed to update ${failures.length} experience orders`)
+        if (error) {
+          console.error(`Failed to update experience ${item.id}:`, error)
+          throw new Error(`Failed to update experience order: ${error.message}`)
+        }
       }
     } catch (error) {
       console.error("Error updating experience order:", error)
-      throw new Error("Failed to update experience order")
+      throw error
     }
   }
 

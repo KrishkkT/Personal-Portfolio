@@ -47,7 +47,7 @@ export default function HeroSection() {
   const typewriterPhrases = [
     "Cloud Infrastructure and Monitoring",
     "Cybersecurity Enthusiast",
-    "AI and IT Systems and Automation",
+    "IT Systems and Automation",
   ]
 
   const [currentText, setCurrentText] = useState("")

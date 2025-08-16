@@ -12,30 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Plus,
-  Edit,
-  Trash2,
-  FileText,
-  Award,
-  Briefcase,
-  User,
-  ExternalLink,
-  Github,
-  CheckCircle,
-  Diamond,
-  Sparkles,
-  BarChart3,
-  TrendingUp,
-  AlertCircle,
-  Loader2,
-  Eye,
-  EyeOff,
-  Home,
-  UserCircle,
-  ChevronUp,
-  ChevronDown,
-} from "lucide-react"
+import { Plus, Edit, Trash2, FileText, Award, Briefcase, User, ExternalLink, Github, CheckCircle, Diamond, Sparkles, BarChart3, TrendingUp, AlertCircle, Loader2, Eye, EyeOff, Home, UserCircle, ChevronUp, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import { blogStoreSupabase } from "@/lib/blog-store-supabase"
@@ -222,33 +199,37 @@ export default function BlogManagement() {
   // Visibility toggle functions
   const toggleVisibility = async (type: string, id: string, currentVisibility: boolean) => {
     try {
+      setSubmitStatus({ message: "Updating visibility...", type: "loading" })
+      
       if (type === "certificate") {
-        const cert = certificates.find((c) => c.id === id)
-        if (cert) {
-          await dataStore.updateCertificate(id, { ...cert, visible: !currentVisibility })
-        }
+        await dataStore.updateCertificate(id, { visible: !currentVisibility })
+        toast.success(`Certificate ${!currentVisibility ? "shown" : "hidden"} on website`)
       } else if (type === "project") {
-        const proj = projects.find((p) => p.id === id)
-        if (proj) {
-          await dataStore.updateProject(id, { ...proj, visible: !currentVisibility })
-        }
+        await dataStore.updateProject(id, { visible: !currentVisibility })
+        toast.success(`Project ${!currentVisibility ? "shown" : "hidden"} on website`)
       } else if (type === "experience") {
-        const exp = experience.find((e) => e.id === id)
-        if (exp) {
-          await dataStore.updateExperience(id, { ...exp, visible: !currentVisibility })
-        }
+        await dataStore.updateExperience(id, { visible: !currentVisibility })
+        toast.success(`Experience ${!currentVisibility ? "shown" : "hidden"} on website`)
       }
+      
       await loadAllData()
-      toast.success(`Item ${!currentVisibility ? "shown" : "hidden"} on website`)
+      setSubmitStatus({ message: "Visibility updated!", type: "success" })
     } catch (error) {
       console.error("Error toggling visibility:", error)
       toast.error("Failed to update visibility")
+      setSubmitStatus({ message: "Failed to update visibility", type: "error" })
     }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 2000)
   }
 
   // Order change functions
   const moveItem = async (type: string, id: string, direction: "up" | "down") => {
     try {
+      setSubmitStatus({ message: "Updating order...", type: "loading" })
+      
       let items: any[] = []
       if (type === "certificate") items = [...certificates].sort((a, b) => a.order - b.order)
       else if (type === "project") items = [...projects].sort((a, b) => a.order - b.order)
@@ -280,10 +261,16 @@ export default function BlogManagement() {
 
       await loadAllData()
       toast.success("Order updated successfully")
+      setSubmitStatus({ message: "Order updated!", type: "success" })
     } catch (error) {
       console.error("Error updating order:", error)
       toast.error("Failed to update order")
+      setSubmitStatus({ message: "Failed to update order", type: "error" })
     }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 2000)
   }
 
   // Hero section functions
