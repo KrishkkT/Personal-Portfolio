@@ -86,6 +86,7 @@ export default function BlogManagement() {
     image: "",
     level: "",
     hours: "",
+    category: "Professional",
     visible: true,
     order: 0,
   })
@@ -481,6 +482,7 @@ export default function BlogManagement() {
       image: "",
       level: "",
       hours: "",
+      category: "Professional",
       visible: true,
       order: 0,
     })
@@ -1448,6 +1450,24 @@ Or use the image upload below to get URLs"
                       </div>
                     </div>
                     <div>
+                      <Label htmlFor="cert-category" className="text-gray-300 text-sm">
+                        Category
+                      </Label>
+                      <Select
+                        value={certFormData.category}
+                        onValueChange={(value) => setCertFormData({ ...certFormData, category: value })}
+                      >
+                        <SelectTrigger className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Professional">Professional</SelectItem>
+                          <SelectItem value="Academic">Academic</SelectItem>
+                          <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <Label htmlFor="cert-description" className="text-gray-300 text-sm">
                         Description *
                       </Label>
@@ -1651,6 +1671,7 @@ Or use the image upload below to get URLs"
                                 image: certificate.image,
                                 level: certificate.level,
                                 hours: certificate.hours,
+                                category: certificate.category,
                                 visible: certificate.visible,
                                 order: certificate.order,
                               })
