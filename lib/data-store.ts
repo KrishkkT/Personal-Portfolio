@@ -136,8 +136,6 @@ class DataStore {
   // Fix order values function
   async fixOrderValues(): Promise<void> {
     try {
-      console.log("🔧 Starting order values fix...")
-
       // Fix certificates
       const { data: certificates } = await supabase
         .from("certificates")
@@ -148,7 +146,6 @@ class DataStore {
         for (let i = 0; i < certificates.length; i++) {
           await supabase.from("certificates").update({ order: i }).eq("id", certificates[i].id)
         }
-        console.log(`✅ Fixed ${certificates.length} certificate order values`)
       }
 
       // Fix projects
@@ -158,7 +155,6 @@ class DataStore {
         for (let i = 0; i < projects.length; i++) {
           await supabase.from("projects").update({ order: i }).eq("id", projects[i].id)
         }
-        console.log(`✅ Fixed ${projects.length} project order values`)
       }
 
       // Fix experience
@@ -171,12 +167,8 @@ class DataStore {
         for (let i = 0; i < experience.length; i++) {
           await supabase.from("experience").update({ order: i }).eq("id", experience[i].id)
         }
-        console.log(`✅ Fixed ${experience.length} experience order values`)
       }
-
-      console.log("🎉 Order values fix completed successfully!")
     } catch (error) {
-      console.error("❌ Error fixing order values:", error)
       throw error
     }
   }
@@ -193,7 +185,6 @@ class DataStore {
       const { data, error } = await query.order("order", { ascending: true }).order("created_at", { ascending: false })
 
       if (error) {
-        console.error("Error fetching certificates:", error)
         return []
       }
 
@@ -218,7 +209,6 @@ class DataStore {
         })) || []
       )
     } catch (error) {
-      console.error("Error in getAllCertificates:", error)
       return []
     }
   }
@@ -253,7 +243,6 @@ class DataStore {
       const { data, error } = await supabase.from("certificates").insert([insertData]).select().single()
 
       if (error) {
-        console.error("Database error:", error)
         throw new Error(`Failed to add certificate: ${error.message}`)
       }
 
@@ -276,7 +265,6 @@ class DataStore {
         updatedAt: data.updated_at,
       }
     } catch (error) {
-      console.error("Error in addCertificate:", error)
       throw error
     }
   }
@@ -304,7 +292,6 @@ class DataStore {
       const { data, error } = await supabase.from("certificates").update(updateData).eq("id", id).select().single()
 
       if (error) {
-        console.error("Database error:", error)
         throw new Error(`Failed to update certificate: ${error.message}`)
       }
 
@@ -327,19 +314,14 @@ class DataStore {
         updatedAt: data.updated_at,
       }
     } catch (error) {
-      console.error("Error in updateCertificate:", error)
       throw error
     }
   }
 
   async updateCertificateOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      console.log("🔄 Starting certificate order update:", items)
-
       // Process updates one by one to ensure they complete
       for (const item of items) {
-        console.log(`📝 Updating certificate ${item.id} to order ${item.order}`)
-
         const { data, error } = await supabase
           .from("certificates")
           .update({
@@ -350,16 +332,10 @@ class DataStore {
           .select()
 
         if (error) {
-          console.error(`❌ Failed to update certificate ${item.id}:`, error)
           throw new Error(`Failed to update certificate order: ${error.message}`)
         }
-
-        console.log(`✅ Updated certificate ${item.id} to order ${item.order}`)
       }
-
-      console.log("✅ Certificate order update completed successfully")
     } catch (error) {
-      console.error("❌ Error updating certificate order:", error)
       throw error
     }
   }
@@ -384,7 +360,6 @@ class DataStore {
       const { data, error } = await query.order("order", { ascending: true }).order("created_at", { ascending: false })
 
       if (error) {
-        console.error("Error fetching projects:", error)
         return []
       }
 
@@ -407,7 +382,6 @@ class DataStore {
         })) || []
       )
     } catch (error) {
-      console.error("Error in getAllProjects:", error)
       return []
     }
   }
@@ -444,7 +418,6 @@ class DataStore {
         .single()
 
       if (error) {
-        console.error("Database error:", error)
         throw new Error(`Failed to add project: ${error.message}`)
       }
 
@@ -465,7 +438,6 @@ class DataStore {
         updatedAt: data.updated_at,
       }
     } catch (error) {
-      console.error("Error in addProject:", error)
       throw error
     }
   }
@@ -491,7 +463,6 @@ class DataStore {
       const { data, error } = await supabase.from("projects").update(updateData).eq("id", id).select().single()
 
       if (error) {
-        console.error("Database error:", error)
         throw new Error(`Failed to update project: ${error.message}`)
       }
 
@@ -512,19 +483,14 @@ class DataStore {
         updatedAt: data.updated_at,
       }
     } catch (error) {
-      console.error("Error in updateProject:", error)
       throw error
     }
   }
 
   async updateProjectOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      console.log("🔄 Starting project order update:", items)
-
       // Process updates one by one to ensure they complete
       for (const item of items) {
-        console.log(`📝 Updating project ${item.id} to order ${item.order}`)
-
         const { data, error } = await supabase
           .from("projects")
           .update({
@@ -535,16 +501,10 @@ class DataStore {
           .select()
 
         if (error) {
-          console.error(`❌ Failed to update project ${item.id}:`, error)
           throw new Error(`Failed to update project order: ${error.message}`)
         }
-
-        console.log(`✅ Updated project ${item.id} to order ${item.order}`)
       }
-
-      console.log("✅ Project order update completed successfully")
     } catch (error) {
-      console.error("❌ Error updating project order:", error)
       throw error
     }
   }
@@ -569,7 +529,6 @@ class DataStore {
       const { data, error } = await query.order("order", { ascending: true }).order("created_at", { ascending: false })
 
       if (error) {
-        console.error("Error fetching experience:", error)
         return []
       }
 
@@ -589,7 +548,6 @@ class DataStore {
         })) || []
       )
     } catch (error) {
-      console.error("Error in getAllExperience:", error)
       return []
     }
   }
@@ -623,7 +581,6 @@ class DataStore {
         .single()
 
       if (error) {
-        console.error("Database error:", error)
         throw new Error(`Failed to add experience: ${error.message}`)
       }
 
@@ -641,7 +598,6 @@ class DataStore {
         updatedAt: data.updated_at,
       }
     } catch (error) {
-      console.error("Error in addExperience:", error)
       throw error
     }
   }
@@ -664,7 +620,6 @@ class DataStore {
       const { data, error } = await supabase.from("experience").update(updateData).eq("id", id).select().single()
 
       if (error) {
-        console.error("Database error:", error)
         throw new Error(`Failed to update experience: ${error.message}`)
       }
 
@@ -682,19 +637,14 @@ class DataStore {
         updatedAt: data.updated_at,
       }
     } catch (error) {
-      console.error("Error in updateExperience:", error)
       throw error
     }
   }
 
   async updateExperienceOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      console.log("🔄 Starting experience order update:", items)
-
       // Process updates one by one to ensure they complete
       for (const item of items) {
-        console.log(`📝 Updating experience ${item.id} to order ${item.order}`)
-
         const { data, error } = await supabase
           .from("experience")
           .update({
@@ -705,16 +655,10 @@ class DataStore {
           .select()
 
         if (error) {
-          console.error(`❌ Failed to update experience ${item.id}:`, error)
           throw new Error(`Failed to update experience order: ${error.message}`)
         }
-
-        console.log(`✅ Updated experience ${item.id} to order ${item.order}`)
       }
-
-      console.log("✅ Experience order update completed successfully")
     } catch (error) {
-      console.error("❌ Error updating experience order:", error)
       throw error
     }
   }
@@ -737,7 +681,6 @@ class DataStore {
         .limit(1)
 
       if (error) {
-        console.error("Error fetching hero section:", error)
         return null
       }
 
@@ -757,7 +700,6 @@ class DataStore {
         updatedAt: hero.updated_at,
       }
     } catch (error) {
-      console.error("Error in getHeroSection:", error)
       return null
     }
   }
@@ -812,7 +754,6 @@ class DataStore {
       }
 
       if (error) {
-        console.error("Database error:", error)
         throw new Error(`Failed to update hero section: ${error.message}`)
       }
 
@@ -827,7 +768,6 @@ class DataStore {
         updatedAt: data.updated_at,
       }
     } catch (error) {
-      console.error("Error in updateHeroSection:", error)
       throw error
     }
   }
@@ -842,7 +782,6 @@ class DataStore {
         .limit(1)
 
       if (error) {
-        console.error("Error fetching about section:", error)
         return null
       }
 
@@ -861,7 +800,6 @@ class DataStore {
         updatedAt: about.updated_at,
       }
     } catch (error) {
-      console.error("Error in getAboutSection:", error)
       return null
     }
   }
@@ -914,7 +852,6 @@ class DataStore {
       }
 
       if (error) {
-        console.error("Database error:", error)
         throw new Error(`Failed to update about section: ${error.message}`)
       }
 
@@ -928,7 +865,6 @@ class DataStore {
         updatedAt: data.updated_at,
       }
     } catch (error) {
-      console.error("Error in updateAboutSection:", error)
       throw error
     }
   }

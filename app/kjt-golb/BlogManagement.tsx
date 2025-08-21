@@ -168,8 +168,6 @@ export default function BlogManagement() {
   const loadAllData = async () => {
     setIsLoading(true)
     try {
-      console.log("🔄 Reloading all data...")
-
       const [postsData, certificatesData, projectsData, experienceData, heroData, aboutData] = await Promise.all([
         blogStoreSupabase.getAllPosts(true),
         dataStore.getAllCertificates(true),
@@ -183,19 +181,6 @@ export default function BlogManagement() {
       certificatesData.sort((a, b) => a.order - b.order)
       projectsData.sort((a, b) => a.order - b.order)
       experienceData.sort((a, b) => a.order - b.order)
-
-      console.log(
-        "📊 Loaded certificates:",
-        certificatesData.map((c) => `${c.title} (order: ${c.order})`),
-      )
-      console.log(
-        "📊 Loaded projects:",
-        projectsData.map((p) => `${p.title} (order: ${p.order})`),
-      )
-      console.log(
-        "📊 Loaded experience:",
-        experienceData.map((e) => `${e.title} (order: ${e.order})`),
-      )
 
       setPosts(postsData)
       setCertificates(certificatesData)
@@ -231,10 +216,7 @@ export default function BlogManagement() {
         totalProjects: projectsData.length,
         totalExperience: experienceData.length,
       })
-
-      console.log("✅ Data reload complete")
     } catch (error) {
-      console.error("❌ Error loading data:", error)
       toast.error("Failed to load data")
     } finally {
       setIsLoading(false)
@@ -260,7 +242,6 @@ export default function BlogManagement() {
       await loadAllData()
       setSubmitStatus({ message: "Visibility updated!", type: "success" })
     } catch (error) {
-      console.error("Error toggling visibility:", error)
       toast.error("Failed to update visibility")
       setSubmitStatus({ message: "Failed to update visibility", type: "error" })
     }
@@ -270,7 +251,7 @@ export default function BlogManagement() {
     }, 2000)
   }
 
-  // COMPLETELY REWRITTEN ORDER FUNCTION WITH PROPER UNIQUE ORDER VALUES
+  // Order management function
   const moveItem = async (type: string, id: string, direction: "up" | "down") => {
     try {
       setSubmitStatus({ message: "Reordering items...", type: "loading" })
@@ -288,15 +269,8 @@ export default function BlogManagement() {
       // Sort by current order to get the correct sequence
       items.sort((a, b) => a.order - b.order)
 
-      console.log(`🔄 Moving ${type} ${direction}`)
-      console.log(
-        "📋 Current items before move:",
-        items.map((item, idx) => `${idx}: ${item.title} (order: ${item.order})`),
-      )
-
       const currentIndex = items.findIndex((item) => item.id === id)
       if (currentIndex === -1) {
-        console.error("❌ Item not found")
         toast.error("Item not found")
         setSubmitStatus({ message: "", type: "" })
         return
@@ -304,7 +278,6 @@ export default function BlogManagement() {
 
       const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
       if (newIndex < 0 || newIndex >= items.length) {
-        console.log(`⚠️ Cannot move ${direction} - at boundary`)
         toast.info(`Cannot move ${direction} - already at ${direction === "up" ? "top" : "bottom"}`)
         setSubmitStatus({ message: "", type: "" })
         return
@@ -314,13 +287,8 @@ export default function BlogManagement() {
       const currentItem = items[currentIndex]
       const targetItem = items[newIndex]
 
-      console.log(
-        `🔄 Swapping: "${currentItem.title}" (order: ${currentItem.order}) ↔ "${targetItem.title}" (order: ${targetItem.order})`,
-      )
-
       // Check if orders are the same (this is the problem!)
       if (currentItem.order === targetItem.order) {
-        console.log("⚠️ Items have same order value, need to fix order values first!")
         toast.error("Order values need to be fixed. Please run the database fix script first.")
         setSubmitStatus({ message: "Order values need to be fixed", type: "error" })
         return
@@ -329,8 +297,6 @@ export default function BlogManagement() {
       // Swap the orders directly in the database
       const currentNewOrder = targetItem.order
       const targetNewOrder = currentItem.order
-
-      console.log(`📝 New orders: ${currentItem.title} -> ${currentNewOrder}, ${targetItem.title} -> ${targetNewOrder}`)
 
       // Update both items in the database
       if (type === "certificate") {
@@ -349,10 +315,7 @@ export default function BlogManagement() {
 
       toast.success(`${type} order updated successfully`)
       setSubmitStatus({ message: "Order updated!", type: "success" })
-
-      console.log("✅ Order update completed successfully")
     } catch (error) {
-      console.error("❌ Error updating order:", error)
       toast.error("Failed to update order")
       setSubmitStatus({ message: "Failed to update order", type: "error" })
     }
@@ -373,7 +336,6 @@ export default function BlogManagement() {
       toast.success("Order values fixed successfully!")
       setSubmitStatus({ message: "Order values fixed!", type: "success" })
     } catch (error) {
-      console.error("Error fixing order values:", error)
       toast.error("Failed to fix order values")
       setSubmitStatus({ message: "Failed to fix order values", type: "error" })
     }
@@ -400,7 +362,6 @@ export default function BlogManagement() {
       toast.success("Hero section updated successfully")
       setSubmitStatus({ message: "Success!", type: "success" })
     } catch (error) {
-      console.error("Error saving hero section:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to save hero section"
       toast.error(errorMessage)
       setSubmitStatus({ message: errorMessage, type: "error" })
@@ -428,7 +389,6 @@ export default function BlogManagement() {
       toast.success("About section updated successfully")
       setSubmitStatus({ message: "Success!", type: "success" })
     } catch (error) {
-      console.error("Error saving about section:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to save about section"
       toast.error(errorMessage)
       setSubmitStatus({ message: errorMessage, type: "error" })
@@ -469,7 +429,6 @@ export default function BlogManagement() {
       setIsDialogOpen(false)
       setSubmitStatus({ message: "Success!", type: "success" })
     } catch (error) {
-      console.error("Error saving post:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to save post"
       toast.error(errorMessage)
       setSubmitStatus({ message: errorMessage, type: "error" })
@@ -489,7 +448,6 @@ export default function BlogManagement() {
         toast.success("Post deleted successfully")
         setSubmitStatus({ message: "Deleted successfully!", type: "success" })
       } catch (error) {
-        console.error("Error deleting post:", error)
         toast.error("Failed to delete post")
         setSubmitStatus({ message: "Failed to delete post", type: "error" })
       }
@@ -536,7 +494,6 @@ export default function BlogManagement() {
       setIsCertDialogOpen(false)
       setSubmitStatus({ message: "Success!", type: "success" })
     } catch (error) {
-      console.error("Error saving certificate:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to save certificate"
       toast.error(errorMessage)
       setSubmitStatus({ message: errorMessage, type: "error" })
@@ -556,7 +513,6 @@ export default function BlogManagement() {
         toast.success("Certificate deleted successfully")
         setSubmitStatus({ message: "Deleted successfully!", type: "success" })
       } catch (error) {
-        console.error("Error deleting certificate:", error)
         toast.error("Failed to delete certificate")
         setSubmitStatus({ message: "Failed to delete certificate", type: "error" })
       }
@@ -609,7 +565,6 @@ export default function BlogManagement() {
       setIsProjectDialogOpen(false)
       setSubmitStatus({ message: "Success!", type: "success" })
     } catch (error) {
-      console.error("Error saving project:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to save project"
       toast.error(errorMessage)
       setSubmitStatus({ message: errorMessage, type: "error" })
@@ -629,7 +584,6 @@ export default function BlogManagement() {
         toast.success("Project deleted successfully")
         setSubmitStatus({ message: "Deleted successfully!", type: "success" })
       } catch (error) {
-        console.error("Error deleting project:", error)
         toast.error("Failed to delete project")
         setSubmitStatus({ message: "Failed to delete project", type: "error" })
       }
@@ -680,7 +634,6 @@ export default function BlogManagement() {
       setIsExpDialogOpen(false)
       setSubmitStatus({ message: "Success!", type: "success" })
     } catch (error) {
-      console.error("Error saving experience:", error)
       const errorMessage = error instanceof Error ? error.message : "Failed to save experience"
       toast.error(errorMessage)
       setSubmitStatus({ message: errorMessage, type: "error" })
@@ -700,7 +653,6 @@ export default function BlogManagement() {
         toast.success("Experience deleted successfully")
         setSubmitStatus({ message: "Deleted successfully!", type: "success" })
       } catch (error) {
-        console.error("Error deleting experience:", error)
         toast.error("Failed to delete experience")
         setSubmitStatus({ message: "Failed to delete experience", type: "error" })
       }
