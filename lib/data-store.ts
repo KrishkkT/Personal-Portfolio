@@ -133,6 +133,54 @@ export interface CreateAboutSection {
 }
 
 class DataStore {
+  // Fix order values function
+  async fixOrderValues(): Promise<void> {
+    try {
+      console.log("🔧 Starting order values fix...")
+
+      // Fix certificates
+      const { data: certificates } = await supabase
+        .from("certificates")
+        .select("id")
+        .order("created_at", { ascending: true })
+
+      if (certificates) {
+        for (let i = 0; i < certificates.length; i++) {
+          await supabase.from("certificates").update({ order: i }).eq("id", certificates[i].id)
+        }
+        console.log(`✅ Fixed ${certificates.length} certificate order values`)
+      }
+
+      // Fix projects
+      const { data: projects } = await supabase.from("projects").select("id").order("created_at", { ascending: true })
+
+      if (projects) {
+        for (let i = 0; i < projects.length; i++) {
+          await supabase.from("projects").update({ order: i }).eq("id", projects[i].id)
+        }
+        console.log(`✅ Fixed ${projects.length} project order values`)
+      }
+
+      // Fix experience
+      const { data: experience } = await supabase
+        .from("experience")
+        .select("id")
+        .order("created_at", { ascending: true })
+
+      if (experience) {
+        for (let i = 0; i < experience.length; i++) {
+          await supabase.from("experience").update({ order: i }).eq("id", experience[i].id)
+        }
+        console.log(`✅ Fixed ${experience.length} experience order values`)
+      }
+
+      console.log("🎉 Order values fix completed successfully!")
+    } catch (error) {
+      console.error("❌ Error fixing order values:", error)
+      throw error
+    }
+  }
+
   // Certificates
   async getAllCertificates(includeAll = false): Promise<Certificate[]> {
     try {
@@ -197,13 +245,9 @@ class DataStore {
         image: certificate.image,
         level: certificate.level,
         hours: certificate.hours,
+        category: certificate.category,
         visible: certificate.visible ?? true,
         order: certificate.order ?? nextOrder,
-      }
-
-      // Only add category if it's provided
-      if (certificate.category) {
-        insertData.category = certificate.category
       }
 
       const { data, error } = await supabase.from("certificates").insert([insertData]).select().single()
@@ -290,31 +334,32 @@ class DataStore {
 
   async updateCertificateOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      console.log("Starting certificate order update:", items)
+      console.log("🔄 Starting certificate order update:", items)
 
+      // Process updates one by one to ensure they complete
       for (const item of items) {
-        console.log(`Updating certificate ${item.id} to order ${item.order}`)
+        console.log(`📝 Updating certificate ${item.id} to order ${item.order}`)
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("certificates")
           .update({
             order: item.order,
             updated_at: new Date().toISOString(),
           })
           .eq("id", item.id)
+          .select()
 
         if (error) {
-          console.error(`Failed to update certificate ${item.id}:`, error)
+          console.error(`❌ Failed to update certificate ${item.id}:`, error)
           throw new Error(`Failed to update certificate order: ${error.message}`)
         }
 
-        // Add a small delay to prevent race conditions
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        console.log(`✅ Updated certificate ${item.id} to order ${item.order}`)
       }
 
-      console.log("Certificate order update completed successfully")
+      console.log("✅ Certificate order update completed successfully")
     } catch (error) {
-      console.error("Error updating certificate order:", error)
+      console.error("❌ Error updating certificate order:", error)
       throw error
     }
   }
@@ -474,31 +519,32 @@ class DataStore {
 
   async updateProjectOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      console.log("Starting project order update:", items)
+      console.log("🔄 Starting project order update:", items)
 
+      // Process updates one by one to ensure they complete
       for (const item of items) {
-        console.log(`Updating project ${item.id} to order ${item.order}`)
+        console.log(`📝 Updating project ${item.id} to order ${item.order}`)
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("projects")
           .update({
             order: item.order,
             updated_at: new Date().toISOString(),
           })
           .eq("id", item.id)
+          .select()
 
         if (error) {
-          console.error(`Failed to update project ${item.id}:`, error)
+          console.error(`❌ Failed to update project ${item.id}:`, error)
           throw new Error(`Failed to update project order: ${error.message}`)
         }
 
-        // Add a small delay to prevent race conditions
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        console.log(`✅ Updated project ${item.id} to order ${item.order}`)
       }
 
-      console.log("Project order update completed successfully")
+      console.log("✅ Project order update completed successfully")
     } catch (error) {
-      console.error("Error updating project order:", error)
+      console.error("❌ Error updating project order:", error)
       throw error
     }
   }
@@ -643,31 +689,32 @@ class DataStore {
 
   async updateExperienceOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      console.log("Starting experience order update:", items)
+      console.log("🔄 Starting experience order update:", items)
 
+      // Process updates one by one to ensure they complete
       for (const item of items) {
-        console.log(`Updating experience ${item.id} to order ${item.order}`)
+        console.log(`📝 Updating experience ${item.id} to order ${item.order}`)
 
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("experience")
           .update({
             order: item.order,
             updated_at: new Date().toISOString(),
           })
           .eq("id", item.id)
+          .select()
 
         if (error) {
-          console.error(`Failed to update experience ${item.id}:`, error)
+          console.error(`❌ Failed to update experience ${item.id}:`, error)
           throw new Error(`Failed to update experience order: ${error.message}`)
         }
 
-        // Add a small delay to prevent race conditions
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        console.log(`✅ Updated experience ${item.id} to order ${item.order}`)
       }
 
-      console.log("Experience order update completed successfully")
+      console.log("✅ Experience order update completed successfully")
     } catch (error) {
-      console.error("Error updating experience order:", error)
+      console.error("❌ Error updating experience order:", error)
       throw error
     }
   }

@@ -32,7 +32,7 @@ export default function CertificatesPage() {
     loadCertificates()
   }, [])
 
-  const categories = ["All", "Cybersecurity", "Academic", "Professional"]
+  const categories = ["All", "Security", "Academic", "Professional", "Cloud"]
   const filteredCertificates = filter === "All" ? certificates : certificates.filter((cert) => cert.category === filter)
 
   const handleViewCertificate = (imageUrl: string) => {

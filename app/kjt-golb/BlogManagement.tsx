@@ -168,6 +168,8 @@ export default function BlogManagement() {
   const loadAllData = async () => {
     setIsLoading(true)
     try {
+      console.log("🔄 Reloading all data...")
+
       const [postsData, certificatesData, projectsData, experienceData, heroData, aboutData] = await Promise.all([
         blogStoreSupabase.getAllPosts(true),
         dataStore.getAllCertificates(true),
@@ -176,6 +178,24 @@ export default function BlogManagement() {
         dataStore.getHeroSection(),
         dataStore.getAboutSection(),
       ])
+
+      // Sort the data by order before setting state
+      certificatesData.sort((a, b) => a.order - b.order)
+      projectsData.sort((a, b) => a.order - b.order)
+      experienceData.sort((a, b) => a.order - b.order)
+
+      console.log(
+        "📊 Loaded certificates:",
+        certificatesData.map((c) => `${c.title} (order: ${c.order})`),
+      )
+      console.log(
+        "📊 Loaded projects:",
+        projectsData.map((p) => `${p.title} (order: ${p.order})`),
+      )
+      console.log(
+        "📊 Loaded experience:",
+        experienceData.map((e) => `${e.title} (order: ${e.order})`),
+      )
 
       setPosts(postsData)
       setCertificates(certificatesData)
@@ -211,8 +231,10 @@ export default function BlogManagement() {
         totalProjects: projectsData.length,
         totalExperience: experienceData.length,
       })
+
+      console.log("✅ Data reload complete")
     } catch (error) {
-      console.error("Error loading data:", error)
+      console.error("❌ Error loading data:", error)
       toast.error("Failed to load data")
     } finally {
       setIsLoading(false)
@@ -248,11 +270,12 @@ export default function BlogManagement() {
     }, 2000)
   }
 
-  // COMPLETELY REWRITTEN ORDER FUNCTION
+  // COMPLETELY REWRITTEN ORDER FUNCTION WITH PROPER UNIQUE ORDER VALUES
   const moveItem = async (type: string, id: string, direction: "up" | "down") => {
     try {
-      setSubmitStatus({ message: "Updating order...", type: "loading" })
+      setSubmitStatus({ message: "Reordering items...", type: "loading" })
 
+      // Get the current items based on type
       let items: any[] = []
       if (type === "certificate") {
         items = [...certificates]
@@ -265,22 +288,25 @@ export default function BlogManagement() {
       // Sort by current order to get the correct sequence
       items.sort((a, b) => a.order - b.order)
 
-      console.log(`=== Moving ${type} ${direction} ===`)
+      console.log(`🔄 Moving ${type} ${direction}`)
       console.log(
-        "Current order:",
+        "📋 Current items before move:",
         items.map((item, idx) => `${idx}: ${item.title} (order: ${item.order})`),
       )
 
       const currentIndex = items.findIndex((item) => item.id === id)
       if (currentIndex === -1) {
-        console.error("Item not found")
+        console.error("❌ Item not found")
+        toast.error("Item not found")
+        setSubmitStatus({ message: "", type: "" })
         return
       }
 
       const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
       if (newIndex < 0 || newIndex >= items.length) {
-        console.log("Cannot move - at boundary")
+        console.log(`⚠️ Cannot move ${direction} - at boundary`)
         toast.info(`Cannot move ${direction} - already at ${direction === "up" ? "top" : "bottom"}`)
+        setSubmitStatus({ message: "", type: "" })
         return
       }
 
@@ -288,34 +314,45 @@ export default function BlogManagement() {
       const currentItem = items[currentIndex]
       const targetItem = items[newIndex]
 
-      console.log(`Swapping: ${currentItem.title} (${currentItem.order}) <-> ${targetItem.title} (${targetItem.order})`)
+      console.log(
+        `🔄 Swapping: "${currentItem.title}" (order: ${currentItem.order}) ↔ "${targetItem.title}" (order: ${targetItem.order})`,
+      )
 
-      // Swap their order values
-      const tempOrder = currentItem.order
-      const updates = [
-        { id: currentItem.id, order: targetItem.order },
-        { id: targetItem.id, order: tempOrder },
-      ]
-
-      console.log("Updates to apply:", updates)
-
-      // Apply the updates
-      if (type === "certificate") {
-        await dataStore.updateCertificateOrder(updates)
-      } else if (type === "project") {
-        await dataStore.updateProjectOrder(updates)
-      } else if (type === "experience") {
-        await dataStore.updateExperienceOrder(updates)
+      // Check if orders are the same (this is the problem!)
+      if (currentItem.order === targetItem.order) {
+        console.log("⚠️ Items have same order value, need to fix order values first!")
+        toast.error("Order values need to be fixed. Please run the database fix script first.")
+        setSubmitStatus({ message: "Order values need to be fixed", type: "error" })
+        return
       }
 
-      // Reload data to reflect changes
+      // Swap the orders directly in the database
+      const currentNewOrder = targetItem.order
+      const targetNewOrder = currentItem.order
+
+      console.log(`📝 New orders: ${currentItem.title} -> ${currentNewOrder}, ${targetItem.title} -> ${targetNewOrder}`)
+
+      // Update both items in the database
+      if (type === "certificate") {
+        await dataStore.updateCertificate(currentItem.id, { order: currentNewOrder })
+        await dataStore.updateCertificate(targetItem.id, { order: targetNewOrder })
+      } else if (type === "project") {
+        await dataStore.updateProject(currentItem.id, { order: currentNewOrder })
+        await dataStore.updateProject(targetItem.id, { order: targetNewOrder })
+      } else if (type === "experience") {
+        await dataStore.updateExperience(currentItem.id, { order: currentNewOrder })
+        await dataStore.updateExperience(targetItem.id, { order: targetNewOrder })
+      }
+
+      // Force reload data to reflect changes
       await loadAllData()
+
       toast.success(`${type} order updated successfully`)
       setSubmitStatus({ message: "Order updated!", type: "success" })
 
-      console.log("=== Order update completed ===")
+      console.log("✅ Order update completed successfully")
     } catch (error) {
-      console.error("Error updating order:", error)
+      console.error("❌ Error updating order:", error)
       toast.error("Failed to update order")
       setSubmitStatus({ message: "Failed to update order", type: "error" })
     }
@@ -323,6 +360,27 @@ export default function BlogManagement() {
     setTimeout(() => {
       setSubmitStatus({ message: "", type: "" })
     }, 2000)
+  }
+
+  // Function to fix order values
+  const fixOrderValues = async () => {
+    try {
+      setSubmitStatus({ message: "Fixing order values...", type: "loading" })
+
+      await dataStore.fixOrderValues()
+      await loadAllData()
+
+      toast.success("Order values fixed successfully!")
+      setSubmitStatus({ message: "Order values fixed!", type: "success" })
+    } catch (error) {
+      console.error("Error fixing order values:", error)
+      toast.error("Failed to fix order values")
+      setSubmitStatus({ message: "Failed to fix order values", type: "error" })
+    }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 3000)
   }
 
   // Hero section functions
@@ -845,7 +903,16 @@ export default function BlogManagement() {
                   Quick Actions
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
+              <CardContent className="grid grid-cols-2 lg:grid-cols-7 gap-3 sm:gap-4">
+                <Button
+                  onClick={fixOrderValues}
+                  className="bg-red-400/20 text-red-400 border-red-400/30 hover:bg-red-400/30 text-xs sm:text-sm py-2 sm:py-3"
+                  variant="outline"
+                >
+                  <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Fix Order</span>
+                  <span className="sm:hidden">Fix</span>
+                </Button>
                 <Button
                   onClick={() => setIsHeroDialogOpen(true)}
                   className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/30 text-xs sm:text-sm py-2 sm:py-3"
