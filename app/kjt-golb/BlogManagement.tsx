@@ -248,35 +248,39 @@ export default function BlogManagement() {
     }, 2000)
   }
 
-  // Order change functions - FIXED VERSION
+  // COMPLETELY REWRITTEN ORDER FUNCTION
   const moveItem = async (type: string, id: string, direction: "up" | "down") => {
     try {
       setSubmitStatus({ message: "Updating order...", type: "loading" })
 
       let items: any[] = []
       if (type === "certificate") {
-        items = [...certificates].sort((a, b) => a.order - b.order)
+        items = [...certificates]
       } else if (type === "project") {
-        items = [...projects].sort((a, b) => a.order - b.order)
+        items = [...projects]
       } else if (type === "experience") {
-        items = [...experience].sort((a, b) => a.order - b.order)
+        items = [...experience]
       }
 
-      console.log(`Moving ${type} ${id} ${direction}`)
+      // Sort by current order to get the correct sequence
+      items.sort((a, b) => a.order - b.order)
+
+      console.log(`=== Moving ${type} ${direction} ===`)
       console.log(
-        "Current items order:",
-        items.map((item) => ({ id: item.id, title: item.title, order: item.order })),
+        "Current order:",
+        items.map((item, idx) => `${idx}: ${item.title} (order: ${item.order})`),
       )
 
       const currentIndex = items.findIndex((item) => item.id === id)
       if (currentIndex === -1) {
-        console.error("Item not found in list")
+        console.error("Item not found")
         return
       }
 
       const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
       if (newIndex < 0 || newIndex >= items.length) {
-        console.log("Cannot move item - already at boundary")
+        console.log("Cannot move - at boundary")
+        toast.info(`Cannot move ${direction} - already at ${direction === "up" ? "top" : "bottom"}`)
         return
       }
 
@@ -284,14 +288,13 @@ export default function BlogManagement() {
       const currentItem = items[currentIndex]
       const targetItem = items[newIndex]
 
-      console.log(
-        `Swapping orders: ${currentItem.title} (${currentItem.order}) <-> ${targetItem.title} (${targetItem.order})`,
-      )
+      console.log(`Swapping: ${currentItem.title} (${currentItem.order}) <-> ${targetItem.title} (${targetItem.order})`)
 
-      // Create the update array with swapped orders
+      // Swap their order values
+      const tempOrder = currentItem.order
       const updates = [
         { id: currentItem.id, order: targetItem.order },
-        { id: targetItem.id, order: currentItem.order },
+        { id: targetItem.id, order: tempOrder },
       ]
 
       console.log("Updates to apply:", updates)
@@ -307,8 +310,10 @@ export default function BlogManagement() {
 
       // Reload data to reflect changes
       await loadAllData()
-      toast.success("Order updated successfully")
+      toast.success(`${type} order updated successfully`)
       setSubmitStatus({ message: "Order updated!", type: "success" })
+
+      console.log("=== Order update completed ===")
     } catch (error) {
       console.error("Error updating order:", error)
       toast.error("Failed to update order")
@@ -2251,7 +2256,7 @@ Or use the image upload below to get URLs"
                               </ul>
                             </div>
                           )}
-                          <div className="flex flex-wrap gap-1">
+                          <div className="flex flex-wrap gap-1 mb-2">
                             {exp.skills.slice(0, 3).map((skill) => (
                               <Badge
                                 key={skill}
@@ -2270,6 +2275,7 @@ Or use the image upload below to get URLs"
                               </Badge>
                             )}
                           </div>
+                          <p className="text-xs sm:text-sm text-gray-400">Order: {exp.order}</p>
                         </div>
                         <div className="flex gap-2">
                           <Button

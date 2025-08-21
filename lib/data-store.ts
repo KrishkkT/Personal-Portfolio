@@ -157,8 +157,8 @@ class DataStore {
           date: cert.date,
           description: cert.description,
           skills: cert.skills || [],
-          verified: cert.verified,
-          status: cert.status,
+          verified: cert.verified ?? true,
+          status: cert.status || "Active",
           image: cert.image || "/placeholder.svg?height=200&width=400&text=Certificate",
           level: cert.level || "",
           hours: cert.hours || "",
@@ -176,111 +176,122 @@ class DataStore {
   }
 
   async addCertificate(certificate: CreateCertificate): Promise<Certificate> {
-    // Get the next order number
-    const { data: maxOrderData } = await supabase
-      .from("certificates")
-      .select("order")
-      .order("order", { ascending: false })
-      .limit(1)
+    try {
+      // Get the next order number
+      const { data: maxOrderData } = await supabase
+        .from("certificates")
+        .select("order")
+        .order("order", { ascending: false })
+        .limit(1)
 
-    const nextOrder = (maxOrderData?.[0]?.order ?? -1) + 1
+      const nextOrder = (maxOrderData?.[0]?.order ?? -1) + 1
 
-    const { data, error } = await supabase
-      .from("certificates")
-      .insert([
-        {
-          title: certificate.title,
-          issuer: certificate.issuer,
-          date: certificate.date,
-          description: certificate.description,
-          skills: certificate.skills,
-          verified: certificate.verified,
-          status: certificate.status,
-          image: certificate.image,
-          level: certificate.level,
-          hours: certificate.hours,
-          category: certificate.category,
-          visible: certificate.visible ?? true,
-          order: certificate.order ?? nextOrder,
-        },
-      ])
-      .select()
-      .single()
+      const insertData: any = {
+        title: certificate.title,
+        issuer: certificate.issuer,
+        date: certificate.date,
+        description: certificate.description,
+        skills: certificate.skills,
+        verified: certificate.verified,
+        status: certificate.status,
+        image: certificate.image,
+        level: certificate.level,
+        hours: certificate.hours,
+        visible: certificate.visible ?? true,
+        order: certificate.order ?? nextOrder,
+      }
 
-    if (error) {
-      throw new Error(`Failed to add certificate: ${error.message}`)
-    }
+      // Only add category if it's provided
+      if (certificate.category) {
+        insertData.category = certificate.category
+      }
 
-    return {
-      id: data.id,
-      title: data.title,
-      issuer: data.issuer,
-      date: data.date,
-      description: data.description,
-      skills: data.skills || [],
-      verified: data.verified,
-      status: data.status,
-      image: data.image,
-      level: data.level,
-      hours: data.hours,
-      category: data.category,
-      visible: data.visible,
-      order: data.order,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      const { data, error } = await supabase.from("certificates").insert([insertData]).select().single()
+
+      if (error) {
+        console.error("Database error:", error)
+        throw new Error(`Failed to add certificate: ${error.message}`)
+      }
+
+      return {
+        id: data.id,
+        title: data.title,
+        issuer: data.issuer,
+        date: data.date,
+        description: data.description,
+        skills: data.skills || [],
+        verified: data.verified ?? true,
+        status: data.status || "Active",
+        image: data.image,
+        level: data.level || "",
+        hours: data.hours || "",
+        category: data.category || "Professional",
+        visible: data.visible ?? true,
+        order: data.order ?? 0,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error("Error in addCertificate:", error)
+      throw error
     }
   }
 
   async updateCertificate(id: string, certificate: Partial<CreateCertificate>): Promise<Certificate> {
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
-    }
+    try {
+      const updateData: any = {
+        updated_at: new Date().toISOString(),
+      }
 
-    if (certificate.title !== undefined) updateData.title = certificate.title
-    if (certificate.issuer !== undefined) updateData.issuer = certificate.issuer
-    if (certificate.date !== undefined) updateData.date = certificate.date
-    if (certificate.description !== undefined) updateData.description = certificate.description
-    if (certificate.skills !== undefined) updateData.skills = certificate.skills
-    if (certificate.verified !== undefined) updateData.verified = certificate.verified
-    if (certificate.status !== undefined) updateData.status = certificate.status
-    if (certificate.image !== undefined) updateData.image = certificate.image
-    if (certificate.level !== undefined) updateData.level = certificate.level
-    if (certificate.hours !== undefined) updateData.hours = certificate.hours
-    if (certificate.category !== undefined) updateData.category = certificate.category
-    if (certificate.visible !== undefined) updateData.visible = certificate.visible
-    if (certificate.order !== undefined) updateData.order = certificate.order
+      if (certificate.title !== undefined) updateData.title = certificate.title
+      if (certificate.issuer !== undefined) updateData.issuer = certificate.issuer
+      if (certificate.date !== undefined) updateData.date = certificate.date
+      if (certificate.description !== undefined) updateData.description = certificate.description
+      if (certificate.skills !== undefined) updateData.skills = certificate.skills
+      if (certificate.verified !== undefined) updateData.verified = certificate.verified
+      if (certificate.status !== undefined) updateData.status = certificate.status
+      if (certificate.image !== undefined) updateData.image = certificate.image
+      if (certificate.level !== undefined) updateData.level = certificate.level
+      if (certificate.hours !== undefined) updateData.hours = certificate.hours
+      if (certificate.category !== undefined) updateData.category = certificate.category
+      if (certificate.visible !== undefined) updateData.visible = certificate.visible
+      if (certificate.order !== undefined) updateData.order = certificate.order
 
-    const { data, error } = await supabase.from("certificates").update(updateData).eq("id", id).select().single()
+      const { data, error } = await supabase.from("certificates").update(updateData).eq("id", id).select().single()
 
-    if (error) {
-      throw new Error(`Failed to update certificate: ${error.message}`)
-    }
+      if (error) {
+        console.error("Database error:", error)
+        throw new Error(`Failed to update certificate: ${error.message}`)
+      }
 
-    return {
-      id: data.id,
-      title: data.title,
-      issuer: data.issuer,
-      date: data.date,
-      description: data.description,
-      skills: data.skills || [],
-      verified: data.verified,
-      status: data.status,
-      image: data.image,
-      level: data.level,
-      hours: data.hours,
-      category: data.category,
-      visible: data.visible,
-      order: data.order,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      return {
+        id: data.id,
+        title: data.title,
+        issuer: data.issuer,
+        date: data.date,
+        description: data.description,
+        skills: data.skills || [],
+        verified: data.verified ?? true,
+        status: data.status || "Active",
+        image: data.image,
+        level: data.level || "",
+        hours: data.hours || "",
+        category: data.category || "Professional",
+        visible: data.visible ?? true,
+        order: data.order ?? 0,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error("Error in updateCertificate:", error)
+      throw error
     }
   }
 
   async updateCertificateOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      console.log("Updating certificate order:", items)
+      console.log("Starting certificate order update:", items)
 
-      // Update each item individually
       for (const item of items) {
         console.log(`Updating certificate ${item.id} to order ${item.order}`)
 
@@ -296,6 +307,9 @@ class DataStore {
           console.error(`Failed to update certificate ${item.id}:`, error)
           throw new Error(`Failed to update certificate order: ${error.message}`)
         }
+
+        // Add a small delay to prevent race conditions
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
 
       console.log("Certificate order update completed successfully")
@@ -354,103 +368,114 @@ class DataStore {
   }
 
   async addProject(project: CreateProject): Promise<Project> {
-    // Get the next order number
-    const { data: maxOrderData } = await supabase
-      .from("projects")
-      .select("order")
-      .order("order", { ascending: false })
-      .limit(1)
+    try {
+      // Get the next order number
+      const { data: maxOrderData } = await supabase
+        .from("projects")
+        .select("order")
+        .order("order", { ascending: false })
+        .limit(1)
 
-    const nextOrder = (maxOrderData?.[0]?.order ?? -1) + 1
+      const nextOrder = (maxOrderData?.[0]?.order ?? -1) + 1
 
-    const { data, error } = await supabase
-      .from("projects")
-      .insert([
-        {
-          title: project.title,
-          description: project.description,
-          image: project.image,
-          technologies: project.technologies,
-          category: project.category,
-          featured: project.featured,
-          live_url: project.liveUrl,
-          github_url: project.githubUrl,
-          status: project.status,
-          visible: project.visible ?? true,
-          order: project.order ?? nextOrder,
-        },
-      ])
-      .select()
-      .single()
+      const { data, error } = await supabase
+        .from("projects")
+        .insert([
+          {
+            title: project.title,
+            description: project.description,
+            image: project.image,
+            technologies: project.technologies,
+            category: project.category,
+            featured: project.featured,
+            live_url: project.liveUrl,
+            github_url: project.githubUrl,
+            status: project.status,
+            visible: project.visible ?? true,
+            order: project.order ?? nextOrder,
+          },
+        ])
+        .select()
+        .single()
 
-    if (error) {
-      throw new Error(`Failed to add project: ${error.message}`)
-    }
+      if (error) {
+        console.error("Database error:", error)
+        throw new Error(`Failed to add project: ${error.message}`)
+      }
 
-    return {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      image: data.image,
-      technologies: data.technologies || [],
-      category: data.category,
-      featured: data.featured,
-      liveUrl: data.live_url,
-      githubUrl: data.github_url,
-      status: data.status,
-      visible: data.visible,
-      order: data.order,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        image: data.image,
+        technologies: data.technologies || [],
+        category: data.category,
+        featured: data.featured,
+        liveUrl: data.live_url,
+        githubUrl: data.github_url,
+        status: data.status,
+        visible: data.visible ?? true,
+        order: data.order ?? 0,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error("Error in addProject:", error)
+      throw error
     }
   }
 
   async updateProject(id: string, project: Partial<CreateProject>): Promise<Project> {
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
-    }
+    try {
+      const updateData: any = {
+        updated_at: new Date().toISOString(),
+      }
 
-    if (project.title !== undefined) updateData.title = project.title
-    if (project.description !== undefined) updateData.description = project.description
-    if (project.image !== undefined) updateData.image = project.image
-    if (project.technologies !== undefined) updateData.technologies = project.technologies
-    if (project.category !== undefined) updateData.category = project.category
-    if (project.featured !== undefined) updateData.featured = project.featured
-    if (project.liveUrl !== undefined) updateData.live_url = project.liveUrl
-    if (project.githubUrl !== undefined) updateData.github_url = project.githubUrl
-    if (project.status !== undefined) updateData.status = project.status
-    if (project.visible !== undefined) updateData.visible = project.visible
-    if (project.order !== undefined) updateData.order = project.order
+      if (project.title !== undefined) updateData.title = project.title
+      if (project.description !== undefined) updateData.description = project.description
+      if (project.image !== undefined) updateData.image = project.image
+      if (project.technologies !== undefined) updateData.technologies = project.technologies
+      if (project.category !== undefined) updateData.category = project.category
+      if (project.featured !== undefined) updateData.featured = project.featured
+      if (project.liveUrl !== undefined) updateData.live_url = project.liveUrl
+      if (project.githubUrl !== undefined) updateData.github_url = project.githubUrl
+      if (project.status !== undefined) updateData.status = project.status
+      if (project.visible !== undefined) updateData.visible = project.visible
+      if (project.order !== undefined) updateData.order = project.order
 
-    const { data, error } = await supabase.from("projects").update(updateData).eq("id", id).select().single()
+      const { data, error } = await supabase.from("projects").update(updateData).eq("id", id).select().single()
 
-    if (error) {
-      throw new Error(`Failed to update project: ${error.message}`)
-    }
+      if (error) {
+        console.error("Database error:", error)
+        throw new Error(`Failed to update project: ${error.message}`)
+      }
 
-    return {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      image: data.image,
-      technologies: data.technologies || [],
-      category: data.category,
-      featured: data.featured,
-      liveUrl: data.live_url,
-      githubUrl: data.github_url,
-      status: data.status,
-      visible: data.visible,
-      order: data.order,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        image: data.image,
+        technologies: data.technologies || [],
+        category: data.category,
+        featured: data.featured,
+        liveUrl: data.live_url,
+        githubUrl: data.github_url,
+        status: data.status,
+        visible: data.visible ?? true,
+        order: data.order ?? 0,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error("Error in updateProject:", error)
+      throw error
     }
   }
 
   async updateProjectOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      console.log("Updating project order:", items)
+      console.log("Starting project order update:", items)
 
-      // Update each item individually
       for (const item of items) {
         console.log(`Updating project ${item.id} to order ${item.order}`)
 
@@ -466,6 +491,9 @@ class DataStore {
           console.error(`Failed to update project ${item.id}:`, error)
           throw new Error(`Failed to update project order: ${error.message}`)
         }
+
+        // Add a small delay to prevent race conditions
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
 
       console.log("Project order update completed successfully")
@@ -521,91 +549,102 @@ class DataStore {
   }
 
   async addExperience(experience: CreateExperience): Promise<Experience> {
-    // Get the next order number
-    const { data: maxOrderData } = await supabase
-      .from("experience")
-      .select("order")
-      .order("order", { ascending: false })
-      .limit(1)
+    try {
+      // Get the next order number
+      const { data: maxOrderData } = await supabase
+        .from("experience")
+        .select("order")
+        .order("order", { ascending: false })
+        .limit(1)
 
-    const nextOrder = (maxOrderData?.[0]?.order ?? -1) + 1
+      const nextOrder = (maxOrderData?.[0]?.order ?? -1) + 1
 
-    const { data, error } = await supabase
-      .from("experience")
-      .insert([
-        {
-          year: experience.year,
-          title: experience.title,
-          organization: experience.organization,
-          type: experience.type,
-          achievements: experience.achievements,
-          skills: experience.skills,
-          visible: experience.visible ?? true,
-          order: experience.order ?? nextOrder,
-        },
-      ])
-      .select()
-      .single()
+      const { data, error } = await supabase
+        .from("experience")
+        .insert([
+          {
+            year: experience.year,
+            title: experience.title,
+            organization: experience.organization,
+            type: experience.type,
+            achievements: experience.achievements,
+            skills: experience.skills,
+            visible: experience.visible ?? true,
+            order: experience.order ?? nextOrder,
+          },
+        ])
+        .select()
+        .single()
 
-    if (error) {
-      throw new Error(`Failed to add experience: ${error.message}`)
-    }
+      if (error) {
+        console.error("Database error:", error)
+        throw new Error(`Failed to add experience: ${error.message}`)
+      }
 
-    return {
-      id: data.id,
-      year: data.year,
-      title: data.title,
-      organization: data.organization,
-      type: data.type,
-      achievements: data.achievements || [],
-      skills: data.skills || [],
-      visible: data.visible,
-      order: data.order,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      return {
+        id: data.id,
+        year: data.year,
+        title: data.title,
+        organization: data.organization,
+        type: data.type,
+        achievements: data.achievements || [],
+        skills: data.skills || [],
+        visible: data.visible ?? true,
+        order: data.order ?? 0,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error("Error in addExperience:", error)
+      throw error
     }
   }
 
   async updateExperience(id: string, experience: Partial<CreateExperience>): Promise<Experience> {
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
-    }
+    try {
+      const updateData: any = {
+        updated_at: new Date().toISOString(),
+      }
 
-    if (experience.year !== undefined) updateData.year = experience.year
-    if (experience.title !== undefined) updateData.title = experience.title
-    if (experience.organization !== undefined) updateData.organization = experience.organization
-    if (experience.type !== undefined) updateData.type = experience.type
-    if (experience.achievements !== undefined) updateData.achievements = experience.achievements
-    if (experience.skills !== undefined) updateData.skills = experience.skills
-    if (experience.visible !== undefined) updateData.visible = experience.visible
-    if (experience.order !== undefined) updateData.order = experience.order
+      if (experience.year !== undefined) updateData.year = experience.year
+      if (experience.title !== undefined) updateData.title = experience.title
+      if (experience.organization !== undefined) updateData.organization = experience.organization
+      if (experience.type !== undefined) updateData.type = experience.type
+      if (experience.achievements !== undefined) updateData.achievements = experience.achievements
+      if (experience.skills !== undefined) updateData.skills = experience.skills
+      if (experience.visible !== undefined) updateData.visible = experience.visible
+      if (experience.order !== undefined) updateData.order = experience.order
 
-    const { data, error } = await supabase.from("experience").update(updateData).eq("id", id).select().single()
+      const { data, error } = await supabase.from("experience").update(updateData).eq("id", id).select().single()
 
-    if (error) {
-      throw new Error(`Failed to update experience: ${error.message}`)
-    }
+      if (error) {
+        console.error("Database error:", error)
+        throw new Error(`Failed to update experience: ${error.message}`)
+      }
 
-    return {
-      id: data.id,
-      year: data.year,
-      title: data.title,
-      organization: data.organization,
-      type: data.type,
-      achievements: data.achievements || [],
-      skills: data.skills || [],
-      visible: data.visible,
-      order: data.order,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      return {
+        id: data.id,
+        year: data.year,
+        title: data.title,
+        organization: data.organization,
+        type: data.type,
+        achievements: data.achievements || [],
+        skills: data.skills || [],
+        visible: data.visible ?? true,
+        order: data.order ?? 0,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error("Error in updateExperience:", error)
+      throw error
     }
   }
 
   async updateExperienceOrder(items: { id: string; order: number }[]): Promise<void> {
     try {
-      console.log("Updating experience order:", items)
+      console.log("Starting experience order update:", items)
 
-      // Update each item individually
       for (const item of items) {
         console.log(`Updating experience ${item.id} to order ${item.order}`)
 
@@ -621,6 +660,9 @@ class DataStore {
           console.error(`Failed to update experience ${item.id}:`, error)
           throw new Error(`Failed to update experience order: ${error.message}`)
         }
+
+        // Add a small delay to prevent race conditions
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
 
       console.log("Experience order update completed successfully")
@@ -674,66 +716,72 @@ class DataStore {
   }
 
   async updateHeroSection(hero: CreateHeroSection): Promise<HeroSection> {
-    // First try to get existing hero section
-    const { data: existing } = await supabase
-      .from("hero_section")
-      .select("id")
-      .order("created_at", { ascending: false })
-      .limit(1)
-
-    let data, error
-
-    if (existing && existing.length > 0) {
-      // Update existing
-      const result = await supabase
+    try {
+      // First try to get existing hero section
+      const { data: existing } = await supabase
         .from("hero_section")
-        .update({
-          name: hero.name,
-          title: hero.title,
-          description: hero.description,
-          profile_image: hero.profileImage,
-          visible: hero.visible ?? true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing[0].id)
-        .select()
-        .single()
+        .select("id")
+        .order("created_at", { ascending: false })
+        .limit(1)
 
-      data = result.data
-      error = result.error
-    } else {
-      // Create new
-      const result = await supabase
-        .from("hero_section")
-        .insert([
-          {
+      let data, error
+
+      if (existing && existing.length > 0) {
+        // Update existing
+        const result = await supabase
+          .from("hero_section")
+          .update({
             name: hero.name,
             title: hero.title,
             description: hero.description,
             profile_image: hero.profileImage,
             visible: hero.visible ?? true,
-          },
-        ])
-        .select()
-        .single()
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing[0].id)
+          .select()
+          .single()
 
-      data = result.data
-      error = result.error
-    }
+        data = result.data
+        error = result.error
+      } else {
+        // Create new
+        const result = await supabase
+          .from("hero_section")
+          .insert([
+            {
+              name: hero.name,
+              title: hero.title,
+              description: hero.description,
+              profile_image: hero.profileImage,
+              visible: hero.visible ?? true,
+            },
+          ])
+          .select()
+          .single()
 
-    if (error) {
-      throw new Error(`Failed to update hero section: ${error.message}`)
-    }
+        data = result.data
+        error = result.error
+      }
 
-    return {
-      id: data.id,
-      name: data.name,
-      title: data.title,
-      description: data.description,
-      profileImage: data.profile_image,
-      visible: data.visible,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      if (error) {
+        console.error("Database error:", error)
+        throw new Error(`Failed to update hero section: ${error.message}`)
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        title: data.title,
+        description: data.description,
+        profileImage: data.profile_image,
+        visible: data.visible,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error("Error in updateHeroSection:", error)
+      throw error
     }
   }
 
@@ -772,63 +820,69 @@ class DataStore {
   }
 
   async updateAboutSection(about: CreateAboutSection): Promise<AboutSection> {
-    // First try to get existing about section
-    const { data: existing } = await supabase
-      .from("about_section")
-      .select("id")
-      .order("created_at", { ascending: false })
-      .limit(1)
-
-    let data, error
-
-    if (existing && existing.length > 0) {
-      // Update existing
-      const result = await supabase
+    try {
+      // First try to get existing about section
+      const { data: existing } = await supabase
         .from("about_section")
-        .update({
-          title: about.title,
-          description: about.description,
-          profile_image: about.profileImage,
-          visible: about.visible ?? true,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existing[0].id)
-        .select()
-        .single()
+        .select("id")
+        .order("created_at", { ascending: false })
+        .limit(1)
 
-      data = result.data
-      error = result.error
-    } else {
-      // Create new
-      const result = await supabase
-        .from("about_section")
-        .insert([
-          {
+      let data, error
+
+      if (existing && existing.length > 0) {
+        // Update existing
+        const result = await supabase
+          .from("about_section")
+          .update({
             title: about.title,
             description: about.description,
             profile_image: about.profileImage,
             visible: about.visible ?? true,
-          },
-        ])
-        .select()
-        .single()
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing[0].id)
+          .select()
+          .single()
 
-      data = result.data
-      error = result.error
-    }
+        data = result.data
+        error = result.error
+      } else {
+        // Create new
+        const result = await supabase
+          .from("about_section")
+          .insert([
+            {
+              title: about.title,
+              description: about.description,
+              profile_image: about.profileImage,
+              visible: about.visible ?? true,
+            },
+          ])
+          .select()
+          .single()
 
-    if (error) {
-      throw new Error(`Failed to update about section: ${error.message}`)
-    }
+        data = result.data
+        error = result.error
+      }
 
-    return {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      profileImage: data.profile_image,
-      visible: data.visible,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
+      if (error) {
+        console.error("Database error:", error)
+        throw new Error(`Failed to update about section: ${error.message}`)
+      }
+
+      return {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        profileImage: data.profile_image,
+        visible: data.visible,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      console.error("Error in updateAboutSection:", error)
+      throw error
     }
   }
 }
