@@ -2162,7 +2162,7 @@ Or use the image upload below to get URLs"
                             <SelectItem value="Work">Work</SelectItem>
                             <SelectItem value="Internship">Internship</SelectItem>
                             <SelectItem value="Project">Project</SelectItem>
-                            <SelectItem value="Volunteer">Volunteer/Leadership</SelectItem>
+                            <SelectItem value="Leadership/Volunteer">Volunteer/Leadership</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
