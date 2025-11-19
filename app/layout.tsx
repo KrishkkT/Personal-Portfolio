@@ -46,11 +46,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://kjt.vercel.app"),
   title: {
-    default: "Krish Thakker - Cybersecurity Specialist & Full Stack Developer",
+    default: "Krish Thakker - Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
     template: "%s | KT Portfolio",
   },
   description:
-    "Krish Thakker - Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions with expertise in penetration testing, cloud security, and modern web development.",
+    "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
   keywords: keywords,
   authors: [{ name: "Krish Thakker", url: "https://krishthakker.tech" }],
   creator: "Krish Thakker",
@@ -67,9 +67,9 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Krish Thakker - Cybersecurity Specialist & Full Stack Developer",
+    title: "Krish Thakker - Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
     description:
-      "Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions with expertise in penetration testing, cloud security, and modern web development.",
+      "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
     url: "https://krishthakker.tech",
     siteName: "KT Portfolio",
     images: [
@@ -85,9 +85,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Krish Thakker - Cybersecurity Specialist & Full Stack Developer",
+    title: "Krish Thakker - Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
     description:
-      "Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions.",
+      "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
     images: ["/icon"],
     creator: "@krishthakker08",
   },
@@ -174,13 +174,13 @@ export default function RootLayout({
                 url: "https://krishthakker.tech",
                 image: "https://krishthakker.tech/icon",
                 sameAs: ["https://github.com/krishkkt", "https://linkedin.com/in/krishthakker08"],
-                jobTitle: "Cybersecurity Specialist & Full Stack Developer",
+                jobTitle: "Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
                 worksFor: {
                   "@type": "Organization",
                   name: "Independent Professional",
                 },
                 description:
-                  "Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions with expertise in penetration testing, cloud security, and modern web development.",
+                  "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
                 knowsAbout: [
                   "Full Stack Development",
                   "Cybersecurity",
@@ -202,9 +202,9 @@ export default function RootLayout({
                 "@context": "https://schema.org",
                 "@type": "WebSite",
                 url: "https://krishthakker.tech",
-                name: "KT - Cybersecurity Specialist & Full Stack Developer",
+                name: "KT - Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
                 description:
-                  "Cybersecurity Specialist and Full Stack Developer passionate about building secure, innovative solutions with expertise in penetration testing, cloud security, and modern web development.",
+                  "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
                 author: {
                   "@type": "Person",
                   name: "Krish Thakker",
