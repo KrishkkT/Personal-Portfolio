@@ -203,17 +203,13 @@ export default function AboutSection() {
             <div itemProp="mainContentOfPage">
               <h3 className="text-4xl font-bold mb-6 text-white">Wings of Progress</h3>
               <p className="text-lg text-gray-300 leading-relaxed mb-6">
-                I'm Krish Thakker, Cybersecurity, Cloud & Software Development Specialist | Red & Blue Team Expert.{" "}
+                I'm Krish Thakker — focused on Cybersecurity, Cloud, and Software Development.{" "}
                 <br />
                 My work bridges creative vision and technical precision to craft digital experiences that stand out and
                 perform securely.
               </p>
               <p className="text-lg text-gray-300 leading-relaxed">
-                Passionate about Penetration Testing, Cloud Security, and Cybersecurity, with growing experience in Full
-                Stack Development. Currently exploring Web Development, Ethical Hacking, Cloud Technologies, and Bug
-                Bounty, while pursuing certifications. <br />I bring a strong foundation in cybersecurity tools,
-                AI-driven security frameworks, and modern web development, aiming to build secure, scalable, and
-                impactful digital solutions.
+                Passionate about penetration testing, cloud security, and cybersecurity, with growing experience in full-stack development. I’m exploring web development, ethical hacking, cloud technologies, and bug bounty while building my certification path. I work with core security tools, modern web technologies, and AI-assisted security workflows to create solutions that are secure, scalable, and genuinely useful.
               </p>
             </div>
           </motion.div>
