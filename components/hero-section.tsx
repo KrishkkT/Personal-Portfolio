@@ -44,54 +44,6 @@ export default function HeroSection() {
     }
   }
 
-  const typewriterPhrases = [
-    "Cloud Infrastructure and Monitoring",
-    "Cybersecurity Enthusiast",
-    "IT Systems and Automation",
-  ]
-
-  const [currentText, setCurrentText] = useState("")
-  const [phraseIndex, setPhraseIndex] = useState(0)
-  const [charIndex, setCharIndex] = useState(0)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [isPaused, setIsPaused] = useState(false)
-
-  useEffect(() => {
-    if (isPaused) return
-
-    const currentPhrase = typewriterPhrases[phraseIndex]
-    const delay = isDeleting ? 150 : 100
-
-    const timeout = setTimeout(() => {
-      if (!isDeleting) {
-        const nextText = currentPhrase.substring(0, charIndex + 1)
-        setCurrentText(nextText)
-        setCharIndex((prev) => prev + 1)
-
-        if (nextText === currentPhrase) {
-          setIsPaused(true)
-          setTimeout(() => {
-            setIsDeleting(true)
-            setIsPaused(false)
-          }, 2000)
-        }
-      } else {
-        const words = currentText.trim().split(" ")
-        if (words.length > 1) {
-          words.pop()
-          setCurrentText(words.join(" ") + " ")
-        } else {
-          setCurrentText("")
-          setCharIndex(0)
-          setIsDeleting(false)
-          setPhraseIndex((prev) => (prev + 1) % typewriterPhrases.length)
-        }
-      }
-    }, delay)
-
-    return () => clearTimeout(timeout)
-  }, [charIndex, isDeleting, phraseIndex, currentText, isPaused])
-
   // Don't render if hero section is not visible
   if (heroData && !heroData.visible) {
     return null
@@ -276,17 +228,6 @@ export default function HeroSection() {
             >
               <span className="gradient-text">{name}</span>
             </motion.h1>
-
-            <motion.h3
-              className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-yellow-400/80 font-light px-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.9, duration: 0.8 }}
-              itemProp="jobTitle"
-            >
-              {currentText}
-              <span className="animate-blink">|</span>
-            </motion.h3>
           </motion.div>
 
           <motion.p

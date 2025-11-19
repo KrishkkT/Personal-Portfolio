@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
-import { Upload, X, ImageIcon, Loader2 } from "lucide-react"
+import { Upload, X, ImageIcon, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import { toast } from "sonner"
@@ -30,6 +30,7 @@ export default function ImageUpload({
   const [isUploading, setIsUploading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [urlInput, setUrlInput] = useState(value)
+  const [imageError, setImageError] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileUpload = async (file: File) => {
@@ -68,9 +69,9 @@ export default function ImageUpload({
       const data = await response.json()
       onChange(data.url)
       setUrlInput(data.url)
+      setImageError(false)
       toast.success("Image uploaded successfully!")
     } catch (error) {
-      console.error("Upload error:", error)
       toast.error(error instanceof Error ? error.message : "Failed to upload image")
     } finally {
       setIsUploading(false)
@@ -107,11 +108,13 @@ export default function ImageUpload({
   const handleUrlChange = (url: string) => {
     setUrlInput(url)
     onChange(url)
+    setImageError(false)
   }
 
   const clearImage = () => {
     onChange("")
     setUrlInput("")
+    setImageError(false)
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -164,7 +167,7 @@ export default function ImageUpload({
                   <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
                   <p className="text-gray-300">Uploading image...</p>
                 </motion.div>
-              ) : value ? (
+              ) : value && !imageError ? (
                 <motion.div
                   key="preview"
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -179,6 +182,8 @@ export default function ImageUpload({
                       width={300}
                       height={200}
                       className="rounded-lg object-cover w-full h-48"
+                      onError={() => setImageError(true)}
+                      unoptimized
                     />
                   </div>
                   <p className="text-sm text-gray-400">Image loaded successfully</p>
@@ -197,8 +202,14 @@ export default function ImageUpload({
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-gray-300">Drag and drop an image here, or click to select</p>
-                    <p className="text-sm text-gray-500">Supports JPEG, PNG, WebP, GIF (max 5MB)</p>
+                    {imageError && value ? (
+                      <p className="text-red-400 text-sm">Failed to load image. Please try a different URL or upload a new file.</p>
+                    ) : (
+                      <>
+                        <p className="text-gray-300">Drag and drop an image here, or click to select</p>
+                        <p className="text-sm text-gray-500">Supports JPEG, PNG, WebP, GIF (max 5MB)</p>
+                      </>
+                    )}
                   </div>
                   <Button
                     type="button"
