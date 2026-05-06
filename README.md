@@ -1,81 +1,119 @@
-<h1 align="center">🚀 Personal Portfolio</h1>
-<p align="center">
-  <b>Designed & developed by Krish (KT) — showcasing a journey through code, creativity, and cybersecurity.</b>
-</p>
+# 🚀 Krish Thakker | Engineering & Security Portfolio
 
-<br/>
+<div align="center">
+  <img src="https://images.unsplash.com/photo-1749239435698-30b2421eb128?w=1200&auto=format&fit=crop&q=80" alt="Portfolio Header" width="100%" style="border-radius: 20px; margin-bottom: 20px;" />
+  
+  <p align="center">
+    <b>A high-performance, dark-themed portfolio meticulously engineered to showcase the intersection of Cybersecurity, Cloud Engineering, and Full-Stack Development.</b>
+  </p>
 
-<p align="center">
-  <img src="/images/design-mode/giphy.gif" width="400"/>
-</p>
-
----
-
-## 🌟 About the Project
-
-Welcome aboard Krish's Personal Portfolio — a meticulously engineered webspace blending technology, personality, and security, all themed around flight and forward momentum.
-
----
-
-## 🛠️ Tech Stack
-
-| Frontend        | Backend       | Styling          | Tools & Hosting           |
-|-----------------|---------------|------------------|---------------------------|
-| React.js        | Node.js       | Tailwind CSS     | Vercel                    |
-| Next.js         | Express.js    | Framer Motion    | Git & GitHub              |
-| TypeScript      |               |                  |                           |
+  <div>
+    <img src="https://img.shields.io/badge/Next.js-14.2-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+    <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind" />
+    <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
+    <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" />
+  </div>
+</div>
 
 ---
 
-## ✨ Features
+## 🌟 Vision & Design Philosophy
 
-- 🎨 Beautiful animations with Framer Motion
-- 📱 Fully responsive design for all devices
-- 📜 Dynamic Projects & Certifications
-- 🧠 Skill-based categorization with custom icons
-- 🔐 Section to showcase skills & certs
+This portfolio isn't just a static resume; it's a dynamic ecosystem built on the principles of **Glassmorphism**, **Bento-style layout**, and **Intentional Animation**. Every interaction is designed to feel alive, secure, and premium.
 
----
-
-## 📁 Sections Included
-
-- **Hero** — Brief intro with social links  
-- **About** — Who I am & what I do  
-- **Skills** — My tech stack with categories  
-- **Projects** — Featured works with descriptions  
-- **Certifications** — Visual proof of learning  
-- **Stats** — Total projects, tech used, and live count  
-- **Contact** — Let’s collaborate!
+- **Aesthetic**: Deep space dark mode with vibrant neon accents.
+- **Interactivity**: Smooth scrolling, custom cursor interactions, and GSAP-powered motion paths.
+- **Philosophy**: "Security by design, elegance by default."
 
 ---
 
-## 🧠 Philosophy
+## 🛠️ Technical Architecture
 
-> I believe in shipping smart, secure, and elegant solutions — combining design, functionality, and purpose. This portfolio is not just a website, but a reflection of that mindset.
+### Core Stack
+- **Framework**: [Next.js 14](https://nextjs.org/) (App Router) for hybrid rendering and SEO optimization.
+- **Language**: [TypeScript](https://www.typescriptlang.org/) for strict type safety across the entire codebase.
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) with a custom design system and Glassmorphism utilities.
+- **Database**: [Supabase](https://supabase.com/) for real-time CRUD operations and secure data persistence.
 
----
+### Animation & 3D
+- **GSAP & ScrollTrigger**: For complex timeline-based scroll animations.
+- **Framer Motion**: For elegant micro-interactions and layout transitions.
+- **Three.js & R3F**: Custom 3D background elements and scene interactions.
 
-## 🏗️ Status
-
-🚧 Constantly improving. New features, micro-interactions, and integrations are on the way.
-
----
-
-## 📸 Preview
-
-<p align="center">
- <img src="https://images.unsplash.com/photo-1749239435698-30b2421eb128?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwcm9maWxlLXBhZ2V8MXx8fGVufDB8fHx8fA%3D%3D" width="800" alt="Portfolio Screenshot"/>
-
-</p>
-
----
-
-## 📬 Contact
-
-Feel free to reach out via [LinkedIn](https://www.linkedin.com/in/krishthakker08) or [Email](mailto:contact@krishthakker.in). Always open to collaboration and meaningful connections.
+### Features
+- **Admin Dashboard**: A secure, integrated management console (`/kjt-golb`) to manage projects, certificates, and skills dynamically.
+- **Real-time Stats**: Live counters for total projects, engineering hours, and technical certifications.
+- **Global Search & SEO**: Comprehensive metadata, JSON-LD schemas, and dynamic sitemaps for maximum visibility.
 
 ---
 
-<p align="center">
-  Built with ❤️ by <b>KT</b> — Code-driven, cyber-bound, coffee-fueled, and always shipping something smarter.
-</p>
+## 📂 Project Structure
+
+```bash
+├── app/                  # Next.js App Router (Pages, Layouts, API)
+├── components/           # Atomic Design Components
+│   ├── ui/               # Base UI Library (Buttons, Cards, Modals)
+│   └── (Sections)/       # Feature-specific sections (Hero, About, Projects)
+├── lib/                  # Core Utilities & Supabase Store
+├── public/               # Optimized Static Assets
+├── scripts/              # Automation & DB Migration Scripts
+└── types/                # Global TypeScript Definitions
+```
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+- **Node.js**: v18.x or higher
+- **pnpm**: v9.x or higher (Recommended)
+
+### 2. Installation
+```bash
+# Clone the repository
+git clone https://github.com/KrishkkT/Personal-Portfolio.git
+
+# Install dependencies
+pnpm install
+```
+
+### 3. Environment Setup
+Create a `.env.local` file in the root directory:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+ADMIN_PASSWORD=your_dashboard_password
+```
+
+### 4. Development
+```bash
+pnpm dev
+```
+
+---
+
+## 🔐 Security Standards
+
+As a portfolio focused on cybersecurity, this site implements:
+- **Environment Variable Protection**: No secrets are exposed to the client.
+- **RLS (Row Level Security)**: Database access is strictly controlled via Supabase policies.
+- **Sanitized Inputs**: All user-facing forms and dashboard inputs are validated and sanitized.
+
+---
+
+## 📬 Connect
+
+I'm always open to collaborating on secure infrastructure, cloud-native apps, or innovative web experiences.
+
+- **LinkedIn**: [krishthakker08](https://linkedin.com/in/krishthakker08)
+- **GitHub**: [@krishkkt](https://github.com/krishkkt)
+- **Website**: [krishthakker.in](https://krishthakker.in)
+
+---
+
+<div align="center">
+  <p>Built with ⚡ by <b>Krish Thakker</b></p>
+  <p><i>Code-driven. Cyber-bound. Always shipping.</i></p>
+</div>
