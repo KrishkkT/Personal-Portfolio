@@ -1,95 +1,66 @@
 import type React from "react"
-import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
+import type { Metadata } from "next"
+import { Inter, Syne, JetBrains_Mono } from "next/font/google"
+import { ThemeProvider } from "@/components/ThemeProvider"
+import SmoothScroll from "@/components/SmoothScroll"
+import Navbar from "@/components/Navbar"
+import Footer from "@/components/Footer"
+import BackToTop from "@/components/BackToTop"
+import dynamic from "next/dynamic"
 import "./globals.css"
+
+const SceneBackground = dynamic(() => import("@/components/SceneBackground"), { ssr: false })
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap"
+})
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-syne",
+  display: "swap"
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap"
+})
+
 import Script from "next/script"
-import EnhancedPreloader from "@/components/enhanced-preloader"
-import Navigation from "@/components/navigation"
-import { Toaster } from "sonner"
-import ErrorBoundary from "@/components/error-boundary"
-
-const inter = Inter({ subsets: ["latin"], display: "swap" })
-
-const keywords = [
-  "Krish Thakker",
-  "Full Stack Developer",
-  "Cybersecurity Specialist",
-  "Cloud Computing",
-  "Web Development",
-  "React Developer",
-  "Next.js",
-  "TypeScript",
-  "UI/UX Design",
-  "Portfolio",
-  "Software Engineer",
-  "Frontend Developer",
-  "Backend Developer",
-  "Gujarat Developer",
-  "India Tech",
-  "Ethical Hacking",
-  "Cloud Security",
-  "Web Security",
-  "Professional Portfolio",
-]
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#111827" },
-  ],
-}
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kjt.vercel.app"),
-  title: {
-    default: "Krish Thakker - Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
-    template: "%s | KT Portfolio",
-  },
-  description:
-    "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
-  keywords: keywords,
-  authors: [{ name: "Krish Thakker", url: "https://krishthakker.tech" }],
+  title: "Krish Thakker | Cloud Engineer & Full-Stack Developer",
+  description: "Official portfolio of Krish Thakker — a cloud-focused full-stack developer building scalable applications, modern web experiences, and infrastructure-driven digital solutions. Gujarat, India.",
+  keywords: ["Krish Thakker", "Full Stack Developer", "Cloud Developer", "AWS", "Next.js Portfolio", "Cybersecurity Specialist", "Krish Thakker Portfolio", "krishthakker.in", "Krish Thakkar", "Amazon Web Service", "Google Cloud", "Microsoft Azure", "Python", "React", "Next.js", "AWS", "Cybersecurity", "React Native", "Web Development", "Cloud Computing", "Infrastructure Automation", "Machine Learning", "Artificial Intelligence", "Data Science", "Full Stack Development", "Cloud Engineering", "Cloud Architecture", "Cloud Security", "Cloud Operations", "Cloud Administration", "Cloud Migration", "Cloud Native", "Cloud Agnostic", "Cloud Service Provider", "Cloud Platform", "Cloud Solution Architect", "Cloud Professional", "Cloud Practitioner", "Cloud Architect", "Cloud Developer", "Cloud Engineer", "Cloud Administrator", "Cloud Consultant", "Cloud Specialist", "Cloud Expert", "Cloud Guru", "Cloud Master"],
+  authors: [{ name: "Krish Thakker" }],
   creator: "Krish Thakker",
-  publisher: "Krish Thakker",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
+  metadataBase: new URL("https://krishthakker.in"),
   alternates: {
     canonical: "/",
-    languages: {
-      "en-US": "/en-US",
-    },
   },
   openGraph: {
-    title: "Krish Thakker - Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
-    description:
-      "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
-    url: "https://krishthakker.tech",
-    siteName: "KT Portfolio",
-    images: [
-      {
-        url: "/icon",
-        width: 1200,
-        height: 630,
-        alt: "Krish Thakker Portfolio",
-      },
-    ],
-    locale: "en_US",
     type: "website",
+    locale: "en_IN",
+    url: "https://krishthakker.in",
+    title: "Krish Thakker | Cloud & Full-Stack Developer",
+    description: "Building scalable applications, cloud-native systems, and modern digital experiences with a focus on performance, usability, and clean design.",
+    siteName: "Krish Thakker Portfolio",
+    images: [{
+      url: "/og-image.png", // Ensure this exists or I should tell user to add it
+      width: 1200,
+      height: 630,
+      alt: "Krish Thakker Portfolio",
+    }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Krish Thakker - Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
-    description:
-      "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
-    images: ["/icon"],
-    creator: "@krishthakker08",
+    title: "Krish Thakker | Cloud & Full-Stack Developer",
+    description: "Building scalable applications, cloud-native systems, and modern digital experiences.",
+    creator: "@krishthakker08", // assuming based on linkedin handle
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
@@ -97,16 +68,12 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
     },
   },
-  verification: {
-    google: "QaiaeL9bLstYRJQ2d81_Boxs22j9QRYvEifbC8cQ5i0",
-  },
-  category: "technology",
-  generator: "Next.js",
+  manifest: "/site.webmanifest",
 }
 
 export default function RootLayout({
@@ -114,110 +81,50 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Krish Thakker",
+    "url": "https://krishthakker.in",
+    "image": "https://krishthakker.in/profile.jpg",
+    "jobTitle": "Cloud & Full-Stack Developer",
+    "sameAs": [
+      "https://github.com/krishkkt",
+      "https://linkedin.com/in/krishthakker08",
+    ],
+    "description": "Cloud-focused full-stack developer building scalable applications, infrastructure-driven systems, and modern web experiences.",
+    "knowsAbout": ["AWS", "Google Cloud", "Microsoft Azure", "Python", "React", "Next.js", "AWS", "Cybersecurity", "React Native", "Web Development", "Cloud Computing", "Infrastructure Automation", "Machine Learning", "Artificial Intelligence", "Data Science", "Full Stack Development", "Cloud Engineering", "Cloud Architecture", "Cloud Security", "Cloud Operations", "Cloud Administration", "Cloud Migration", "Cloud Native", "Cloud Agnostic", "Cloud Service Provider", "Cloud Platform", "Cloud Solution Architect", "Cloud Professional", "Cloud Practitioner", "Cloud Architect", "Cloud Developer", "Cloud Engineer", "Cloud Administrator", "Cloud Consultant", "Cloud Specialist", "Cloud Expert", "Cloud Guru", "Cloud Master"],
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Gujarat",
+      "addressCountry": "IN"
+    }
+  }
+
   return (
-    <html lang="en" className="scroll-smooth">
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                if (typeof window !== 'undefined') {
-                  window.history.scrollRestoration = 'manual';
-                  window.scrollTo(0, 0);
-                  document.documentElement.scrollTop = 0;
-                  if (document.body) document.body.scrollTop = 0;
-                }
-              })();
-            `,
-          }}
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${syne.variable} ${jetbrainsMono.variable}`}>
+      <body className="antialiased font-body transition-colors duration-500 bg-background text-textPrimary selection:bg-accent/30 selection:text-textPrimary">
+        <Script
+          id="json-ld"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <link rel="preload" href="/fonts/Inter-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
-        <link rel="preload" href="/fonts/Inter-Bold.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
-        <link rel="preload" href="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Netflix-Intro-Sound-Effect-MWXvtNsw95Lf2Jl9Y6MwaYDQZzlWnW.mp3" as="audio" />
-        <meta name="theme-color" content="#111827" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="KT Portfolio" />
-        <meta name="application-name" content="KT Portfolio" />
-        <meta name="msapplication-TileColor" content="#111827" />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body className={`${inter.className} antialiased`}>
-        <ErrorBoundary>
-          <EnhancedPreloader />
-          <div data-barba="wrapper">
-            <Navigation />
-            <main className="relative z-10">{children}</main>
-          </div>
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                background: "rgb(31 41 55)",
-                color: "rgb(243 244 246)",
-                border: "1px solid rgb(75 85 99)",
-              },
-            }}
-          />
-
-          <Script
-            id="schema-person"
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "Person",
-                name: "Krish Thakker",
-                url: "https://krishthakker.tech",
-                image: "https://krishthakker.tech/icon",
-                sameAs: ["https://github.com/krishkkt", "https://linkedin.com/in/krishthakker08"],
-                jobTitle: "Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
-                worksFor: {
-                  "@type": "Organization",
-                  name: "Independent Professional",
-                },
-                description:
-                  "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
-                knowsAbout: [
-                  "Full Stack Development",
-                  "Cybersecurity",
-                  "Cloud Computing",
-                  "React",
-                  "Next.js",
-                  "TypeScript",
-                  "Ethical Hacking",
-                ],
-              }),
-            }}
-          />
-
-          <Script
-            id="schema-website"
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "WebSite",
-                url: "https://krishthakker.tech",
-                name: "KT - Aspiring Cybersecurity Analyst with Web Development and Cloud Interest",
-                description:
-                  "Cybersecurity Specialist and Web Developer with experience in secure systems, cloud platforms, modern web development, and leveraging AI in real-world workflows.",
-                author: {
-                  "@type": "Person",
-                  name: "Krish Thakker",
-                },
-                potentialAction: {
-                  "@type": "SearchAction",
-                  target: "https://krishthakker.tech/search?q={search_term_string}",
-                  "query-input": "required name=search_term_string",
-                },
-              }),
-            }}
-          />
-        </ErrorBoundary>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SmoothScroll>
+            <SceneBackground />
+            <Navbar />
+            <main className="relative z-10 w-full min-h-screen">
+              {children}
+            </main>
+            <BackToTop />
+            <Footer />
+          </SmoothScroll>
+        </ThemeProvider>
       </body>
     </html>
   )

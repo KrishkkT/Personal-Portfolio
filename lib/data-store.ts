@@ -1,9 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseKey)
+import { getSupabaseClient } from "./supabase-client"
 
 export interface Certificate {
   id: string
@@ -22,6 +17,7 @@ export interface Certificate {
   order: number
   createdAt: string
   updatedAt: string
+  providerUrl?: string
 }
 
 export interface CreateCertificate {
@@ -38,6 +34,7 @@ export interface CreateCertificate {
   category: string
   visible?: boolean
   order?: number
+  providerUrl?: string
 }
 
 export interface Project {
@@ -102,6 +99,10 @@ export interface HeroSection {
   title: string
   description: string
   profileImage: string
+  statTitle1?: string
+  statValue1?: string
+  statTitle2?: string
+  statValue2?: string
   visible: boolean
   createdAt: string
   updatedAt: string
@@ -112,6 +113,10 @@ export interface CreateHeroSection {
   title: string
   description: string
   profileImage: string
+  statTitle1?: string
+  statValue1?: string
+  statTitle2?: string
+  statValue2?: string
   visible?: boolean
 }
 
@@ -132,9 +137,36 @@ export interface CreateAboutSection {
   visible?: boolean
 }
 
+export interface SkillCategory {
+  id: string
+  title: string
+  icon: string
+  skills: string[]
+  span: string
+  visible: boolean
+  order: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateSkillCategory {
+  title: string
+  icon: string
+  skills: string[]
+  span: string
+  visible?: boolean
+  order?: number
+}
+
 class DataStore {
+  private get supabase() {
+    return getSupabaseClient()
+  }
+
   // Fix order values function
   async fixOrderValues(): Promise<void> {
+    const supabase = this.supabase
+    if (!supabase) return
     try {
       // Fix certificates
       const { data: certificates } = await supabase
@@ -168,6 +200,18 @@ class DataStore {
           await supabase.from("experience").update({ order: i }).eq("id", experience[i].id)
         }
       }
+
+      // Fix skills
+      const { data: skills } = await supabase
+        .from("skill_categories")
+        .select("id")
+        .order("created_at", { ascending: true })
+
+      if (skills) {
+        for (let i = 0; i < skills.length; i++) {
+          await supabase.from("skill_categories").update({ order: i }).eq("id", skills[i].id)
+        }
+      }
     } catch (error) {
       throw error
     }
@@ -175,6 +219,8 @@ class DataStore {
 
   // Certificates
   async getAllCertificates(includeAll = false): Promise<Certificate[]> {
+    const supabase = this.supabase
+    if (!supabase) return []
     try {
       let query = supabase.from("certificates").select("*")
 
@@ -206,6 +252,7 @@ class DataStore {
           order: cert.order ?? 0,
           createdAt: cert.created_at,
           updatedAt: cert.updated_at,
+          providerUrl: cert.provider_url || "",
         })) || []
       )
     } catch (error) {
@@ -214,6 +261,8 @@ class DataStore {
   }
 
   async addCertificate(certificate: CreateCertificate): Promise<Certificate> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
     try {
       // Get the next order number
       const { data: maxOrderData } = await supabase
@@ -238,6 +287,7 @@ class DataStore {
         category: certificate.category,
         visible: certificate.visible ?? true,
         order: certificate.order ?? nextOrder,
+        provider_url: certificate.providerUrl || "",
       }
 
       const { data, error } = await supabase.from("certificates").insert([insertData]).select().single()
@@ -263,6 +313,7 @@ class DataStore {
         order: data.order ?? 0,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        providerUrl: data.provider_url || "",
       }
     } catch (error) {
       throw error
@@ -270,6 +321,8 @@ class DataStore {
   }
 
   async updateCertificate(id: string, certificate: Partial<CreateCertificate>): Promise<Certificate> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
     try {
       const updateData: any = {
         updated_at: new Date().toISOString(),
@@ -288,6 +341,7 @@ class DataStore {
       if (certificate.category !== undefined) updateData.category = certificate.category
       if (certificate.visible !== undefined) updateData.visible = certificate.visible
       if (certificate.order !== undefined) updateData.order = certificate.order
+      if (certificate.providerUrl !== undefined) updateData.provider_url = certificate.providerUrl
 
       const { data, error } = await supabase.from("certificates").update(updateData).eq("id", id).select().single()
 
@@ -312,6 +366,7 @@ class DataStore {
         order: data.order ?? 0,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        providerUrl: data.provider_url || "",
       }
     } catch (error) {
       throw error
@@ -319,6 +374,8 @@ class DataStore {
   }
 
   async updateCertificateOrder(items: { id: string; order: number }[]): Promise<void> {
+    const supabase = this.supabase
+    if (!supabase) return
     try {
       // Process updates one by one to ensure they complete
       for (const item of items) {
@@ -341,6 +398,8 @@ class DataStore {
   }
 
   async deleteCertificate(id: string): Promise<void> {
+    const supabase = this.supabase
+    if (!supabase) return
     const { error } = await supabase.from("certificates").delete().eq("id", id)
 
     if (error) {
@@ -350,6 +409,8 @@ class DataStore {
 
   // Projects
   async getAllProjects(includeAll = false): Promise<Project[]> {
+    const supabase = this.supabase
+    if (!supabase) return []
     try {
       let query = supabase.from("projects").select("*")
 
@@ -387,6 +448,8 @@ class DataStore {
   }
 
   async addProject(project: CreateProject): Promise<Project> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
     try {
       // Get the next order number
       const { data: maxOrderData } = await supabase
@@ -443,6 +506,8 @@ class DataStore {
   }
 
   async updateProject(id: string, project: Partial<CreateProject>): Promise<Project> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
     try {
       const updateData: any = {
         updated_at: new Date().toISOString(),
@@ -488,6 +553,8 @@ class DataStore {
   }
 
   async updateProjectOrder(items: { id: string; order: number }[]): Promise<void> {
+    const supabase = this.supabase
+    if (!supabase) return
     try {
       // Process updates one by one to ensure they complete
       for (const item of items) {
@@ -510,6 +577,8 @@ class DataStore {
   }
 
   async deleteProject(id: string): Promise<void> {
+    const supabase = this.supabase
+    if (!supabase) return
     const { error } = await supabase.from("projects").delete().eq("id", id)
 
     if (error) {
@@ -519,6 +588,8 @@ class DataStore {
 
   // Experience
   async getAllExperience(includeAll = false): Promise<Experience[]> {
+    const supabase = this.supabase
+    if (!supabase) return []
     try {
       let query = supabase.from("experience").select("*")
 
@@ -553,6 +624,8 @@ class DataStore {
   }
 
   async addExperience(experience: CreateExperience): Promise<Experience> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
     try {
       // Get the next order number
       const { data: maxOrderData } = await supabase
@@ -603,6 +676,8 @@ class DataStore {
   }
 
   async updateExperience(id: string, experience: Partial<CreateExperience>): Promise<Experience> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
     try {
       const updateData: any = {
         updated_at: new Date().toISOString(),
@@ -642,6 +717,8 @@ class DataStore {
   }
 
   async updateExperienceOrder(items: { id: string; order: number }[]): Promise<void> {
+    const supabase = this.supabase
+    if (!supabase) return
     try {
       // Process updates one by one to ensure they complete
       for (const item of items) {
@@ -664,6 +741,8 @@ class DataStore {
   }
 
   async deleteExperience(id: string): Promise<void> {
+    const supabase = this.supabase
+    if (!supabase) return
     const { error } = await supabase.from("experience").delete().eq("id", id)
 
     if (error) {
@@ -673,6 +752,8 @@ class DataStore {
 
   // Hero Section
   async getHeroSection(): Promise<HeroSection | null> {
+    const supabase = this.supabase
+    if (!supabase) return null
     try {
       const { data, error } = await supabase
         .from("hero_section")
@@ -695,6 +776,10 @@ class DataStore {
         title: hero.title,
         description: hero.description,
         profileImage: hero.profile_image,
+        statTitle1: hero.stat_title_1,
+        statValue1: hero.stat_value_1,
+        statTitle2: hero.stat_title_2,
+        statValue2: hero.stat_value_2,
         visible: hero.visible,
         createdAt: hero.created_at,
         updatedAt: hero.updated_at,
@@ -705,6 +790,8 @@ class DataStore {
   }
 
   async updateHeroSection(hero: CreateHeroSection): Promise<HeroSection> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
     try {
       // First try to get existing hero section
       const { data: existing } = await supabase
@@ -724,6 +811,10 @@ class DataStore {
             title: hero.title,
             description: hero.description,
             profile_image: hero.profileImage,
+            stat_title_1: hero.statTitle1,
+            stat_value_1: hero.statValue1,
+            stat_title_2: hero.statTitle2,
+            stat_value_2: hero.statValue2,
             visible: hero.visible ?? true,
             updated_at: new Date().toISOString(),
           })
@@ -740,11 +831,15 @@ class DataStore {
           .insert([
             {
               name: hero.name,
-              title: hero.title,
-              description: hero.description,
-              profile_image: hero.profileImage,
-              visible: hero.visible ?? true,
-            },
+            title: hero.title,
+            description: hero.description,
+            profile_image: hero.profileImage,
+            stat_title_1: hero.statTitle1,
+            stat_value_1: hero.statValue1,
+            stat_title_2: hero.statTitle2,
+            stat_value_2: hero.statValue2,
+            visible: hero.visible ?? true,
+          },
           ])
           .select()
           .single()
@@ -754,7 +849,12 @@ class DataStore {
       }
 
       if (error) {
+        console.error("Supabase Error Updating Hero:", error)
         throw new Error(`Failed to update hero section: ${error.message}`)
+      }
+
+      if (!data) {
+        throw new Error("No data returned from updateHeroSection")
       }
 
       return {
@@ -763,17 +863,24 @@ class DataStore {
         title: data.title,
         description: data.description,
         profileImage: data.profile_image,
+        statTitle1: data.stat_title_1,
+        statValue1: data.stat_value_1,
+        statTitle2: data.stat_title_2,
+        statValue2: data.stat_value_2,
         visible: data.visible,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       }
     } catch (error) {
+      console.error("Error in updateHeroSection:", error)
       throw error
     }
   }
 
   // About Section
   async getAboutSection(): Promise<AboutSection | null> {
+    const supabase = this.supabase
+    if (!supabase) return null
     try {
       const { data, error } = await supabase
         .from("about_section")
@@ -805,6 +912,8 @@ class DataStore {
   }
 
   async updateAboutSection(about: CreateAboutSection): Promise<AboutSection> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
     try {
       // First try to get existing about section
       const { data: existing } = await supabase
@@ -852,7 +961,12 @@ class DataStore {
       }
 
       if (error) {
+        console.error("Supabase Error Updating About:", error)
         throw new Error(`Failed to update about section: ${error.message}`)
+      }
+
+      if (!data) {
+        throw new Error("No data returned from updateAboutSection")
       }
 
       return {
@@ -865,7 +979,157 @@ class DataStore {
         updatedAt: data.updated_at,
       }
     } catch (error) {
+      console.error("Error in updateAboutSection:", error)
       throw error
+    }
+  }
+
+  // Skill Categories
+  async getAllSkillCategories(includeAll = false): Promise<SkillCategory[]> {
+    const supabase = this.supabase
+    if (!supabase) return []
+    try {
+      let query = supabase.from("skill_categories").select("*")
+
+      if (!includeAll) {
+        query = query.eq("visible", true)
+      }
+
+      const { data, error } = await query.order("order", { ascending: true }).order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Supabase Error Fetching Skills:", error)
+        return []
+      }
+
+      return (
+        data?.map((cat) => ({
+          id: cat.id,
+          title: cat.title,
+          icon: cat.icon || "Layout",
+          skills: cat.skills || [],
+          span: cat.span || "md:col-span-6",
+          visible: cat.visible ?? true,
+          order: cat.order ?? 0,
+          createdAt: cat.created_at,
+          updatedAt: cat.updated_at,
+        })) || []
+      )
+    } catch (error) {
+      console.error("Error in getAllSkillCategories:", error)
+      return []
+    }
+  }
+
+  async addSkillCategory(category: CreateSkillCategory): Promise<SkillCategory> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
+    try {
+      const { data: maxOrderData } = await supabase
+        .from("skill_categories")
+        .select("order")
+        .order("order", { ascending: false })
+        .limit(1)
+
+      const nextOrder = (maxOrderData?.[0]?.order ?? -1) + 1
+
+      const { data, error } = await supabase
+        .from("skill_categories")
+        .insert([
+          {
+            title: category.title,
+            icon: category.icon,
+            skills: category.skills,
+            span: category.span,
+            visible: category.visible ?? true,
+            order: category.order ?? nextOrder,
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) {
+        throw new Error(`Failed to add skill category: ${error.message}`)
+      }
+
+      return {
+        id: data.id,
+        title: data.title,
+        icon: data.icon,
+        skills: data.skills || [],
+        span: data.span,
+        visible: data.visible ?? true,
+        order: data.order ?? 0,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async updateSkillCategory(id: string, category: Partial<CreateSkillCategory>): Promise<SkillCategory> {
+    const supabase = this.supabase
+    if (!supabase) throw new Error("Supabase client not available")
+    try {
+      const updateData: any = {
+        updated_at: new Date().toISOString(),
+      }
+
+      if (category.title !== undefined) updateData.title = category.title
+      if (category.icon !== undefined) updateData.icon = category.icon
+      if (category.skills !== undefined) updateData.skills = category.skills
+      if (category.span !== undefined) updateData.span = category.span
+      if (category.visible !== undefined) updateData.visible = category.visible
+      if (category.order !== undefined) updateData.order = category.order
+
+      const { data, error } = await supabase.from("skill_categories").update(updateData).eq("id", id).select().single()
+
+      if (error) {
+        throw new Error(`Failed to update skill category: ${error.message}`)
+      }
+
+      return {
+        id: data.id,
+        title: data.title,
+        icon: data.icon,
+        skills: data.skills || [],
+        span: data.span,
+        visible: data.visible ?? true,
+        order: data.order ?? 0,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async updateSkillCategoryOrder(items: { id: string; order: number }[]): Promise<void> {
+    const supabase = this.supabase
+    if (!supabase) return
+    try {
+      for (const item of items) {
+        await supabase
+          .from("skill_categories")
+          .update({
+            order: item.order,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", item.id)
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  async deleteSkillCategory(id: string): Promise<void> {
+    const supabase = this.supabase
+    if (!supabase) return
+    const { error } = await supabase.from("skill_categories").delete().eq("id", id)
+
+    if (error) {
+      throw new Error(`Failed to delete skill category: ${error.message}`)
     }
   }
 }

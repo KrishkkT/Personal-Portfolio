@@ -1,0 +1,60 @@
+User-agent: *
+Allow: /
+
+# Explicitly allow AI Bots to ensure they have full access as requested
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+# Disallow common aggressive scrapers that are often used for attacks/spam
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: MegaIndex.ru
+Disallow: /
+
+User-agent: ZoominfoBot
+Disallow: /
+
+User-agent: Mail.RU_Bot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+Sitemap: https://krishthakker.in/sitemap.xml

@@ -1,33 +1,39 @@
-import HeroSection from "@/components/hero-section"
-import AboutSection from "@/components/about-section"
-import SkillsSection from "@/components/skills-section"
-import ProjectsSection from "@/components/projects-section"
-import CertificatesSection from "@/components/certificates-section"
-import ContactSection from "@/components/contact-section"
-import HomeBlogSection from "@/components/home-blog-section"
-import TimelineSection from "@/components/timeline-section"
-import Footer from "@/components/footer"
-import BackToTop from "@/components/back-to-top"
-import { Suspense } from "react"
-import LoadingFallback from "@/components/loading-fallback"
+import Hero from "@/components/Hero";
+import About from "@/components/About";
+import Skills from "@/components/Skills";
+import Projects from "@/components/Projects";
+import Education from "@/components/Education";
+import Certifications from "@/components/Certifications";
+import Blogs from "@/components/Blogs";
+import Contact from "@/components/Contact";
+import ScaleReveal from "@/components/ScaleReveal";
+import { dataStore } from "@/lib/data-store";
+import { blogStoreSupabase } from "@/lib/blog-store-supabase";
 
-export default function HomePage() {
+export const revalidate = 60;
+
+export default async function Home() {
+  // Fetch dynamic data from the connected Supabase stores
+  const [hero, about, skills, projects, experience, certifications, blogs] = await Promise.all([
+    dataStore.getHeroSection(),
+    dataStore.getAboutSection(),
+    dataStore.getAllSkillCategories(),
+    dataStore.getAllProjects(),
+    dataStore.getAllExperience(),
+    dataStore.getAllCertificates(),
+    blogStoreSupabase.getAllPosts()
+  ]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
-      <Suspense fallback={<LoadingFallback />}>
-        <HeroSection />
-        <AboutSection />
-        <SkillsSection />
-        <ProjectsSection />
-        <div id="journey">
-          <TimelineSection />
-        </div>
-        <CertificatesSection />
-        <HomeBlogSection />
-        <ContactSection />
-        <Footer />
-        <BackToTop />
-      </Suspense>
-    </div>
-  )
+    <>
+      <Hero data={hero} />
+      <ScaleReveal><About data={about} /></ScaleReveal>
+      <ScaleReveal><Skills data={skills} /></ScaleReveal>
+      <ScaleReveal><Education data={experience} /></ScaleReveal>
+      <ScaleReveal><Projects data={projects} /></ScaleReveal>
+      <ScaleReveal><Certifications data={certifications} /></ScaleReveal>
+      <ScaleReveal><Blogs data={blogs} /></ScaleReveal>
+      <ScaleReveal><Contact minimal={true} /></ScaleReveal>
+    </>
+  );
 }

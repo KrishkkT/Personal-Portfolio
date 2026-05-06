@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
       }
     }
 
-    return new NextResponse("Authentication required", {
+    return new Response("Authentication required", {
       status: 401,
       headers: {
         "WWW-Authenticate": 'Basic realm="Blog Management"',

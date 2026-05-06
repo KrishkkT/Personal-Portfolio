@@ -1,216 +1,169 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Lock, User, Eye, EyeOff, Shield, Crown } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
-import BlogManagement from "./BlogManagement"
+import type React from "react";
+import { useEffect, useState } from "react";
+import { Lock, User, Eye, EyeOff, Shield, LayoutDashboard, Key } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import BlogManagement from "./BlogManagement";
+import { GlassCard } from "@/components/ui/GlassCard";
+import { GlassButton } from "@/components/ui/GlassButton";
+import { Input } from "@/components/ui/input";
 
 export default function BlogManagementPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const auth = sessionStorage.getItem("blog-auth")
+    const auth = sessionStorage.getItem("blog-auth");
     if (auth === "authenticated") {
-      setIsAuthenticated(true)
+      setIsAuthenticated(true);
     }
-  }, [])
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Maintain existing logic
+    await new Promise((resolve) => setTimeout(resolve, 800));
 
     if (username === "thekjt" && password === "passissecret") {
-      setIsAuthenticated(true)
-      sessionStorage.setItem("blog-auth", "authenticated")
+      setIsAuthenticated(true);
+      sessionStorage.setItem("blog-auth", "authenticated");
     } else {
-      setError("Invalid credentials.")
+      setError("Invalid credentials. Please try again.");
     }
 
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   if (isAuthenticated) {
-    return <BlogManagement />
+    return <BlogManagement />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 relative overflow-hidden">
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-r from-yellow-400/10 to-orange-400/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+    <div className="min-h-screen bg-[#FBFBFD] relative overflow-hidden flex items-center justify-center p-6">
+      {/* Abstract Background Blobs */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none -z-10">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 blur-[120px] rounded-full opacity-60" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-100 blur-[120px] rounded-full opacity-60" />
       </div>
 
-      <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-        <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.8 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="w-full max-w-lg"
-        >
-          <Card className="backdrop-blur-2xl bg-black/30 border border-yellow-400/30 shadow-2xl shadow-yellow-400/10 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 via-transparent to-purple-400/5"></div>
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-purple-400 to-blue-400"></div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md"
+      >
+        <GlassCard className="p-10 border-white/40 shadow-xl" gradient>
+          <div className="text-center mb-10">
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="mx-auto w-16 h-16 bg-black rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-black/10"
+            >
+              <LayoutDashboard className="h-8 w-8 text-white" />
+            </motion.div>
+            <motion.h1 
+              className="text-3xl font-bold text-apple-text tracking-tight mb-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
+              Admin Portal
+            </motion.h1>
+            <motion.p 
+              className="text-apple-muted text-sm font-medium"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              Secure content management system
+            </motion.p>
+          </div>
 
-            <CardHeader className="text-center pb-8 pt-10 relative">
-              <motion.div
-                initial={{ scale: 0, rotate: -180 }}
-                animate={{ scale: 1, rotate: 0 }}
-                transition={{
-                  duration: 1,
-                  delay: 0.3,
-                  type: "spring",
-                  stiffness: 150,
-                  damping: 12,
-                }}
-                className="mx-auto w-24 h-24 bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 rounded-3xl flex items-center justify-center mb-8 shadow-2xl shadow-yellow-400/30 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent"></div>
-                <Crown className="h-12 w-12 text-gray-900 relative z-10 drop-shadow-sm" />
-              </motion.div>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-apple-muted ml-1">Username</label>
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="bg-white/50 border-white/60 focus:bg-white transition-all h-12 rounded-xl pl-10"
+                  placeholder="admin_id"
+                  required
+                />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-apple-muted" />
+              </div>
+            </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.5 }}
-              >
-                <CardTitle className="text-4xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-300 to-orange-400 bg-clip-text text-transparent mb-4">
-                  Admin Portal
-                </CardTitle>
-                <p className="text-gray-300 text-base leading-relaxed max-w-sm mx-auto">Content management system</p>
-              </motion.div>
-            </CardHeader>
-
-            <CardContent className="pb-10 px-10 relative">
-              <form onSubmit={handleLogin} className="space-y-8">
-                <motion.div
-                  initial={{ opacity: 0, x: -50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.8, delay: 0.9 }}
-                  className="space-y-3"
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-apple-muted ml-1">Password</label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="bg-white/50 border-white/60 focus:bg-white transition-all h-12 rounded-xl pl-10 pr-10"
+                  placeholder="••••••••"
+                  required
+                />
+                <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-apple-muted" />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-apple-muted hover:text-apple-text transition-colors"
                 >
-                  <label htmlFor="username" className="text-sm font-semibold text-gray-300 flex items-center gap-3">
-                    <div className="w-6 h-6 bg-yellow-400/20 rounded-lg flex items-center justify-center">
-                      <User className="h-4 w-4 text-yellow-400" />
-                    </div>
-                    Username
-                  </label>
-                  <div className="relative group">
-                    <Input
-                      id="username"
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="bg-gray-800/60 border-gray-600/50 text-white placeholder-gray-500 focus:border-yellow-400/60 focus:ring-yellow-400/30 h-14 text-base backdrop-blur-sm transition-all duration-300 group-hover:bg-gray-800/80"
-                      placeholder="Enter your username"
-                      required
-                    />
-                  </div>
-                </motion.div>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
 
+            <AnimatePresence>
+              {error && (
                 <motion.div
-                  initial={{ opacity: 0, x: -50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.8, delay: 1.1 }}
-                  className="space-y-3"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-center gap-3"
                 >
-                  <label htmlFor="password" className="text-sm font-semibold text-gray-300 flex items-center gap-3">
-                    <div className="w-6 h-6 bg-yellow-400/20 rounded-lg flex items-center justify-center">
-                      <Lock className="h-4 w-4 text-yellow-400" />
-                    </div>
-                    Password
-                  </label>
-                  <div className="relative group">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="bg-gray-800/60 border-gray-600/50 text-white placeholder-gray-500 focus:border-yellow-400/60 focus:ring-yellow-400/30 h-14 text-base pr-14 backdrop-blur-sm transition-all duration-300 group-hover:bg-gray-800/80"
-                      placeholder="Enter your password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-yellow-400 transition-colors duration-200 z-10"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
+                  <Shield className="h-4 w-4 text-red-500" />
+                  <span className="text-xs font-medium text-red-600">{error}</span>
                 </motion.div>
+              )}
+            </AnimatePresence>
 
-                <AnimatePresence>
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -20, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                      transition={{ duration: 0.4 }}
-                      className="text-red-400 text-sm text-center bg-gradient-to-r from-red-500/10 to-red-600/10 border border-red-400/30 rounded-2xl p-5 backdrop-blur-sm relative overflow-hidden"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-red-400/5 to-transparent"></div>
-                      <div className="flex items-center justify-center gap-3 relative z-10">
-                        <Shield className="h-5 w-5 text-red-400" />
-                        <span className="font-medium">{error}</span>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
+            <GlassButton
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 rounded-xl mt-4"
+              variant="primary"
+            >
+              {loading ? (
                 <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 1.3 }}
-                >
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 text-gray-900 font-bold hover:from-yellow-300 hover:via-yellow-400 hover:to-orange-400 transition-all duration-500 shadow-2xl shadow-yellow-400/30 hover:shadow-3xl hover:shadow-yellow-400/40 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none h-14 text-lg relative overflow-hidden group"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    {loading ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                        className="w-6 h-6 border-3 border-gray-900 border-t-transparent rounded-full relative z-10"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center gap-3 relative z-10">
-                        <Crown className="h-6 w-6" />
-                        <span>Access Dashboard</span>
-                      </div>
-                    )}
-                  </Button>
-                </motion.div>
-              </form>
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
+                />
+              ) : (
+                "Sign In"
+              )}
+            </GlassButton>
+          </form>
 
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.8, delay: 1.5 }}
-                className="mt-10 text-center"
-              >
-                <div className="flex items-center justify-center gap-3 text-sm text-gray-500 bg-gray-800/30 rounded-2xl p-4 backdrop-blur-sm">
-                  <Shield className="h-4 w-4 text-yellow-400" />
-                  <span>Secure authentication</span>
-                </div>
-              </motion.div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
+          <div className="mt-8 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-apple-muted">
+            <div className="w-1 h-1 rounded-full bg-green-500" />
+            <span>Encrypted SSL Session</span>
+          </div>
+        </GlassCard>
+      </motion.div>
     </div>
-  )
+  );
 }

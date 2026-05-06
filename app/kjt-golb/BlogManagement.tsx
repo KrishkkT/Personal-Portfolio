@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -35,6 +34,7 @@ import {
   UserCircle,
   ChevronUp,
   ChevronDown,
+  ArrowLeft,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
@@ -53,7 +53,23 @@ import type {
   CreateHeroSection,
   AboutSection,
   CreateAboutSection,
+  SkillCategory,
+  CreateSkillCategory,
 } from "@/lib/data-store"
+import { GlassCard } from "@/components/ui/GlassCard"
+import { GlassButton } from "@/components/ui/GlassButton"
+import { Code2, Database, Smartphone, Cloud, Cpu, Globe, Layers, Layout } from "lucide-react"
+
+const ICON_MAP: Record<string, React.ReactNode> = {
+  Layout: <Layout className="w-5 h-5 text-accent" />,
+  Database: <Database className="w-5 h-5 text-accent" />,
+  Smartphone: <Smartphone className="w-5 h-5 text-accent" />,
+  Code2: <Code2 className="w-5 h-5 text-accent" />,
+  Cloud: <Cloud className="w-5 h-5 text-accent" />,
+  Cpu: <Cpu className="w-5 h-5 text-accent" />,
+  Globe: <Globe className="w-5 h-5 text-accent" />,
+  Layers: <Layers className="w-5 h-5 text-accent" />,
+}
 
 export default function BlogManagement() {
   // Blog state
@@ -89,6 +105,7 @@ export default function BlogManagement() {
     category: "Professional",
     visible: true,
     order: 0,
+    providerUrl: "",
   })
 
   // Projects state
@@ -147,6 +164,19 @@ export default function BlogManagement() {
     visible: true,
   })
 
+  // Skills state
+  const [skillCategories, setSkillCategories] = useState<SkillCategory[]>([])
+  const [isSkillDialogOpen, setIsSkillDialogOpen] = useState(false)
+  const [editingSkill, setEditingSkill] = useState<SkillCategory | null>(null)
+  const [skillFormData, setSkillFormData] = useState<CreateSkillCategory>({
+    title: "",
+    icon: "Layout",
+    skills: [],
+    span: "md:col-span-6",
+    visible: true,
+    order: 0,
+  })
+
   const [activeTab, setActiveTab] = useState("overview")
   const [stats, setStats] = useState({
     totalPosts: 0,
@@ -154,6 +184,7 @@ export default function BlogManagement() {
     totalCertificates: 0,
     totalProjects: 0,
     totalExperience: 0,
+    totalSkills: 0,
   })
   const [submitStatus, setSubmitStatus] = useState<{
     message: string
@@ -168,13 +199,14 @@ export default function BlogManagement() {
   const loadAllData = async () => {
     setIsLoading(true)
     try {
-      const [postsData, certificatesData, projectsData, experienceData, heroData, aboutData] = await Promise.all([
+      const [postsData, certificatesData, projectsData, experienceData, heroData, aboutData, skillsData] = await Promise.all([
         blogStoreSupabase.getAllPosts(true),
         dataStore.getAllCertificates(true),
         dataStore.getAllProjects(true),
         dataStore.getAllExperience(true),
         dataStore.getHeroSection(),
         dataStore.getAboutSection(),
+        dataStore.getAllSkillCategories(true),
       ])
 
       // Sort the data by order before setting state
@@ -188,6 +220,7 @@ export default function BlogManagement() {
       setExperience(experienceData)
       setHeroSection(heroData)
       setAboutSection(aboutData)
+      setSkillCategories(skillsData)
 
       // Set form data if sections exist, otherwise keep defaults
       if (heroData) {
@@ -196,6 +229,10 @@ export default function BlogManagement() {
           title: heroData.title,
           description: heroData.description,
           profileImage: heroData.profileImage,
+          statTitle1: heroData.statTitle1 || "",
+          statValue1: heroData.statValue1 || "",
+          statTitle2: heroData.statTitle2 || "",
+          statValue2: heroData.statValue2 || "",
           visible: heroData.visible,
         })
       }
@@ -215,6 +252,7 @@ export default function BlogManagement() {
         totalCertificates: certificatesData.length,
         totalProjects: projectsData.length,
         totalExperience: experienceData.length,
+        totalSkills: skillsData.length,
       })
     } catch (error) {
       toast.error("Failed to load data")
@@ -237,6 +275,9 @@ export default function BlogManagement() {
       } else if (type === "experience") {
         await dataStore.updateExperience(id, { visible: !currentVisibility })
         toast.success(`Experience ${!currentVisibility ? "shown" : "hidden"} on website`)
+      } else if (type === "skills") {
+        await dataStore.updateSkillCategory(id, { visible: !currentVisibility })
+        toast.success(`Skill category ${!currentVisibility ? "shown" : "hidden"} on website`)
       }
 
       await loadAllData()
@@ -264,6 +305,8 @@ export default function BlogManagement() {
         items = [...projects]
       } else if (type === "experience") {
         items = [...experience]
+      } else if (type === "skills") {
+        items = [...skillCategories]
       }
 
       // Sort by current order to get the correct sequence
@@ -308,6 +351,9 @@ export default function BlogManagement() {
       } else if (type === "experience") {
         await dataStore.updateExperience(currentItem.id, { order: currentNewOrder })
         await dataStore.updateExperience(targetItem.id, { order: targetNewOrder })
+      } else if (type === "skills") {
+        await dataStore.updateSkillCategory(currentItem.id, { order: currentNewOrder })
+        await dataStore.updateSkillCategory(targetItem.id, { order: targetNewOrder })
       }
 
       // Force reload data to reflect changes
@@ -677,6 +723,70 @@ export default function BlogManagement() {
     setEditingExperience(null)
   }
 
+  // Skill Category functions
+  const handleSubmitSkill = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!skillFormData.title.trim()) {
+      toast.error("Category title is required")
+      return
+    }
+
+    setSubmitStatus({ message: "Saving...", type: "loading" })
+
+    try {
+      if (editingSkill) {
+        await dataStore.updateSkillCategory(editingSkill.id, skillFormData)
+        toast.success("Skill category updated successfully")
+      } else {
+        await dataStore.addSkillCategory(skillFormData)
+        toast.success("Skill category added successfully")
+      }
+      await loadAllData()
+      resetSkillForm()
+      setIsSkillDialogOpen(false)
+      setSubmitStatus({ message: "Success!", type: "success" })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to save skill category"
+      toast.error(errorMessage)
+      setSubmitStatus({ message: errorMessage, type: "error" })
+    }
+
+    setTimeout(() => {
+      setSubmitStatus({ message: "", type: "" })
+    }, 3000)
+  }
+
+  const handleDeleteSkill = async (id: string) => {
+    if (confirm("Are you sure you want to delete this skill category?")) {
+      setSubmitStatus({ message: "Deleting...", type: "loading" })
+      try {
+        await dataStore.deleteSkillCategory(id)
+        await loadAllData()
+        toast.success("Skill category deleted successfully")
+        setSubmitStatus({ message: "Deleted successfully!", type: "success" })
+      } catch (error) {
+        toast.error("Failed to delete skill category")
+        setSubmitStatus({ message: "Failed to delete skill category", type: "error" })
+      }
+
+      setTimeout(() => {
+        setSubmitStatus({ message: "", type: "" })
+      }, 3000)
+    }
+  }
+
+  const resetSkillForm = () => {
+    setSkillFormData({
+      title: "",
+      icon: "Layout",
+      skills: [],
+      span: "md:col-span-6",
+      visible: true,
+      order: 0,
+    })
+    setEditingSkill(null)
+  }
+
   // Utility functions
   const handleTagsChange = (value: string, setter: (tags: string[]) => void) => {
     const tags = value
@@ -688,1363 +798,742 @@ export default function BlogManagement() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-            className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full mx-auto mb-4"
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-10 h-10 border-3 border-blue-500 border-t-transparent rounded-full mx-auto mb-6"
           />
-          <p className="text-gray-300">Loading management dashboard...</p>
+          <p className="text-textSecondary font-medium tracking-tight">Accessing digital core...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-3 sm:p-6">
+    <div className="min-h-screen bg-background p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-4xl font-bold text-gray-200 mb-2">Content Management Dashboard</h1>
-          <p className="text-gray-400 text-sm sm:text-base">Manage your portfolio content across all sections</p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6"
+        >
+          <div>
+            <h1 className="text-4xl font-bold text-textPrimary tracking-tight mb-2 font-heading uppercase">Management</h1>
+            <p className="text-textSecondary font-medium font-body opacity-70">Synchronize your digital footprint across the ecosystem.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <GlassButton variant="secondary" onClick={() => window.open("/", "_blank")} className="px-6 py-2">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">View Live</span>
+            </GlassButton>
+            <GlassButton
+              variant="primary"
+              className="px-6 py-2 text-xs"
+              onClick={() => {
+                sessionStorage.removeItem("blog-auth")
+                window.location.reload()
+              }}
+            >
+              Sign Out
+            </GlassButton>
+          </div>
         </motion.div>
 
         {/* Status Message */}
         <AnimatePresence>
           {submitStatus.message && (
             <motion.div
-              className={`mb-6 sm:mb-8 p-4 sm:p-6 rounded-xl flex items-center justify-center text-center ${
-                submitStatus.type === "success"
-                  ? "bg-green-500/10 text-green-400 border border-green-400/30"
-                  : submitStatus.type === "error"
-                    ? "bg-red-500/10 text-red-400 border border-red-400/30"
-                    : "bg-yellow-500/10 text-yellow-400 border border-yellow-400/30"
-              }`}
+              className={`mb-8 p-4 rounded-xl flex items-center shadow-lg border backdrop-blur-xl ${submitStatus.type === "error"
+                ? "bg-red-500/10 border-red-500/20 text-red-400"
+                : submitStatus.type === "success"
+                  ? "bg-green-500/10 border-green-500/20 text-green-400"
+                  : "bg-accent/10 border-accent/20 text-accent font-medium"
+                }`}
               initial={{ opacity: 0, y: -20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
               transition={{ duration: 0.3 }}
             >
               {submitStatus.type === "loading" && (
-                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3 animate-spin" />
+                <Loader2 className="h-5 w-5 mr-3 animate-spin" />
               )}
-              {submitStatus.type === "success" && <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" />}
-              {submitStatus.type === "error" && <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 mr-2 sm:mr-3" />}
-              <span className="text-sm sm:text-lg font-medium">{submitStatus.message}</span>
+              {submitStatus.type === "success" && <CheckCircle className="h-5 w-5 mr-3" />}
+              {submitStatus.type === "error" && <AlertCircle className="h-5 w-5 mr-3" />}
+              <span className="text-sm uppercase tracking-wider font-bold">{submitStatus.message}</span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 sm:space-y-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 bg-gray-800/50 border border-yellow-400/20 h-auto p-1">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+          <TabsList className="flex items-center gap-2 bg-surface backdrop-blur-2xl border border-border p-1.5 rounded-2xl w-full sm:w-fit overflow-x-auto overflow-y-hidden no-scrollbar">
             <TabsTrigger
               value="overview"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
+              className="data-[state=active]:bg-textPrimary data-[state=active]:text-background rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-textSecondary transition-all"
             >
-              <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Overview</span>
-              <span className="sm:hidden">Stats</span>
+              <BarChart3 className="h-3.5 w-3.5 mr-2" />
+              Overview
             </TabsTrigger>
             <TabsTrigger
               value="hero"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
+              className="data-[state=active]:bg-textPrimary data-[state=active]:text-background rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-textSecondary transition-all"
             >
-              <Home className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Hero</span>
-              <span className="sm:hidden">Hero</span>
+              <Home className="h-3.5 w-3.5 mr-2" />
+              Hero
             </TabsTrigger>
             <TabsTrigger
               value="about"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
+              className="data-[state=active]:bg-textPrimary data-[state=active]:text-background rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-textSecondary transition-all"
             >
-              <UserCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">About</span>
-              <span className="sm:hidden">About</span>
+              <UserCircle className="h-3.5 w-3.5 mr-2" />
+              About
             </TabsTrigger>
             <TabsTrigger
               value="blogs"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
+              className="data-[state=active]:bg-textPrimary data-[state=active]:text-background rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-textSecondary transition-all"
             >
-              <FileText className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Blogs ({stats.totalPosts})</span>
-              <span className="sm:hidden">Blog</span>
+              <FileText className="h-3.5 w-3.5 mr-2" />
+              Blogs ({stats.totalPosts})
             </TabsTrigger>
             <TabsTrigger
               value="certificates"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
+              className="data-[state=active]:bg-textPrimary data-[state=active]:text-background rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-textSecondary transition-all"
             >
-              <Award className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Certificates ({stats.totalCertificates})</span>
-              <span className="sm:hidden">Cert</span>
+              <Award className="h-3.5 w-3.5 mr-2" />
+              Certs ({stats.totalCertificates})
             </TabsTrigger>
             <TabsTrigger
               value="projects"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
+              className="data-[state=active]:bg-textPrimary data-[state=active]:text-background rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-textSecondary transition-all"
             >
-              <Briefcase className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Projects ({stats.totalProjects})</span>
-              <span className="sm:hidden">Proj</span>
+              <Briefcase className="h-3.5 w-3.5 mr-2" />
+              Work ({stats.totalProjects})
             </TabsTrigger>
             <TabsTrigger
               value="experience"
-              className="data-[state=active]:bg-yellow-400/20 data-[state=active]:text-yellow-400 text-xs sm:text-sm py-2 sm:py-3 text-gray-300"
+              className="data-[state=active]:bg-textPrimary data-[state=active]:text-background rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-textSecondary transition-all"
             >
-              <User className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Experience ({stats.totalExperience})</span>
-              <span className="sm:hidden">Exp</span>
+              <User className="h-3.5 w-3.5 mr-2" />
+              Life ({stats.totalExperience})
+            </TabsTrigger>
+            <TabsTrigger
+              value="skills"
+              className="data-[state=active]:bg-textPrimary data-[state=active]:text-background rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] text-textSecondary transition-all"
+            >
+              <Code2 className="h-3.5 w-3.5 mr-2" />
+              Skills ({stats.totalSkills})
             </TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-4 sm:space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-              <Card className="bg-gray-800/50 border-gray-700">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs sm:text-sm text-gray-400">Total Posts</p>
-                      <p className="text-xl sm:text-2xl font-bold text-yellow-400">{stats.totalPosts}</p>
-                    </div>
-                    <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400/60" />
+          <TabsContent value="overview" className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <GlassCard className="p-6" gradient>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-accent/10 text-accent rounded-2xl">
+                    <FileText className="h-6 w-6" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-textSecondary mb-1">Total Blogs</p>
+                    <p className="text-3xl font-bold text-textPrimary">{stats.totalPosts}</p>
+                  </div>
+                </div>
+              </GlassCard>
 
-              <Card className="bg-gray-800/50 border-gray-700">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs sm:text-sm text-gray-400">Certificates</p>
-                      <p className="text-xl sm:text-2xl font-bold text-yellow-400">{stats.totalCertificates}</p>
-                    </div>
-                    <Award className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400/60" />
+              <GlassCard className="p-6" gradient>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-green-500/10 text-green-500 rounded-2xl">
+                    <Award className="h-6 w-6" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-textSecondary mb-1">Certificates</p>
+                    <p className="text-3xl font-bold text-textPrimary">{stats.totalCertificates}</p>
+                  </div>
+                </div>
+              </GlassCard>
 
-              <Card className="bg-gray-800/50 border-gray-700">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs sm:text-sm text-gray-400">Projects</p>
-                      <p className="text-xl sm:text-2xl font-bold text-yellow-400">{stats.totalProjects}</p>
-                    </div>
-                    <Briefcase className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400/60" />
+              <GlassCard className="p-6" gradient>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl">
+                    <Briefcase className="h-6 w-6" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-textSecondary mb-1">Projects</p>
+                    <p className="text-3xl font-bold text-textPrimary">{stats.totalProjects}</p>
+                  </div>
+                </div>
+              </GlassCard>
 
-              <Card className="bg-gray-800/50 border-gray-700">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs sm:text-sm text-gray-400">Experience</p>
-                      <p className="text-xl sm:text-2xl font-bold text-yellow-400">{stats.totalExperience}</p>
-                    </div>
-                    <User className="h-6 w-6 sm:h-8 sm:w-8 text-yellow-400/60" />
+              <GlassCard className="p-6" gradient>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-purple-500/10 text-purple-500 rounded-2xl">
+                    <Code2 className="h-6 w-6" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-textSecondary mb-1">Skills</p>
+                    <p className="text-3xl font-bold text-textPrimary">{stats.totalSkills}</p>
+                  </div>
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-6" gradient>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-orange-500/10 text-orange-500 rounded-2xl">
+                    <User className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-textSecondary mb-1">Experience</p>
+                    <p className="text-3xl font-bold text-textPrimary">{stats.totalExperience}</p>
+                  </div>
+                </div>
+              </GlassCard>
             </div>
-
-            <Card className="bg-gray-800/50 border-gray-700">
-              <CardHeader>
-                <CardTitle className="text-gray-200 flex items-center gap-2 text-lg sm:text-xl">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-400" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-2 lg:grid-cols-7 gap-3 sm:gap-4">
-                <Button
-                  onClick={fixOrderValues}
-                  className="bg-red-400/20 text-red-400 border-red-400/30 hover:bg-red-400/30 text-xs sm:text-sm py-2 sm:py-3"
-                  variant="outline"
-                >
-                  <AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Fix Order</span>
-                  <span className="sm:hidden">Fix</span>
-                </Button>
-                <Button
-                  onClick={() => setIsHeroDialogOpen(true)}
-                  className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/30 text-xs sm:text-sm py-2 sm:py-3"
-                  variant="outline"
-                >
-                  <Home className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Edit Hero</span>
-                  <span className="sm:hidden">Hero</span>
-                </Button>
-                <Button
-                  onClick={() => setIsAboutDialogOpen(true)}
-                  className="bg-blue-400/20 text-blue-400 border-blue-400/30 hover:bg-blue-400/30 text-xs sm:text-sm py-2 sm:py-3"
-                  variant="outline"
-                >
-                  <UserCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">Edit About</span>
-                  <span className="sm:hidden">About</span>
-                </Button>
-                <Button
-                  onClick={() => {
-                    resetPostForm()
-                    setIsDialogOpen(true)
-                  }}
-                  className="bg-green-400/20 text-green-400 border-green-400/30 hover:bg-green-400/30 text-xs sm:text-sm py-2 sm:py-3"
-                  variant="outline"
-                >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">New Blog</span>
-                  <span className="sm:hidden">Blog</span>
-                </Button>
-                <Button
-                  onClick={() => {
-                    resetCertificateForm()
-                    setIsCertDialogOpen(true)
-                  }}
-                  className="bg-purple-400/20 text-purple-400 border-purple-400/30 hover:bg-purple-400/30 text-xs sm:text-sm py-2 sm:py-3"
-                  variant="outline"
-                >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">New Cert</span>
-                  <span className="sm:hidden">Cert</span>
-                </Button>
-                <Button
-                  onClick={() => {
-                    resetProjectForm()
-                    setIsProjectDialogOpen(true)
-                  }}
-                  className="bg-orange-400/20 text-orange-400 border-orange-400/30 hover:bg-orange-400/30 text-xs sm:text-sm py-2 sm:py-3"
-                  variant="outline"
-                >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">New Project</span>
-                  <span className="sm:hidden">Proj</span>
-                </Button>
-                <Button
-                  onClick={() => {
-                    resetExperienceForm()
-                    setIsExpDialogOpen(true)
-                  }}
-                  className="bg-cyan-400/20 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/30 text-xs sm:text-sm py-2 sm:py-3"
-                  variant="outline"
-                >
-                  <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  <span className="hidden sm:inline">New Experience</span>
-                  <span className="sm:hidden">Exp</span>
-                </Button>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Hero Section Tab */}
-          <TabsContent value="hero" className="space-y-4 sm:space-y-6">
+          <TabsContent value="hero" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Hero Section</h2>
-              <Dialog open={isHeroDialogOpen} onOpenChange={setIsHeroDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/30 text-xs sm:text-sm"
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">Edit Hero</span>
-                    <span className="sm:hidden">Edit</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-yellow-400/20">
-                  <DialogHeader>
-                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">Edit Hero Section</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmitHero} className="space-y-4 sm:space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                      <div>
-                        <Label htmlFor="hero-name" className="text-gray-300 text-sm">
-                          Name *
-                        </Label>
-                        <Input
-                          id="hero-name"
-                          value={heroFormData.name}
-                          onChange={(e) => setHeroFormData({ ...heroFormData, name: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="hero-title" className="text-gray-300 text-sm">
-                          Title *
-                        </Label>
-                        <Input
-                          id="hero-title"
-                          value={heroFormData.title}
-                          onChange={(e) => setHeroFormData({ ...heroFormData, title: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="hero-description" className="text-gray-300 text-sm">
-                        Description *
-                      </Label>
-                      <Textarea
-                        id="hero-description"
-                        value={heroFormData.description}
-                        onChange={(e) => setHeroFormData({ ...heroFormData, description: e.target.value })}
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        rows={3}
-                        required
-                      />
-                    </div>
-                    <ImageUpload
-                      value={heroFormData.profileImage || ""}
-                      onChange={(url) => setHeroFormData({ ...heroFormData, profileImage: url })}
-                      label="Profile Image"
-                      placeholder="Enter image URL or upload profile image"
-                    />
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="hero-visible"
-                        checked={heroFormData.visible}
-                        onCheckedChange={(checked) => setHeroFormData({ ...heroFormData, visible: checked })}
-                      />
-                      <Label htmlFor="hero-visible" className="text-gray-300 text-sm">
-                        Visible on website
-                      </Label>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="submit"
-                        className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/30 text-sm"
-                        variant="outline"
-                      >
-                        Update Hero Section
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsHeroDialogOpen(false)}
-                        className="border-gray-600 text-gray-300 text-sm"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <div>
+                <h2 className="text-2xl font-bold text-textPrimary">Hero Identity</h2>
+                <p className="text-textSecondary text-sm">Configure your primary digital introduction.</p>
+              </div>
+              <GlassButton variant="primary" onClick={() => setIsHeroDialogOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </GlassButton>
             </div>
 
             {heroSection && (
-              <Card className="bg-gray-800/50 border-gray-700">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{heroSection.name}</h3>
-                        <Badge
-                          variant={heroSection.visible ? "default" : "secondary"}
-                          className="w-fit bg-green-500/20 text-green-400 border-green-400/30"
-                        >
-                          {heroSection.visible ? "Visible" : "Hidden"}
-                        </Badge>
+              <div className="space-y-6">
+                {!isHeroDialogOpen ? (
+                  <GlassCard className="p-8 border-border/50">
+                    <div className="flex flex-col md:flex-row gap-8 items-start">
+                      <div className="w-32 h-32 rounded-3xl overflow-hidden border border-border shrink-0">
+                        <img src={heroSection.profileImage} alt={heroSection.name} className="w-full h-full object-cover" />
                       </div>
-                      <p className="text-gray-400 mb-2 text-sm sm:text-base">{heroSection.title}</p>
-                      <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">{heroSection.description}</p>
-                      <p className="text-xs sm:text-sm text-gray-400">
-                        Updated: {new Date(heroSection.updatedAt).toLocaleDateString()}
+                      <div className="space-y-4 flex-1">
+                        <div className="flex items-center gap-4">
+                          <h3 className="text-2xl font-bold text-textPrimary">{heroSection.name}</h3>
+                          <Badge className={heroSection.visible ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}>
+                            {heroSection.visible ? "LIVE" : "HIDDEN"}
+                          </Badge>
+                        </div>
+                        <p className="text-accent font-mono text-sm uppercase tracking-widest">{heroSection.title}</p>
+                        <p className="text-textSecondary leading-relaxed max-w-2xl">{heroSection.description}</p>
+                      </div>
+                    </div>
+                  </GlassCard>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-background/80 backdrop-blur-3xl border border-border/50 shadow-2xl rounded-[2rem] p-10 mesh-gradient-subtle"
+                  >
+                    <div className="mb-8">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                          <UserCircle className="w-6 h-6 text-accent" />
+                        </div>
+                        <h3 className="text-textPrimary text-2xl font-heading uppercase tracking-[0.2em] font-black">
+                          Identity Profile
+                        </h3>
+                      </div>
+                      <p className="text-textSecondary text-xs uppercase tracking-widest font-bold opacity-60 ml-1">
+                        Update your primary presence and professional narrative.
                       </p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <form onSubmit={handleSubmitHero} className="space-y-10">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-3">
+                          <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                            Legal Name <span className="text-accent">*</span>
+                          </Label>
+                          <Input
+                            value={heroFormData.name}
+                            onChange={(e) => setHeroFormData({ ...heroFormData, name: e.target.value })}
+                            className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                            placeholder="Krish Thakker"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                            Professional Title <span className="text-accent">*</span>
+                          </Label>
+                          <Input
+                            value={heroFormData.title}
+                            onChange={(e) => setHeroFormData({ ...heroFormData, title: e.target.value })}
+                            className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                            placeholder="Cybersecurity Specialist"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                          Core Narrative <span className="text-accent">*</span>
+                        </Label>
+                        <Textarea
+                          value={heroFormData.description}
+                          onChange={(e) => setHeroFormData({ ...heroFormData, description: e.target.value })}
+                          className="bg-surface/50 border-border/40 text-textPrimary rounded-3xl p-6 focus:ring-accent/20 focus:border-accent/30 transition-all leading-relaxed"
+                          rows={5}
+                          placeholder="Synthesizing complex technical architectures into secure digital solutions..."
+                        />
+                      </div>
+                      <div className="bg-surface/30 p-8 rounded-[2rem] border border-border/20">
+                        <ImageUpload
+                          value={heroFormData.profileImage || ""}
+                          onChange={(url) => setHeroFormData({ ...heroFormData, profileImage: url })}
+                          label="Identity Asset (Profile Image)"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-6 bg-accent/5 rounded-2xl border border-accent/10 group hover:bg-accent/10 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
+                            <Eye className="w-4 h-4 text-accent" />
+                          </div>
+                          <div>
+                            <Label className="text-textPrimary text-xs font-black uppercase tracking-[0.1em]">Public Status</Label>
+                            <p className="text-[10px] text-textSecondary uppercase tracking-widest opacity-60">Visibility on global interface</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={heroFormData.visible}
+                          onCheckedChange={(checked) => setHeroFormData({ ...heroFormData, visible: checked })}
+                          className="data-[state=checked]:bg-accent data-[state=unchecked]:bg-white/20 border border-white/10"
+                        />
+                      </div>
+                      <div className="flex gap-4 pt-4">
+                        <GlassButton type="submit" className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]" variant="primary">
+                          Commit Node
+                        </GlassButton>
+                        <GlassButton type="button" variant="secondary" onClick={() => setIsHeroDialogOpen(false)} className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]">
+                          Abort
+                        </GlassButton>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+              </div>
             )}
           </TabsContent>
 
-          {/* About Section Tab */}
-          <TabsContent value="about" className="space-y-4 sm:space-y-6">
+          {/* About Tab */}
+          <TabsContent value="about" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">About Section</h2>
-              <Dialog open={isAboutDialogOpen} onOpenChange={setIsAboutDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    className="bg-blue-400/20 text-blue-400 border-blue-400/30 hover:bg-blue-400/30 text-xs sm:text-sm"
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">Edit About</span>
-                    <span className="sm:hidden">Edit</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-blue-400/20">
-                  <DialogHeader>
-                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">Edit About Section</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmitAbout} className="space-y-4 sm:space-y-6">
-                    <div>
-                      <Label htmlFor="about-title" className="text-gray-300 text-sm">
-                        Title *
-                      </Label>
-                      <Input
-                        id="about-title"
-                        value={aboutFormData.title}
-                        onChange={(e) => setAboutFormData({ ...aboutFormData, title: e.target.value })}
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="about-description" className="text-gray-300 text-sm">
-                        Description *
-                      </Label>
-                      <Textarea
-                        id="about-description"
-                        value={aboutFormData.description}
-                        onChange={(e) => setAboutFormData({ ...aboutFormData, description: e.target.value })}
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        rows={6}
-                        required
-                      />
-                    </div>
-                    <ImageUpload
-                      value={aboutFormData.profileImage || ""}
-                      onChange={(url) => setAboutFormData({ ...aboutFormData, profileImage: url })}
-                      label="Profile Image"
-                      placeholder="Enter image URL or upload profile image"
-                    />
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="about-visible"
-                        checked={aboutFormData.visible}
-                        onCheckedChange={(checked) => setAboutFormData({ ...aboutFormData, visible: checked })}
-                      />
-                      <Label htmlFor="about-visible" className="text-gray-300 text-sm">
-                        Visible on website
-                      </Label>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="submit"
-                        className="bg-blue-400/20 text-blue-400 border-blue-400/30 hover:bg-blue-400/30 text-sm"
-                        variant="outline"
-                      >
-                        Update About Section
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsAboutDialogOpen(false)}
-                        className="border-gray-600 text-gray-300 text-sm"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <div>
+                <h2 className="text-2xl font-bold text-textPrimary">About Narrative</h2>
+                <p className="text-textSecondary text-sm">Craft your professional story and expertise.</p>
+              </div>
+              <GlassButton variant="primary" onClick={() => setIsAboutDialogOpen(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Narrative
+              </GlassButton>
             </div>
 
             {aboutSection && (
-              <Card className="bg-gray-800/50 border-gray-700">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{aboutSection.title}</h3>
-                        <Badge
-                          variant={aboutSection.visible ? "default" : "secondary"}
-                          className="w-fit bg-green-500/20 text-green-400 border-green-400/30"
-                        >
-                          {aboutSection.visible ? "Visible" : "Hidden"}
+              <div className="space-y-6">
+                {!isAboutDialogOpen ? (
+                  <GlassCard className="p-8 border-border/50">
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-4">
+                        <h3 className="text-2xl font-bold text-textPrimary">{aboutSection.title}</h3>
+                        <Badge className={aboutSection.visible ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}>
+                          {aboutSection.visible ? "LIVE" : "HIDDEN"}
                         </Badge>
                       </div>
-                      <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-3">{aboutSection.description}</p>
-                      <p className="text-xs sm:text-sm text-gray-400">
-                        Updated: {new Date(aboutSection.updatedAt).toLocaleDateString()}
+                      <p className="text-textSecondary leading-relaxed whitespace-pre-wrap">{aboutSection.description}</p>
+                    </div>
+                  </GlassCard>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-background/80 backdrop-blur-3xl border border-border/50 shadow-2xl rounded-[2rem] p-10 mesh-gradient-subtle"
+                  >
+                    <div className="mb-8">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                          <Sparkles className="w-6 h-6 text-accent" />
+                        </div>
+                        <h3 className="text-textPrimary text-2xl font-heading uppercase tracking-[0.2em] font-black">
+                          Narrative Core
+                        </h3>
+                      </div>
+                      <p className="text-textSecondary text-xs uppercase tracking-widest font-bold opacity-60 ml-1">
+                        Refine your professional journey and expertise highlights.
                       </p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <form onSubmit={handleSubmitAbout} className="space-y-10">
+                      <div className="space-y-3">
+                        <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                          Section Title <span className="text-accent">*</span>
+                        </Label>
+                        <Input
+                          value={aboutFormData.title}
+                          onChange={(e) => setAboutFormData({ ...aboutFormData, title: e.target.value })}
+                          className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                          placeholder="The Technical Odyssey"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                          Professional Story <span className="text-accent">*</span>
+                        </Label>
+                        <Textarea
+                          value={aboutFormData.description}
+                          onChange={(e) => setAboutFormData({ ...aboutFormData, description: e.target.value })}
+                          className="bg-surface/50 border-border/40 text-textPrimary rounded-3xl p-6 focus:ring-accent/20 focus:border-accent/30 transition-all leading-relaxed"
+                          rows={10}
+                          placeholder="My journey began with a fascination for secure systems..."
+                          required
+                        />
+                      </div>
+                      <div className="bg-surface/30 p-8 rounded-[2rem] border border-border/20">
+                        <ImageUpload
+                          value={aboutFormData.profileImage || ""}
+                          onChange={(url) => setAboutFormData({ ...aboutFormData, profileImage: url })}
+                          label="Narrative Visual Asset"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-6 bg-accent/5 rounded-2xl border border-accent/10 group hover:bg-accent/10 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center">
+                            <Eye className="w-4 h-4 text-accent" />
+                          </div>
+                          <div>
+                            <Label className="text-textPrimary text-xs font-black uppercase tracking-[0.1em]">Public Visibility</Label>
+                            <p className="text-[10px] text-textSecondary uppercase tracking-widest opacity-60">Display on about section</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={aboutFormData.visible}
+                          onCheckedChange={(checked) => setAboutFormData({ ...aboutFormData, visible: checked })}
+                          className="data-[state=checked]:bg-accent data-[state=unchecked]:bg-white/20 border border-white/10"
+                        />
+                      </div>
+                      <div className="flex gap-4 pt-4">
+                        <GlassButton type="submit" className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]" variant="primary">
+                          Push Changes
+                        </GlassButton>
+                        <GlassButton type="button" variant="secondary" onClick={() => setIsAboutDialogOpen(false)} className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]">
+                          Cancel
+                        </GlassButton>
+                      </div>
+                    </form>
+                  </motion.div>
+                )}
+              </div>
             )}
           </TabsContent>
 
           {/* Blogs Tab */}
-          <TabsContent value="blogs" className="space-y-4 sm:space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Blog Posts</h2>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    onClick={() => {
-                      resetPostForm()
-                      setIsDialogOpen(true)
-                    }}
-                    className="bg-green-400/20 text-green-400 border-green-400/30 hover:bg-green-400/30 text-xs sm:text-sm"
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">New Post</span>
-                    <span className="sm:hidden">New</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-green-400/20">
-                  <DialogHeader>
-                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">
-                      {editingPost ? "Edit Blog Post" : "Create New Blog Post"}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmitPost} className="space-y-4 sm:space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                      <div>
-                        <Label htmlFor="title" className="text-gray-300 text-sm">
-                          Title *
-                        </Label>
-                        <Input
-                          id="title"
-                          value={formData.title}
-                          onChange={(e) => {
-                            setFormData({ ...formData, title: e.target.value })
-                            // Auto-generate slug if not editing
-                            if (!editingPost && !formData.slug) {
-                              const slug = e.target.value
-                                .toLowerCase()
-                                .replace(/[^a-z0-9]+/g, "-")
-                                .replace(/(^-|-$)/g, "")
-                              setFormData((prev) => ({ ...prev, slug }))
-                            }
-                          }}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="slug" className="text-gray-300 text-sm">
-                          Slug *
-                        </Label>
-                        <Input
-                          id="slug"
-                          value={formData.slug}
-                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="intro" className="text-gray-300 text-sm">
-                        Introduction *
-                      </Label>
-                      <Textarea
-                        id="intro"
-                        value={formData.intro}
-                        onChange={(e) => setFormData({ ...formData, intro: e.target.value })}
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        rows={3}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="content" className="text-gray-300 text-sm">
-                        Content (Markdown) *
-                      </Label>
-                      <div className="space-y-4">
-                        <Textarea
-                          id="content"
-                          value={formData.content}
-                          onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          rows={12}
-                          required
-                          placeholder="Write your content here... You can use markdown syntax:
+          <TabsContent value="blogs" className="space-y-6">
+            {!isDialogOpen ? (
+              <>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold text-textPrimary">Knowledge Base</h2>
+                    <p className="text-textSecondary text-sm">Manage your technical publications and insights.</p>
+                  </div>
+                  <GlassButton variant="primary" onClick={() => { resetPostForm(); setIsDialogOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Draft Post
+                  </GlassButton>
+                </div>
 
-# Heading 1
-## Heading 2
-### Heading 3
-
-**Bold text**
-*Italic text*
-`Code text`
-
-To add images in content, use:
-![Alt text](image-url)
-
-Or use the image upload below to get URLs"
-                        />
-                        <div className="border-t border-gray-700 pt-4">
-                          <Label className="text-gray-300 text-sm mb-2 block">Quick Image Upload (for content)</Label>
-                          <ImageUpload
-                            value=""
-                            onChange={(url) => {
-                              if (url) {
-                                const imageMarkdown = `\n\n![Image](${url})\n\n`
-                                setFormData({
-                                  ...formData,
-                                  content: formData.content + imageMarkdown,
-                                })
-                              }
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {posts.map((post) => (
+                    <GlassCard key={post.id} className="group overflow-hidden flex flex-col border-border/50">
+                      <div className="aspect-video relative overflow-hidden bg-surface border-b border-border/30">
+                        <img src={post.imageUrls?.[0] || "/placeholder.svg"} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                        <div className="absolute top-3 right-3 flex gap-1.5">
+                          <Button
+                            size="icon"
+                            variant="secondary"
+                            className="h-8 w-8 backdrop-blur-md bg-background/40"
+                            onClick={() => {
+                              setEditingPost(post);
+                              setFormData({
+                                title: post.title,
+                                slug: post.slug,
+                                intro: post.intro,
+                                content: post.content,
+                                tags: post.tags,
+                                imageUrls: post.imageUrls || [],
+                                published: post.published ?? true
+                              });
+                              setIsDialogOpen(true);
                             }}
-                            label=""
-                            placeholder="Upload image to insert into content"
-                          />
-                          <p className="text-xs text-gray-500 mt-2">
-                            This will add the image markdown to your content automatically
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="tags" className="text-gray-300 text-sm">
-                        Tags (comma-separated)
-                      </Label>
-                      <Input
-                        id="tags"
-                        value={formData.tags.join(", ")}
-                        onChange={(e) => handleTagsChange(e.target.value, (tags) => setFormData({ ...formData, tags }))}
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                      />
-                    </div>
-                    <ImageUpload
-                      value={formData.imageUrls[0] || ""}
-                      onChange={(url) => setFormData({ ...formData, imageUrls: url ? [url] : [] })}
-                      label="Featured Image"
-                      placeholder="Enter image URL or upload a file"
-                    />
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="published"
-                        checked={formData.published}
-                        onCheckedChange={(checked) => setFormData({ ...formData, published: checked })}
-                      />
-                      <Label htmlFor="published" className="text-gray-300 text-sm">
-                        Published
-                      </Label>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="submit"
-                        className="bg-green-400/20 text-green-400 border-green-400/30 hover:bg-green-400/30 text-sm"
-                        variant="outline"
-                      >
-                        {editingPost ? "Update Post" : "Create Post"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsDialogOpen(false)}
-                        className="border-gray-600 text-gray-300 text-sm"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <div className="grid gap-4 sm:gap-6">
-              {posts.map((post) => (
-                <Card key={post.id} className="bg-gray-800/50 border-gray-700">
-                  <CardContent className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                      <div className="flex-1">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                          <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{post.title}</h3>
-                          <Badge
-                            variant={post.published ? "default" : "secondary"}
-                            className="w-fit bg-green-500/20 text-green-400 border-green-400/30"
                           >
-                            {post.published ? "Published" : "Draft"}
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="secondary" className="h-8 w-8 backdrop-blur-md bg-red-500/10 text-red-500 hover:bg-red-500/20" onClick={() => handleDeletePost(post.slug)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="p-6 flex-1 flex flex-col">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Badge className={post.published ? "bg-accent/10 text-accent" : "bg-textTertiary/10 text-textTertiary"}>
+                            {post.published ? "PUBLISHED" : "DRAFT"}
                           </Badge>
+                          <span className="text-[10px] font-mono text-textTertiary uppercase tracking-widest">{new Date(post.createdAt || "").toLocaleDateString("en-US")}</span>
                         </div>
-                        <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">{post.intro}</p>
-                        <div className="flex flex-wrap gap-1 mb-3">
-                          {post.tags.slice(0, 3).map((tag) => (
-                            <Badge
-                              key={tag}
-                              variant="outline"
-                              className="text-xs bg-blue-500/20 text-blue-400 border-blue-400/30"
-                            >
-                              {tag}
-                            </Badge>
+                        <h3 className="font-bold text-textPrimary mb-2 line-clamp-2">{post.title}</h3>
+                        <p className="text-textSecondary text-xs line-clamp-3 mb-4">{post.intro}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-auto">
+                          {post.tags.slice(0, 3).map(tag => (
+                            <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-surface rounded border border-border/30 text-textTertiary">#{tag}</span>
                           ))}
-                          {post.tags.length > 3 && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs bg-gray-500/20 text-gray-400 border-gray-400/30"
-                            >
-                              +{post.tags.length - 3}
-                            </Badge>
-                          )}
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-400">
-                          Created: {new Date(post.createdAt).toLocaleDateString()}
-                        </p>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setEditingPost(post)
-                            setFormData({
-                              title: post.title,
-                              slug: post.slug,
-                              intro: post.intro,
-                              content: post.content,
-                              tags: post.tags,
-                              imageUrls: post.imageUrls,
-                              published: post.published,
-                            })
-                            setIsDialogOpen(true)
-                          }}
-                          className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 text-xs sm:text-sm"
-                        >
-                          <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDeletePost(post.slug)}
-                          className="border-red-400/30 text-red-400 hover:bg-red-400/10 text-xs sm:text-sm"
-                        >
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
-                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-background/80 backdrop-blur-3xl border border-border shadow-2xl rounded-[2rem] p-8 mesh-gradient-subtle"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-accent" />
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    <h3 className="text-textPrimary text-2xl font-heading uppercase tracking-widest font-bold">
+                      {editingPost ? "Refine Article" : "Compose New Insight"}
+                    </h3>
+                  </div>
+                  <GlassButton variant="secondary" onClick={() => setIsDialogOpen(false)} className="h-10 px-4">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Library
+                  </GlassButton>
+                </div>
+                <form onSubmit={handleSubmitPost} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase tracking-widest font-bold text-textSecondary ml-1">Article Title</Label>
+                      <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="bg-surface/50 border-border text-textPrimary h-12 rounded-xl" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase tracking-widest font-bold text-textSecondary ml-1">URL Identifier (Slug)</Label>
+                      <Input value={formData.slug} onChange={(e) => setFormData({ ...formData, slug: e.target.value })} className="bg-surface/50 border-border text-textPrimary h-12 rounded-xl" required />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase tracking-widest font-bold text-textSecondary ml-1">Editorial Introduction</Label>
+                    <Textarea value={formData.intro} onChange={(e) => setFormData({ ...formData, intro: e.target.value })} className="bg-surface/50 border-border text-textPrimary rounded-xl p-4" rows={3} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase tracking-widest font-bold text-textSecondary ml-1">Full Content (Markdown Optimized)</Label>
+                    <Textarea value={formData.content} onChange={(e) => setFormData({ ...formData, content: e.target.value })} className="bg-surface/50 border-border text-textPrimary rounded-xl p-4 font-mono text-sm" rows={15} required />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <ImageUpload value={formData.imageUrls?.[0] || ""} onChange={(url) => setFormData({ ...formData, imageUrls: url ? [url] : [] })} label="Featured Asset" />
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase tracking-widest font-bold text-textSecondary ml-1">Classification Tags (Comma separated)</Label>
+                      <Input value={formData.tags.join(", ")} onChange={(e) => handleTagsChange(e.target.value, (tags) => setFormData({ ...formData, tags }))} className="bg-surface/50 border-border text-textPrimary h-12 rounded-xl" />
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-3 p-4 bg-accent/5 rounded-xl border border-accent/10">
+                    <Switch
+                      checked={formData.published}
+                      onCheckedChange={(checked) => setFormData({ ...formData, published: checked })}
+                      className="data-[state=checked]:bg-accent data-[state=unchecked]:bg-white/20 border border-white/10"
+                    />
+                    <Label className="text-textPrimary text-xs font-bold uppercase tracking-wider">Published & Searchable</Label>
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <GlassButton type="submit" className="flex-1 h-12" variant="primary">Deploy Content</GlassButton>
+                    <GlassButton type="button" variant="secondary" onClick={() => setIsDialogOpen(false)} className="flex-1 h-12">Cancel</GlassButton>
+                  </div>
+                </form>
+              </motion.div>
+            )}
           </TabsContent>
 
           {/* Certificates Tab */}
-          <TabsContent value="certificates" className="space-y-4 sm:space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Certificates</h2>
-              <Dialog open={isCertDialogOpen} onOpenChange={setIsCertDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    onClick={() => {
-                      resetCertificateForm()
-                      setIsCertDialogOpen(true)
-                    }}
-                    className="bg-purple-400/20 text-purple-400 border-purple-400/30 hover:bg-purple-400/30 text-xs sm:text-sm"
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">New Certificate</span>
-                    <span className="sm:hidden">New</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-purple-400/20">
-                  <DialogHeader>
-                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">
-                      {editingCertificate ? "Edit Certificate" : "Add New Certificate"}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmitCertificate} className="space-y-4 sm:space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                      <div>
-                        <Label htmlFor="cert-title" className="text-gray-300 text-sm">
-                          Title *
-                        </Label>
-                        <Input
-                          id="cert-title"
-                          value={certFormData.title}
-                          onChange={(e) => setCertFormData({ ...certFormData, title: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
-                        />
+          <TabsContent value="certificates" className="space-y-6">
+            {!isCertDialogOpen ? (
+              <>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold text-textPrimary">Digital Credentials</h2>
+                    <p className="text-textSecondary text-sm">Manage your verified certifications and honors.</p>
+                  </div>
+                  <GlassButton variant="primary" onClick={() => { resetCertificateForm(); setIsCertDialogOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Certificate
+                  </GlassButton>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {certificates.map((cert) => (
+                    <GlassCard key={cert.id} className="p-4 border-border/50 group">
+                      <div className="flex justify-between items-start mb-3">
+                        <Badge className="bg-accent/10 text-accent border-none rounded-md text-[10px] py-0 uppercase tracking-widest">{cert.category}</Badge>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => moveItem("certificate", cert.id, "up")}>
+                            <ChevronUp className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => moveItem("certificate", cert.id, "down")}>
+                            <ChevronDown className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => {
+                              setEditingCertificate(cert);
+                              setCertFormData({
+                                title: cert.title,
+                                issuer: cert.issuer,
+                                date: cert.date,
+                                description: cert.description,
+                                skills: cert.skills,
+                                verified: cert.verified,
+                                status: cert.status,
+                                image: cert.image,
+                                level: cert.level,
+                                hours: cert.hours,
+                                category: cert.category,
+                                visible: cert.visible,
+                                order: cert.order,
+                                providerUrl: cert.providerUrl || "",
+                              });
+                              setIsCertDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-red-400" onClick={() => handleDeleteCertificate(cert.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="cert-issuer" className="text-gray-300 text-sm">
-                          Issuer *
-                        </Label>
-                        <Input
-                          id="cert-issuer"
-                          value={certFormData.issuer}
-                          onChange={(e) => setCertFormData({ ...certFormData, issuer: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
+                      <h4 className="font-bold text-textPrimary text-sm mb-1">{cert.title}</h4>
+                      <p className="text-[10px] text-textSecondary uppercase tracking-widest mb-3">{cert.issuer}</p>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={cert.visible}
+                          onCheckedChange={() => toggleVisibility("certificate", cert.id, cert.visible)}
+                          className="data-[state=checked]:bg-accent data-[state=unchecked]:bg-white/20 border border-white/10"
                         />
+                        <span className="text-[10px] uppercase tracking-widest text-textTertiary">Public</span>
                       </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-background/80 backdrop-blur-3xl border border-border/50 shadow-2xl rounded-[2rem] p-10 mesh-gradient-subtle"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                      <Award className="w-6 h-6 text-accent" />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-                      <div>
-                        <Label htmlFor="cert-date" className="text-gray-300 text-sm">
-                          Date *
-                        </Label>
-                        <Input
-                          id="cert-date"
-                          value={certFormData.date}
-                          onChange={(e) => setCertFormData({ ...certFormData, date: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="cert-level" className="text-gray-300 text-sm">
-                          Level
-                        </Label>
-                        <Input
-                          id="cert-level"
-                          value={certFormData.level}
-                          onChange={(e) => setCertFormData({ ...certFormData, level: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="cert-hours" className="text-gray-300 text-sm">
-                          Hours
-                        </Label>
-                        <Input
-                          id="cert-hours"
-                          value={certFormData.hours}
-                          onChange={(e) => setCertFormData({ ...certFormData, hours: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="cert-category" className="text-gray-300 text-sm">
-                        Category
+                    <h3 className="text-textPrimary text-2xl font-heading uppercase tracking-widest font-bold">
+                      Digital Credential
+                    </h3>
+                  </div>
+                  <GlassButton variant="secondary" onClick={() => setIsCertDialogOpen(false)} className="h-10 px-4">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Gallery
+                  </GlassButton>
+                </div>
+                <form onSubmit={handleSubmitCertificate} className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                        Credential Title <span className="text-accent">*</span>
                       </Label>
-                      <Select
-                        value={certFormData.category}
-                        onValueChange={(value) => setCertFormData({ ...certFormData, category: value })}
-                      >
-                        <SelectTrigger className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
+                      <Input value={certFormData.title} onChange={(e) => setCertFormData({ ...certFormData, title: e.target.value })} className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6" required />
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                        Issuing Authority <span className="text-accent">*</span>
+                      </Label>
+                      <Input value={certFormData.issuer} onChange={(e) => setCertFormData({ ...certFormData, issuer: e.target.value })} className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6" required />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">Date Issued</Label>
+                      <Input value={certFormData.date} onChange={(e) => setCertFormData({ ...certFormData, date: e.target.value })} className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6" required />
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">Proficiency Level</Label>
+                      <Input value={certFormData.level} onChange={(e) => setCertFormData({ ...certFormData, level: e.target.value })} className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6" />
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">Category</Label>
+                      <Select value={certFormData.category} onValueChange={(value) => setCertFormData({ ...certFormData, category: value })}>
+                        <SelectTrigger className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"><SelectValue /></SelectTrigger>
+                        <SelectContent className="bg-background border-border">
                           <SelectItem value="Professional">Professional</SelectItem>
                           <SelectItem value="Academic">Academic</SelectItem>
                           <SelectItem value="Cybersecurity">Cybersecurity</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div>
-                      <Label htmlFor="cert-description" className="text-gray-300 text-sm">
-                        Description *
-                      </Label>
-                      <Textarea
-                        id="cert-description"
-                        value={certFormData.description}
-                        onChange={(e) => setCertFormData({ ...certFormData, description: e.target.value })}
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        rows={3}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="cert-skills" className="text-gray-300 text-sm">
-                        Skills (comma-separated)
-                      </Label>
-                      <Input
-                        id="cert-skills"
-                        value={certFormData.skills?.join(", ") || ""}
-                        onChange={(e) =>
-                          handleTagsChange(e.target.value, (skills) => setCertFormData({ ...certFormData, skills }))
-                        }
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                      />
-                    </div>
-                    <ImageUpload
-                      value={certFormData.image || ""}
-                      onChange={(url) => setCertFormData({ ...certFormData, image: url })}
-                      label="Certificate Image"
-                      placeholder="Enter image URL or upload certificate image"
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                      <div>
-                        <Label htmlFor="cert-status" className="text-gray-300 text-sm">
-                          Status
-                        </Label>
-                        <Select
-                          value={certFormData.status}
-                          onValueChange={(value) => setCertFormData({ ...certFormData, status: value })}
-                        >
-                          <SelectTrigger className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Active">Active</SelectItem>
-                            <SelectItem value="In Progress">In Progress</SelectItem>
-                            <SelectItem value="Expired">Expired</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex items-center space-x-4 pt-6">
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="cert-verified"
-                            checked={certFormData.verified}
-                            onCheckedChange={(checked) => setCertFormData({ ...certFormData, verified: checked })}
-                          />
-                          <Label htmlFor="cert-verified" className="text-gray-300 text-sm">
-                            Verified
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="cert-visible"
-                            checked={certFormData.visible}
-                            onCheckedChange={(checked) => setCertFormData({ ...certFormData, visible: checked })}
-                          />
-                          <Label htmlFor="cert-visible" className="text-gray-300 text-sm">
-                            Visible
-                          </Label>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="submit"
-                        className="bg-purple-400/20 text-purple-400 border-purple-400/30 hover:bg-purple-400/30 text-sm"
-                        variant="outline"
-                      >
-                        {editingCertificate ? "Update Certificate" : "Add Certificate"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsCertDialogOpen(false)}
-                        className="border-gray-600 text-gray-300 text-sm"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            <div className="grid gap-4 sm:gap-6">
-              {certificates
-                .sort((a, b) => a.order - b.order)
-                .map((certificate, index) => (
-                  <Card key={certificate.id} className="bg-gray-800/50 border-gray-700">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                        <div className="flex-1">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                            <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{certificate.title}</h3>
-                            {certificate.verified && (
-                              <Badge className="bg-green-500/20 text-green-400 border-green-400/30 w-fit">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Verified
-                              </Badge>
-                            )}
-                            <Badge variant="outline" className="w-fit bg-blue-500/20 text-blue-400 border-blue-400/30">
-                              {certificate.status}
-                            </Badge>
-                            <Badge
-                              variant={certificate.visible ? "default" : "secondary"}
-                              className={`w-fit ${
-                                certificate.visible
-                                  ? "bg-green-500/20 text-green-400 border-green-400/30"
-                                  : "bg-gray-500/20 text-gray-400 border-gray-400/30"
-                              }`}
-                            >
-                              {certificate.visible ? "Visible" : "Hidden"}
-                            </Badge>
-                          </div>
-                          <p className="text-gray-400 mb-2 text-sm sm:text-base">{certificate.issuer}</p>
-                          <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">
-                            {certificate.description}
-                          </p>
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {certificate.skills.slice(0, 3).map((skill) => (
-                              <Badge
-                                key={skill}
-                                variant="outline"
-                                className="text-xs bg-purple-500/20 text-purple-400 border-purple-400/30"
-                              >
-                                {skill}
-                              </Badge>
-                            ))}
-                            {certificate.skills.length > 3 && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-gray-500/20 text-gray-400 border-gray-400/30"
-                              >
-                                +{certificate.skills.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-xs sm:text-sm text-gray-400">
-                            Date: {certificate.date} | Level: {certificate.level} | Hours: {certificate.hours} | Order:{" "}
-                            {certificate.order}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleVisibility("certificate", certificate.id, certificate.visible)}
-                            className={`text-xs sm:text-sm ${
-                              certificate.visible
-                                ? "border-orange-400/30 text-orange-400 hover:bg-orange-400/10"
-                                : "border-green-400/30 text-green-400 hover:bg-green-400/10"
-                            }`}
-                          >
-                            {certificate.visible ? (
-                              <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
-                            ) : (
-                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => moveItem("certificate", certificate.id, "up")}
-                            disabled={index === 0}
-                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
-                          >
-                            <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => moveItem("certificate", certificate.id, "down")}
-                            disabled={index === certificates.length - 1}
-                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
-                          >
-                            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingCertificate(certificate)
-                              setCertFormData({
-                                title: certificate.title,
-                                issuer: certificate.issuer,
-                                date: certificate.date,
-                                description: certificate.description,
-                                skills: certificate.skills,
-                                verified: certificate.verified,
-                                status: certificate.status,
-                                image: certificate.image,
-                                level: certificate.level,
-                                hours: certificate.hours,
-                                category: certificate.category,
-                                visible: certificate.visible,
-                                order: certificate.order,
-                              })
-                              setIsCertDialogOpen(true)
-                            }}
-                            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 text-xs sm:text-sm"
-                          >
-                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDeleteCertificate(certificate.id)}
-                            className="border-red-400/30 text-red-400 hover:bg-red-400/10 text-xs sm:text-sm"
-                          >
-                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">Live Provider URL (Optional)</Label>
+                    <Input value={certFormData.providerUrl || ""} onChange={(e) => setCertFormData({ ...certFormData, providerUrl: e.target.value })} className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6" />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">Skill Tags (Comma separated)</Label>
+                    <Input value={certFormData.skills?.join(", ") || ""} onChange={(e) => setCertFormData({ ...certFormData, skills: e.target.value.split(",").map(s => s.trim()) })} className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6" />
+                  </div>
+                  <div className="bg-surface/30 p-8 rounded-[2rem] border border-border/20">
+                    <ImageUpload value={certFormData.image || ""} onChange={(url) => setCertFormData({ ...certFormData, image: url })} label="Verification Document/Image" />
+                  </div>
+                  <div className="flex gap-4 pt-4">
+                    <GlassButton type="submit" className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]" variant="primary">Archive Credential</GlassButton>
+                    <GlassButton type="button" variant="secondary" onClick={() => setIsCertDialogOpen(false)} className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]">Abort</GlassButton>
+                  </div>
+                </form>
+              </motion.div>
+            )}
           </TabsContent>
 
           {/* Projects Tab */}
-          <TabsContent value="projects" className="space-y-4 sm:space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Projects</h2>
-              <Dialog open={isProjectDialogOpen} onOpenChange={setIsProjectDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    onClick={() => {
-                      resetProjectForm()
-                      setIsProjectDialogOpen(true)
-                    }}
-                    className="bg-orange-400/20 text-orange-400 border-orange-400/30 hover:bg-orange-400/30 text-xs sm:text-sm"
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">New Project</span>
-                    <span className="sm:hidden">New</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-orange-400/20">
-                  <DialogHeader>
-                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">
-                      {editingProject ? "Edit Project" : "Add New Project"}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmitProject} className="space-y-4 sm:space-y-6">
-                    <div>
-                      <Label htmlFor="project-title" className="text-gray-300 text-sm">
-                        Title *
-                      </Label>
-                      <Input
-                        id="project-title"
-                        value={projectFormData.title}
-                        onChange={(e) => setProjectFormData({ ...projectFormData, title: e.target.value })}
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="project-description" className="text-gray-300 text-sm">
-                        Description *
-                      </Label>
-                      <Textarea
-                        id="project-description"
-                        value={projectFormData.description}
-                        onChange={(e) => setProjectFormData({ ...projectFormData, description: e.target.value })}
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        rows={3}
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                      <div>
-                        <Label htmlFor="project-category" className="text-gray-300 text-sm">
-                          Category
-                        </Label>
-                        <Input
-                          id="project-category"
-                          value={projectFormData.category}
-                          onChange={(e) => setProjectFormData({ ...projectFormData, category: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="project-status" className="text-gray-300 text-sm">
-                          Status
-                        </Label>
-                        <Select
-                          value={projectFormData.status}
-                          onValueChange={(value) => setProjectFormData({ ...projectFormData, status: value })}
-                        >
-                          <SelectTrigger className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Live">Live</SelectItem>
-                            <SelectItem value="In Development">In Development</SelectItem>
-                            <SelectItem value="Completed">Completed</SelectItem>
-                            <SelectItem value="Archived">Archived</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                      <div>
-                        <Label htmlFor="project-live-url" className="text-gray-300 text-sm">
-                          Live URL
-                        </Label>
-                        <Input
-                          id="project-live-url"
-                          value={projectFormData.liveUrl}
-                          onChange={(e) => setProjectFormData({ ...projectFormData, liveUrl: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="project-github-url" className="text-gray-300 text-sm">
-                          GitHub URL
-                        </Label>
-                        <Input
-                          id="project-github-url"
-                          value={projectFormData.githubUrl}
-                          onChange={(e) => setProjectFormData({ ...projectFormData, githubUrl: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        />
-                      </div>
-                    </div>
-                    <ImageUpload
-                      value={projectFormData.image || ""}
-                      onChange={(url) => setProjectFormData({ ...projectFormData, image: url })}
-                      label="Project Image"
-                      placeholder="Enter image URL or upload project screenshot"
-                    />
-                    <div>
-                      <Label htmlFor="project-technologies" className="text-gray-300 text-sm">
-                        Technologies (comma-separated)
-                      </Label>
-                      <Input
-                        id="project-technologies"
-                        value={projectFormData.technologies?.join(", ") || ""}
-                        onChange={(e) =>
-                          handleTagsChange(e.target.value, (technologies) =>
-                            setProjectFormData({ ...projectFormData, technologies }),
-                          )
-                        }
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                      />
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="project-featured"
-                          checked={projectFormData.featured}
-                          onCheckedChange={(checked) => setProjectFormData({ ...projectFormData, featured: checked })}
-                        />
-                        <Label htmlFor="project-featured" className="text-gray-300 text-sm">
-                          Featured Project
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="project-visible"
-                          checked={projectFormData.visible}
-                          onCheckedChange={(checked) => setProjectFormData({ ...projectFormData, visible: checked })}
-                        />
-                        <Label htmlFor="project-visible" className="text-gray-300 text-sm">
-                          Visible on website
-                        </Label>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="submit"
-                        className="bg-orange-400/20 text-orange-400 border-orange-400/30 hover:bg-orange-400/30 text-sm"
-                        variant="outline"
-                      >
-                        {editingProject ? "Update Project" : "Add Project"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsProjectDialogOpen(false)}
-                        className="border-gray-600 text-gray-300 text-sm"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
+          <TabsContent value="projects" className="space-y-6">
+            {!isProjectDialogOpen ? (
+              <>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold text-textPrimary">Engineering Portfolio</h2>
+                    <p className="text-textSecondary text-sm">Manage your technical projects and deployments.</p>
+                  </div>
+                  <GlassButton variant="primary" onClick={() => { resetProjectForm(); setIsProjectDialogOpen(true); }}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Initialize Project
+                  </GlassButton>
+                </div>
 
-            <div className="grid gap-4 sm:gap-6">
-              {projects
-                .sort((a, b) => a.order - b.order)
-                .map((project, index) => (
-                  <Card key={project.id} className="bg-gray-800/50 border-gray-700">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-                        <div className="flex-1">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                            <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{project.title}</h3>
-                            {project.featured && (
-                              <Badge className="bg-yellow-400/20 text-yellow-400 border-yellow-400/30 w-fit">
-                                <Sparkles className="h-3 w-3 mr-1" />
-                                Featured
-                              </Badge>
-                            )}
-                            <Badge variant="outline" className="w-fit bg-blue-500/20 text-blue-400 border-blue-400/30">
-                              {project.status}
-                            </Badge>
-                            <Badge
-                              variant={project.visible ? "default" : "secondary"}
-                              className={`w-fit ${
-                                project.visible
-                                  ? "bg-green-500/20 text-green-400 border-green-400/30"
-                                  : "bg-gray-500/20 text-gray-400 border-gray-400/30"
-                              }`}
-                            >
-                              {project.visible ? "Visible" : "Hidden"}
-                            </Badge>
-                          </div>
-                          <p className="text-gray-300 mb-3 text-sm sm:text-base line-clamp-2">{project.description}</p>
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {project.technologies.slice(0, 3).map((tech) => (
-                              <Badge
-                                key={tech}
-                                variant="outline"
-                                className="text-xs bg-orange-500/20 text-orange-400 border-orange-400/30"
-                              >
-                                {tech}
-                              </Badge>
-                            ))}
-                            {project.technologies.length > 3 && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-gray-500/20 text-gray-400 border-gray-400/30"
-                              >
-                                +{project.technologies.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex gap-4 text-xs sm:text-sm text-gray-400 mb-2">
-                            {project.liveUrl && (
-                              <a
-                                href={project.liveUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 hover:text-yellow-400"
-                              >
-                                <ExternalLink className="h-3 w-3" />
-                                Live Demo
-                              </a>
-                            )}
-                            {project.githubUrl && (
-                              <a
-                                href={project.githubUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-1 hover:text-yellow-400"
-                              >
-                                <Github className="h-3 w-3" />
-                                Source Code
-                              </a>
-                            )}
-                          </div>
-                          <p className="text-xs sm:text-sm text-gray-400">Order: {project.order}</p>
-                        </div>
-                        <div className="flex gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {projects.map((project) => (
+                    <GlassCard key={project.id} className="group overflow-hidden flex flex-col border-border/50">
+                      <div className="aspect-video relative overflow-hidden bg-surface border-b border-border/30">
+                        <img src={project.image || "/placeholder.svg"} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                        <div className="absolute top-3 right-3 flex gap-1.5">
                           <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleVisibility("project", project.id, project.visible)}
-                            className={`text-xs sm:text-sm ${
-                              project.visible
-                                ? "border-orange-400/30 text-orange-400 hover:bg-orange-400/10"
-                                : "border-green-400/30 text-green-400 hover:bg-green-400/10"
-                            }`}
-                          >
-                            {project.visible ? (
-                              <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
-                            ) : (
-                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => moveItem("project", project.id, "up")}
-                            disabled={index === 0}
-                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
-                          >
-                            <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => moveItem("project", project.id, "down")}
-                            disabled={index === projects.length - 1}
-                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
-                          >
-                            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
+                            size="icon"
+                            variant="secondary"
+                            className="h-8 w-8 backdrop-blur-md bg-background/40"
                             onClick={() => {
-                              setEditingProject(project)
+                              setEditingProject(project);
                               setProjectFormData({
                                 title: project.title,
                                 description: project.description,
@@ -2056,316 +1545,704 @@ Or use the image upload below to get URLs"
                                 githubUrl: project.githubUrl,
                                 status: project.status,
                                 visible: project.visible,
-                                order: project.order,
-                              })
-                              setIsProjectDialogOpen(true)
+                                order: project.order
+                              });
+                              setIsProjectDialogOpen(true);
                             }}
-                            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 text-xs sm:text-sm"
                           >
-                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDeleteProject(project.id)}
-                            className="border-red-400/30 text-red-400 hover:bg-red-400/10 text-xs sm:text-sm"
-                          >
-                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                          <Button size="icon" variant="secondary" className="h-8 w-8 backdrop-blur-md bg-red-500/10 text-red-500" onClick={() => handleDeleteProject(project.id)}>
+                            <Trash2 className="h-4 w-4" />
                           </Button>
+                          <div className="flex flex-col gap-1">
+                            <Button size="icon" variant="secondary" className="h-3.5 w-8 backdrop-blur-md" onClick={() => moveItem("project", project.id, "up")}>
+                              <ChevronUp className="h-3 w-3" />
+                            </Button>
+                            <Button size="icon" variant="secondary" className="h-3.5 w-8 backdrop-blur-md" onClick={() => moveItem("project", project.id, "down")}>
+                              <ChevronDown className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
+                      <div className="p-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <Badge className="bg-blue-500/10 text-blue-500 border-none uppercase tracking-widest text-[9px]">{project.category || "Development"}</Badge>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={project.visible}
+                              onCheckedChange={() => toggleVisibility("project", project.id, project.visible)}
+                              className="data-[state=checked]:bg-accent data-[state=unchecked]:bg-white/20 border border-white/10"
+                            />
+                            <span className="text-[9px] uppercase tracking-widest text-textTertiary">Public</span>
+                          </div>
+                        </div>
+                        <h3 className="font-bold text-textPrimary mb-2">{project.title}</h3>
+                        <p className="text-textSecondary text-xs line-clamp-2 mb-4">{project.description}</p>
+                        <div className="flex flex-wrap gap-1">
+                          {project.technologies.slice(0, 4).map(tech => (
+                            <span key={tech} className="text-[9px] px-1.5 py-0.5 bg-surface rounded border border-border/30 text-textTertiary">{tech}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-background/80 backdrop-blur-3xl border border-border/50 shadow-2xl rounded-[2rem] p-10 mesh-gradient-subtle"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                      <ExternalLink className="w-6 h-6 text-accent" />
+                    </div>
+                    <h3 className="text-textPrimary text-2xl font-heading uppercase tracking-widest font-bold">
+                      Project Architecture
+                    </h3>
+                  </div>
+                  <GlassButton variant="secondary" onClick={() => setIsProjectDialogOpen(false)} className="h-10 px-4">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Portfolio
+                  </GlassButton>
+                </div>
+                <form onSubmit={handleSubmitProject} className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                        Project Name <span className="text-accent">*</span>
+                      </Label>
+                      <Input
+                        value={projectFormData.title}
+                        onChange={(e) => setProjectFormData({ ...projectFormData, title: e.target.value })}
+                        className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">
+                        Industry Classification
+                      </Label>
+                      <Input
+                        value={projectFormData.category}
+                        onChange={(e) => setProjectFormData({ ...projectFormData, category: e.target.value })}
+                        className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                      Technical Brief <span className="text-accent">*</span>
+                    </Label>
+                    <Textarea
+                      value={projectFormData.description}
+                      onChange={(e) => setProjectFormData({ ...projectFormData, description: e.target.value })}
+                      className="bg-surface/50 border-border/40 text-textPrimary rounded-3xl p-6 focus:ring-accent/20 focus:border-accent/30 transition-all leading-relaxed"
+                      rows={3}
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">Repository URL</Label>
+                      <Input
+                        value={projectFormData.githubUrl}
+                        onChange={(e) => setProjectFormData({ ...projectFormData, githubUrl: e.target.value })}
+                        className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">Production Endpoint</Label>
+                      <Input
+                        value={projectFormData.liveUrl}
+                        onChange={(e) => setProjectFormData({ ...projectFormData, liveUrl: e.target.value })}
+                        className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">Tech Stack (Comma separated)</Label>
+                    <Input
+                      value={projectFormData.technologies.join(", ")}
+                      onChange={(e) => setProjectFormData({ ...projectFormData, technologies: e.target.value.split(",").map(s => s.trim()) })}
+                      className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                    />
+                  </div>
+                  <div className="bg-surface/30 p-8 rounded-[2rem] border border-border/20">
+                    <ImageUpload value={projectFormData.image || ""} onChange={(url) => setProjectFormData({ ...projectFormData, image: url })} label="Project Visualization Asset" />
+                  </div>
+                  <div className="flex gap-4 pt-4">
+                    <GlassButton type="submit" className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]" variant="primary">Deploy Node</GlassButton>
+                    <GlassButton type="button" variant="secondary" onClick={() => setIsProjectDialogOpen(false)} className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]">Abort</GlassButton>
+                  </div>
+                </form>
+              </motion.div>
+            )}
           </TabsContent>
 
           {/* Experience Tab */}
-          <TabsContent value="experience" className="space-y-4 sm:space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-200">Experience</h2>
-              <Dialog open={isExpDialogOpen} onOpenChange={setIsExpDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    onClick={() => {
-                      resetExperienceForm()
-                      setIsExpDialogOpen(true)
-                    }}
-                    className="bg-cyan-400/20 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/30 text-xs sm:text-sm"
-                    variant="outline"
-                    size="sm"
-                  >
-                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span className="hidden sm:inline">New Experience</span>
-                    <span className="sm:hidden">New</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-800/95 border-cyan-400/20">
-                  <DialogHeader>
-                    <DialogTitle className="text-gray-200 text-lg sm:text-xl">
-                      {editingExperience ? "Edit Experience" : "Add New Experience"}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmitExperience} className="space-y-4 sm:space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                      <div>
-                        <Label htmlFor="exp-title" className="text-gray-300 text-sm">
-                          Title *
-                        </Label>
-                        <Input
-                          id="exp-title"
-                          value={expFormData.title}
-                          onChange={(e) => setExpFormData({ ...expFormData, title: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="exp-organization" className="text-gray-300 text-sm">
-                          Organization *
-                        </Label>
-                        <Input
-                          id="exp-organization"
-                          value={expFormData.organization}
-                          onChange={(e) => setExpFormData({ ...expFormData, organization: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                      <div>
-                        <Label htmlFor="exp-year" className="text-gray-300 text-sm">
-                          Year/Period *
-                        </Label>
-                        <Input
-                          id="exp-year"
-                          value={expFormData.year}
-                          onChange={(e) => setExpFormData({ ...expFormData, year: e.target.value })}
-                          className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="exp-type" className="text-gray-300 text-sm">
-                          Type
-                        </Label>
-                        <Select
-                          value={expFormData.type}
-                          onValueChange={(value) => setExpFormData({ ...expFormData, type: value })}
-                        >
-                          <SelectTrigger className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Education">Education</SelectItem>
-                            <SelectItem value="Work">Work</SelectItem>
-                            <SelectItem value="Internship">Internship</SelectItem>
-                            <SelectItem value="Project">Project</SelectItem>
-                            <SelectItem value="Leadership/Volunteer">Volunteer/Leadership</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+          <TabsContent value="experience" className="space-y-8">
+            {!isExpDialogOpen ? (
+              <div className="space-y-12">
+                {/* Professional Experience Section */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <Label htmlFor="exp-achievements" className="text-gray-300 text-sm">
-                        Achievements (comma-separated)
-                      </Label>
-                      <Textarea
-                        id="exp-achievements"
-                        value={expFormData.achievements?.join(", ") || ""}
-                        onChange={(e) =>
-                          handleTagsChange(e.target.value, (achievements) =>
-                            setExpFormData({ ...expFormData, achievements }),
-                          )
-                        }
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
-                        rows={3}
-                      />
+                      <h3 className="text-xl font-bold text-textPrimary">Professional Experience</h3>
+                      <p className="text-sm text-textSecondary">Manage your career timeline and work history.</p>
                     </div>
+                    <GlassButton
+                      variant="primary"
+                      onClick={() => {
+                        resetExperienceForm()
+                        setExpFormData((prev) => ({ ...prev, type: "Professional" }))
+                        setIsExpDialogOpen(true)
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Experience
+                    </GlassButton>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {experience
+                      .filter((e) => e.type === "Professional")
+                      .map((exp, index) => (
+                        <GlassCard key={exp.id} className="p-6 border-border/50 group">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-3">
+                                <h4 className="font-bold text-textPrimary text-lg">{exp.title}</h4>
+                                <Badge
+                                  className={
+                                    exp.visible ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                                  }
+                                >
+                                  {exp.visible ? "LIVE" : "HIDDEN"}
+                                </Badge>
+                              </div>
+                              <p className="text-accent font-medium">{exp.organization}</p>
+                              <p className="text-textSecondary text-sm font-mono">{exp.year}</p>
+                              {exp.achievements.length > 0 && (
+                                <ul className="mt-3 space-y-1">
+                                  {exp.achievements.slice(0, 2).map((achievement, i) => (
+                                    <li key={i} className="text-xs text-textSecondary flex items-start gap-2">
+                                      <Diamond className="h-3 w-3 text-accent mt-0.5 shrink-0" />
+                                      {achievement}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9"
+                                onClick={() => {
+                                  setEditingExperience(exp)
+                                  setExpFormData({
+                                    year: exp.year,
+                                    title: exp.title,
+                                    organization: exp.organization,
+                                    type: exp.type as "Professional" | "Education",
+                                    achievements: exp.achievements,
+                                    skills: exp.skills,
+                                    visible: exp.visible,
+                                    order: exp.order
+                                  })
+                                  setIsExpDialogOpen(true)
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9 text-red-400"
+                                onClick={() => handleDeleteExperience(exp.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <div className="flex flex-col gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-4 w-9"
+                                  onClick={() => moveItem("experience", exp.id, "up")}
+                                >
+                                  <ChevronUp className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-4 w-9"
+                                  onClick={() => moveItem("experience", exp.id, "down")}
+                                >
+                                  <ChevronDown className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </GlassCard>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Education Section */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <Label htmlFor="exp-skills" className="text-gray-300 text-sm">
-                        Skills (comma-separated)
+                      <h3 className="text-xl font-bold text-textPrimary">Academic Background</h3>
+                      <p className="text-sm text-textSecondary">Manage your degrees and educational milestones.</p>
+                    </div>
+                    <GlassButton
+                      variant="primary"
+                      onClick={() => {
+                        resetExperienceForm()
+                        setExpFormData((prev) => ({ ...prev, type: "Education" }))
+                        setIsExpDialogOpen(true)
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Education
+                    </GlassButton>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {experience
+                      .filter((e) => e.type === "Education")
+                      .map((exp) => (
+                        <GlassCard key={exp.id} className="p-6 border-border/50 group">
+                          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-3">
+                                <h4 className="font-bold text-textPrimary text-lg">{exp.title}</h4>
+                                <Badge
+                                  className={
+                                    exp.visible ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                                  }
+                                >
+                                  {exp.visible ? "LIVE" : "HIDDEN"}
+                                </Badge>
+                              </div>
+                              <p className="text-accent font-medium">{exp.organization}</p>
+                              <p className="text-textSecondary text-sm font-mono">{exp.year}</p>
+                            </div>
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9"
+                                onClick={() => {
+                                  setEditingExperience(exp)
+                                  setExpFormData({
+                                    year: exp.year,
+                                    title: exp.title,
+                                    organization: exp.organization,
+                                    type: exp.type as "Professional" | "Education",
+                                    achievements: exp.achievements,
+                                    skills: exp.skills,
+                                    visible: exp.visible,
+                                    order: exp.order
+                                  })
+                                  setIsExpDialogOpen(true)
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9 text-red-400"
+                                onClick={() => handleDeleteExperience(exp.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <div className="flex flex-col gap-1">
+                                <Button size="icon" variant="ghost" className="h-4 w-9" onClick={() => moveItem("experience", exp.id, "up")}>
+                                  <ChevronUp className="h-3 w-3" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="h-4 w-9" onClick={() => moveItem("experience", exp.id, "down")}>
+                                  <ChevronDown className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </GlassCard>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-background/80 backdrop-blur-3xl border border-border/50 shadow-2xl rounded-[2rem] p-10 mesh-gradient-subtle"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                      <Briefcase className="w-6 h-6 text-accent" />
+                    </div>
+                    <h3 className="text-textPrimary text-2xl font-heading uppercase tracking-widest font-bold">
+                      Lifecycle Node
+                    </h3>
+                  </div>
+                  <GlassButton variant="secondary" onClick={() => setIsExpDialogOpen(false)} className="h-10 px-4">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Timeline
+                  </GlassButton>
+                </div>
+                <form onSubmit={handleSubmitExperience} className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                        Node Title <span className="text-accent">*</span>
                       </Label>
                       <Input
-                        id="exp-skills"
-                        value={expFormData.skills?.join(", ") || ""}
-                        onChange={(e) =>
-                          handleTagsChange(e.target.value, (skills) => setExpFormData({ ...expFormData, skills }))
-                        }
-                        className="bg-gray-700/50 border-gray-600 text-gray-200 text-sm"
+                        value={expFormData.title}
+                        onChange={(e) => setExpFormData({ ...expFormData, title: e.target.value })}
+                        className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                        placeholder="e.g. Senior Security Researcher"
+                        required
                       />
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="exp-visible"
-                        checked={expFormData.visible}
-                        onCheckedChange={(checked) => setExpFormData({ ...expFormData, visible: checked })}
-                      />
-                      <Label htmlFor="exp-visible" className="text-gray-300 text-sm">
-                        Visible on website
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                        Organization <span className="text-accent">*</span>
                       </Label>
+                      <Input
+                        value={expFormData.organization}
+                        onChange={(e) => setExpFormData({ ...expFormData, organization: e.target.value })}
+                        className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                        placeholder="e.g. CyberGuard Solutions"
+                        required
+                      />
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="submit"
-                        className="bg-cyan-400/20 text-cyan-400 border-cyan-400/30 hover:bg-cyan-400/30 text-sm"
-                        variant="outline"
-                      >
-                        {editingExperience ? "Update Experience" : "Add Experience"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsExpDialogOpen(false)}
-                        className="border-gray-600 text-gray-300 text-sm"
-                      >
-                        Cancel
-                      </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase tracking-widest font-bold text-textSecondary ml-1">
+                        Temporal Range
+                      </Label>
+                      <Input
+                        value={expFormData.year}
+                        onChange={(e) => setExpFormData({ ...expFormData, year: e.target.value })}
+                        className="bg-surface border-border text-textPrimary h-12 rounded-xl"
+                        placeholder="e.g. 2021 - Present"
+                        required
+                      />
                     </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase tracking-widest font-bold text-textSecondary ml-1">
+                        Node Classification
+                      </Label>
+                      <Select
+                        value={expFormData.type}
+                        onValueChange={(value: "Professional" | "Education") =>
+                          setExpFormData({ ...expFormData, type: value })
+                        }
+                      >
+                        <SelectTrigger className="bg-surface border-border text-textPrimary h-12 rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border-border">
+                          <SelectItem value="Professional">Professional</SelectItem>
+                          <SelectItem value="Education">Education</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase tracking-widest font-bold text-textSecondary ml-1">
+                      Key Accomplishments (One per line)
+                    </Label>
+                    <Textarea
+                      value={expFormData.achievements.join("\n")}
+                      onChange={(e) =>
+                        setExpFormData({ ...expFormData, achievements: e.target.value.split("\n").filter(Boolean) })
+                      }
+                      className="bg-surface border-border text-textPrimary rounded-xl p-4"
+                      rows={5}
+                      placeholder="• Optimized cloud infrastructure security by 40%..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase tracking-widest font-bold text-textSecondary ml-1">
+                      Skillset Utilization (Comma separated)
+                    </Label>
+                    <Input
+                      value={expFormData.skills.join(", ")}
+                      onChange={(e) =>
+                        setExpFormData({
+                          ...expFormData,
+                          skills: e.target.value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      className="bg-surface border-border text-textPrimary h-12 rounded-xl"
+                      placeholder="Pentesting, AWS, Next.js..."
+                    />
+                  </div>
+                  <div className="flex items-center space-x-3 p-4 bg-accent/5 rounded-xl border border-accent/10">
+                    <Switch
+                      checked={expFormData.visible}
+                      onCheckedChange={(checked) => setExpFormData({ ...expFormData, visible: checked })}
+                      className="data-[state=checked]:bg-accent data-[state=unchecked]:bg-white/20 border border-white/10"
+                    />
+                    <Label className="text-textPrimary text-xs font-bold uppercase tracking-wider">
+                      Sync to Public Timeline
+                    </Label>
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <GlassButton type="submit" className="flex-1 h-12" variant="primary">
+                      Commit Node
+                    </GlassButton>
+                    <GlassButton
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setIsExpDialogOpen(false)}
+                      className="flex-1 h-12"
+                    >
+                      Abort
+                    </GlassButton>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+          </TabsContent>
 
-            <div className="grid gap-4 sm:gap-6">
-              {experience
-                .sort((a, b) => a.order - b.order)
-                .map((exp, index) => (
-                  <Card key={exp.id} className="bg-gray-800/50 border-gray-700">
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+          {/* Skills Tab */}
+          <TabsContent value="skills" className="space-y-8">
+            {!isSkillDialogOpen ? (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-textPrimary uppercase tracking-tighter">Technical Arsenal</h3>
+                    <p className="text-sm text-textSecondary">Manage your skill categories and technical expertise.</p>
+                  </div>
+                  <GlassButton
+                    variant="primary"
+                    onClick={() => {
+                      resetSkillForm()
+                      setIsSkillDialogOpen(true)
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Category
+                  </GlassButton>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {skillCategories.map((category) => (
+                    <GlassCard key={category.id} className="p-6 border-border/50 group">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                         <div className="flex-1">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                            <h3 className="text-lg sm:text-xl font-semibold text-gray-200">{exp.title}</h3>
-                            <Badge variant="outline" className="w-fit bg-blue-500/20 text-blue-400 border-blue-400/30">
-                              {exp.type}
-                            </Badge>
-                            <Badge
-                              variant={exp.visible ? "default" : "secondary"}
-                              className={`w-fit ${
-                                exp.visible
-                                  ? "bg-green-500/20 text-green-400 border-green-400/30"
-                                  : "bg-gray-500/20 text-gray-400 border-gray-400/30"
-                              }`}
-                            >
-                              {exp.visible ? "Visible" : "Hidden"}
-                            </Badge>
-                          </div>
-                          <p className="text-gray-400 mb-2 text-sm sm:text-base">{exp.organization}</p>
-                          <p className="text-yellow-400 mb-3 text-sm sm:text-base">{exp.year}</p>
-                          {exp.achievements.length > 0 && (
-                            <div className="mb-3">
-                              <h4 className="text-sm font-semibold text-gray-300 mb-2">Achievements:</h4>
-                              <ul className="space-y-1">
-                                {exp.achievements.slice(0, 2).map((achievement, achievementIndex) => (
-                                  <li
-                                    key={achievementIndex}
-                                    className="flex items-start gap-2 text-xs sm:text-sm text-gray-300"
-                                  >
-                                    <Diamond className="h-3 w-3 text-yellow-400 mt-1 flex-shrink-0" />
-                                    {achievement}
-                                  </li>
-                                ))}
-                                {exp.achievements.length > 2 && (
-                                  <li className="text-xs sm:text-sm text-gray-400 ml-5">
-                                    +{exp.achievements.length - 2} more achievements
-                                  </li>
-                                )}
-                              </ul>
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-surface rounded-lg">
+                              {ICON_MAP[category.icon] || <Code2 className="h-4 w-4 text-accent" />}
                             </div>
-                          )}
-                          <div className="flex flex-wrap gap-1 mb-2">
-                            {exp.skills.slice(0, 3).map((skill) => (
-                              <Badge
-                                key={skill}
-                                variant="outline"
-                                className="text-xs bg-cyan-500/20 text-cyan-400 border-cyan-400/30"
-                              >
-                                {skill}
-                              </Badge>
-                            ))}
-                            {exp.skills.length > 3 && (
-                              <Badge
-                                variant="outline"
-                                className="text-xs bg-gray-500/20 text-gray-400 border-gray-400/30"
-                              >
-                                +{exp.skills.length - 3}
-                              </Badge>
-                            )}
+                            <h4 className="font-bold text-textPrimary text-lg">{category.title}</h4>
+                            <Badge className={category.visible ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}>
+                              {category.visible ? "LIVE" : "HIDDEN"}
+                            </Badge>
                           </div>
-                          <p className="text-xs sm:text-sm text-gray-400">Order: {exp.order}</p>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => toggleVisibility("experience", exp.id, exp.visible)}
-                            className={`text-xs sm:text-sm ${
-                              exp.visible
-                                ? "border-orange-400/30 text-orange-400 hover:bg-orange-400/10"
-                                : "border-green-400/30 text-green-400 hover:bg-green-400/10"
-                            }`}
-                          >
-                            {exp.visible ? (
-                              <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
-                            ) : (
-                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => moveItem("experience", exp.id, "up")}
-                            disabled={index === 0}
-                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
-                          >
-                            <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => moveItem("experience", exp.id, "down")}
-                            disabled={index === experience.length - 1}
-                            className="border-blue-400/30 text-blue-400 hover:bg-blue-400/10 text-xs sm:text-sm disabled:opacity-50"
-                          >
-                            <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingExperience(exp)
-                              setExpFormData({
-                                year: exp.year,
-                                title: exp.title,
-                                organization: exp.organization,
-                                type: exp.type,
-                                achievements: exp.achievements,
-                                skills: exp.skills,
-                                visible: exp.visible,
-                                order: exp.order,
-                              })
-                              setIsExpDialogOpen(true)
-                            }}
-                            className="border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10 text-xs sm:text-sm"
-                          >
-                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDeleteExperience(exp.id)}
-                            className="border-red-400/30 text-red-400 hover:bg-red-400/10 text-xs sm:text-sm"
-                          >
-                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9"
+                              onClick={() => {
+                                setEditingSkill(category)
+                                setSkillFormData({
+                                  title: category.title,
+                                  icon: category.icon,
+                                  skills: category.skills,
+                                  span: category.span,
+                                  visible: category.visible,
+                                  order: category.order
+                                })
+                                setIsSkillDialogOpen(true)
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-9 w-9 text-red-400"
+                              onClick={() => handleDeleteSkill(category.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <div className="flex flex-col gap-1">
+                              <Button size="icon" variant="ghost" className="h-4 w-9" onClick={() => moveItem("skills", category.id, "up")}>
+                                <ChevronUp className="h-3 w-3" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="h-4 w-9" onClick={() => moveItem("skills", category.id, "down")}>
+                                <ChevronDown className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
+                      <div className="mt-4 pt-4 border-t border-border/20 flex items-center justify-between">
+                        <div className="flex flex-wrap gap-2">
+                          {category.skills.map((skill, i) => (
+                            <span key={i} className="text-[10px] px-2 py-1 bg-surface border border-border/30 rounded-md text-textSecondary">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={category.visible}
+                            onCheckedChange={() => toggleVisibility("skills", category.id, category.visible)}
+                            className="data-[state=checked]:bg-accent data-[state=unchecked]:bg-white/20 border border-white/10"
+                          />
+                          <span className="text-[9px] uppercase tracking-widest text-textTertiary">Public</span>
+                        </div>
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-background/80 backdrop-blur-3xl border border-border/50 shadow-2xl rounded-[2rem] p-10 mesh-gradient-subtle"
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                      <Code2 className="w-6 h-6 text-accent" />
+                    </div>
+                    <h3 className="text-textPrimary text-2xl font-heading uppercase tracking-widest font-bold">
+                      Skill Configuration
+                    </h3>
+                  </div>
+                  <GlassButton variant="secondary" onClick={() => setIsSkillDialogOpen(false)} className="h-10 px-4">
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Arsenal
+                  </GlassButton>
+                </div>
+
+                <form onSubmit={handleSubmitSkill} className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1 flex items-center gap-2">
+                        Category Title <span className="text-accent">*</span>
+                      </Label>
+                      <Input
+                        value={skillFormData.title}
+                        onChange={(e) => setSkillFormData({ ...skillFormData, title: e.target.value })}
+                        className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                        placeholder="e.g. Frontend Engineering"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">
+                        Display Icon
+                      </Label>
+                      <Select
+                        value={skillFormData.icon}
+                        onValueChange={(value) => setSkillFormData({ ...skillFormData, icon: value })}
+                      >
+                        <SelectTrigger className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border-border">
+                          <SelectItem value="Layout">Layout (Frontend)</SelectItem>
+                          <SelectItem value="Database">Database (Backend)</SelectItem>
+                          <SelectItem value="Smartphone">Smartphone (Mobile)</SelectItem>
+                          <SelectItem value="Code2">Code (General)</SelectItem>
+                          <SelectItem value="Cloud">Cloud (DevOps)</SelectItem>
+                          <SelectItem value="Cpu">CPU (Hardware/Core)</SelectItem>
+                          <SelectItem value="Globe">Globe (Web)</SelectItem>
+                          <SelectItem value="Layers">Layers (Fullstack)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">
+                        Layout Span (Grid)
+                      </Label>
+                      <Select
+                        value={skillFormData.span}
+                        onValueChange={(value) => setSkillFormData({ ...skillFormData, span: value })}
+                      >
+                        <SelectTrigger className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-background border-border">
+                          <SelectItem value="md:col-span-12">Full Width (12)</SelectItem>
+                          <SelectItem value="md:col-span-8">Large (8)</SelectItem>
+                          <SelectItem value="md:col-span-7">Medium-Large (7)</SelectItem>
+                          <SelectItem value="md:col-span-6">Half Width (6)</SelectItem>
+                          <SelectItem value="md:col-span-5">Medium-Small (5)</SelectItem>
+                          <SelectItem value="md:col-span-4">One Third (4)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center space-x-3 p-4 bg-accent/5 rounded-2xl border border-accent/10 mt-6 h-14">
+                      <Switch
+                        checked={skillFormData.visible}
+                        onCheckedChange={(checked) => setSkillFormData({ ...skillFormData, visible: checked })}
+                        className="data-[state=checked]:bg-accent data-[state=unchecked]:bg-white/20 border border-white/10"
+                      />
+                      <Label className="text-textPrimary text-xs font-bold uppercase tracking-wider">
+                        Sync to Arsenal
+                      </Label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-[10px] uppercase tracking-[0.2em] font-black text-textSecondary ml-1">
+                      Skillset (Comma separated)
+                    </Label>
+                    <Input
+                      value={skillFormData.skills.join(", ")}
+                      onChange={(e) =>
+                        setSkillFormData({
+                          ...skillFormData,
+                          skills: e.target.value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      className="bg-surface/50 border-border/40 text-textPrimary h-14 rounded-2xl focus:ring-accent/20 focus:border-accent/30 transition-all px-6"
+                      placeholder="React, TypeScript, Next.js..."
+                    />
+                  </div>
+
+                  <div className="flex gap-4 pt-4">
+                    <GlassButton type="submit" className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]" variant="primary">
+                      Synchronize Skills
+                    </GlassButton>
+                    <GlassButton
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setIsSkillDialogOpen(false)}
+                      className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[10px]"
+                    >
+                      Abort
+                    </GlassButton>
+                  </div>
+                </form>
+              </motion.div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

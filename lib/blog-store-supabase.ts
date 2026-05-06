@@ -1,13 +1,14 @@
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseClient } from "./supabase-client"
 import type { BlogPost } from "@/types/blog"
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseKey)
-
 export const blogStoreSupabase = {
+  get supabase() {
+    return getSupabaseClient()
+  },
+
   async getAllPosts(includeUnpublished = false): Promise<BlogPost[]> {
+    const supabase = this.supabase
+    if (!supabase) return []
     try {
       let query = supabase.from("blog_posts").select("*").order("created_at", { ascending: false })
 
@@ -22,7 +23,7 @@ export const blogStoreSupabase = {
         return []
       }
 
-      return (data || []).map((post) => ({
+      return (data || []).map((post: any) => ({
         id: post.id,
         title: post.title,
         slug: post.slug,
@@ -35,7 +36,7 @@ export const blogStoreSupabase = {
         updatedAt: post.updated_at,
         author: post.author || "KT",
         date: post.created_at,
-        readingTime: Math.ceil(post.content?.split(" ").length / 200) || 5,
+        readingTime: Math.ceil((post.content?.split(" ").length || 0) / 200) || 5,
       }))
     } catch (error) {
       console.error("Error in getAllPosts:", error)
@@ -44,6 +45,8 @@ export const blogStoreSupabase = {
   },
 
   async getPosts(limit?: number): Promise<BlogPost[]> {
+    const supabase = this.supabase
+    if (!supabase) return []
     try {
       let query = supabase
         .from("blog_posts")
@@ -62,7 +65,7 @@ export const blogStoreSupabase = {
         return []
       }
 
-      return (data || []).map((post) => ({
+      return (data || []).map((post: any) => ({
         id: post.id,
         title: post.title,
         slug: post.slug,
@@ -75,7 +78,7 @@ export const blogStoreSupabase = {
         updatedAt: post.updated_at,
         author: post.author || "KT",
         date: post.created_at,
-        readingTime: Math.ceil(post.content?.split(" ").length / 200) || 5,
+        readingTime: Math.ceil((post.content?.split(" ").length || 0) / 200) || 5,
       }))
     } catch (error) {
       console.error("Error in getPosts:", error)
@@ -84,6 +87,8 @@ export const blogStoreSupabase = {
   },
 
   async getPost(slug: string): Promise<BlogPost | null> {
+    const supabase = this.supabase
+    if (!supabase) return null
     try {
       const { data, error } = await supabase
         .from("blog_posts")
@@ -112,7 +117,7 @@ export const blogStoreSupabase = {
         updatedAt: data.updated_at,
         author: data.author || "KT",
         date: data.created_at,
-        readingTime: Math.ceil(data.content?.split(" ").length / 200) || 5,
+        readingTime: Math.ceil((data.content?.split(" ").length || 0) / 200) || 5,
       }
     } catch (error) {
       console.error("Error in getPost:", error)
@@ -125,6 +130,8 @@ export const blogStoreSupabase = {
   },
 
   async addPost(postData: Partial<BlogPost>): Promise<BlogPost | null> {
+    const supabase = this.supabase
+    if (!supabase) return null
     try {
       const { data, error } = await supabase
         .from("blog_posts")
@@ -159,7 +166,7 @@ export const blogStoreSupabase = {
         updatedAt: data.updated_at,
         author: data.author || "KT",
         date: data.created_at,
-        readingTime: Math.ceil(data.content?.split(" ").length / 200) || 5,
+        readingTime: Math.ceil((data.content?.split(" ").length || 0) / 200) || 5,
       }
     } catch (error) {
       console.error("Error in addPost:", error)
@@ -168,6 +175,8 @@ export const blogStoreSupabase = {
   },
 
   async updatePost(slug: string, postData: Partial<BlogPost>): Promise<BlogPost | null> {
+    const supabase = this.supabase
+    if (!supabase) return null
     try {
       const updateData: any = {}
       if (postData.title) updateData.title = postData.title
@@ -198,7 +207,7 @@ export const blogStoreSupabase = {
         updatedAt: data.updated_at,
         author: data.author || "KT",
         date: data.created_at,
-        readingTime: Math.ceil(data.content?.split(" ").length / 200) || 5,
+        readingTime: Math.ceil((data.content?.split(" ").length || 0) / 200) || 5,
       }
     } catch (error) {
       console.error("Error in updatePost:", error)
@@ -207,6 +216,8 @@ export const blogStoreSupabase = {
   },
 
   async deletePost(slug: string): Promise<boolean> {
+    const supabase = this.supabase
+    if (!supabase) return false
     try {
       const { error } = await supabase.from("blog_posts").delete().eq("slug", slug)
 

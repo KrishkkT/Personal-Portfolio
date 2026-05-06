@@ -239,6 +239,173 @@ export class AnimationUtils {
       return Promise.resolve()
     }
   }
+
+  // Slide in from left
+  static slideInLeft(
+    selector: string | HTMLElement,
+    options: {
+      distance?: number
+      duration?: number
+      delay?: number
+    } = {},
+  ) {
+    if (!this.isClient) return Promise.resolve()
+    try {
+      const elements = typeof selector === "string" ? document.querySelectorAll(selector) : [selector]
+      const promises = Array.from(elements).map((element) => {
+        if (!(element instanceof HTMLElement)) return Promise.resolve()
+        const { distance = 50, duration = 600, delay = 0 } = options
+        if (this.isAnimationSupported) {
+          return element.animate(
+            [
+              { opacity: 0, transform: `translateX(-${distance}px)` },
+              { opacity: 1, transform: "translateX(0)" },
+            ],
+            { duration, delay, fill: "forwards", easing: "ease-out" }
+          ).finished
+        }
+        return Promise.resolve()
+      })
+      return Promise.all(promises)
+    } catch (error) {
+      return Promise.resolve()
+    }
+  }
+
+  // Slide in from right
+  static slideInRight(
+    selector: string | HTMLElement,
+    options: {
+      distance?: number
+      duration?: number
+      delay?: number
+    } = {},
+  ) {
+    if (!this.isClient) return Promise.resolve()
+    try {
+      const elements = typeof selector === "string" ? document.querySelectorAll(selector) : [selector]
+      const promises = Array.from(elements).map((element) => {
+        if (!(element instanceof HTMLElement)) return Promise.resolve()
+        const { distance = 50, duration = 600, delay = 0 } = options
+        if (this.isAnimationSupported) {
+          return element.animate(
+            [
+              { opacity: 0, transform: `translateX(${distance}px)` },
+              { opacity: 1, transform: "translateX(0)" },
+            ],
+            { duration, delay, fill: "forwards", easing: "ease-out" }
+          ).finished
+        }
+        return Promise.resolve()
+      })
+      return Promise.all(promises)
+    } catch (error) {
+      return Promise.resolve()
+    }
+  }
+
+  // Scale in animation
+  static scaleIn(
+    selector: string | HTMLElement,
+    options: {
+      duration?: number
+      delay?: number
+    } = {},
+  ) {
+    if (!this.isClient) return Promise.resolve()
+    try {
+      const elements = typeof selector === "string" ? document.querySelectorAll(selector) : [selector]
+      const promises = Array.from(elements).map((element) => {
+        if (!(element instanceof HTMLElement)) return Promise.resolve()
+        const { duration = 500, delay = 0 } = options
+        if (this.isAnimationSupported) {
+          return element.animate(
+            [
+              { opacity: 0, transform: "scale(0.8)" },
+              { opacity: 1, transform: "scale(1)" },
+            ],
+            { duration, delay, fill: "forwards", easing: "ease-out" }
+          ).finished
+        }
+        return Promise.resolve()
+      })
+      return Promise.all(promises)
+    } catch (error) {
+      return Promise.resolve()
+    }
+  }
+
+  // Text reveal animation
+  static textReveal(
+    selector: string | HTMLElement,
+    options: {
+      duration?: number
+      delay?: number
+    } = {},
+  ) {
+    if (!this.isClient) return Promise.resolve()
+    try {
+      const elements = typeof selector === "string" ? document.querySelectorAll(selector) : [selector]
+      const promises = Array.from(elements).map((element) => {
+        if (!(element instanceof HTMLElement)) return Promise.resolve()
+        const { duration = 800, delay = 0 } = options
+        element.style.overflow = "hidden"
+        if (this.isAnimationSupported) {
+          return element.animate(
+            [
+              { transform: "translateY(100%)", opacity: 0 },
+              { transform: "translateY(0)", opacity: 1 },
+            ],
+            { duration, delay, fill: "forwards", easing: "cubic-bezier(0.16, 1, 0.3, 1)" }
+          ).finished
+        }
+        return Promise.resolve()
+      })
+      return Promise.all(promises)
+    } catch (error) {
+      return Promise.resolve()
+    }
+  }
+
+  // Staggered animation for list of elements
+  static staggered(
+    selector: string,
+    animationType: "fadeIn" | "slideUp" | "scaleIn",
+    options: {
+      staggerDelay?: number
+      delay?: number
+    } = {},
+  ) {
+    if (!this.isClient) return Promise.resolve()
+    const { staggerDelay = 100, delay = 0 } = options
+    const elements = document.querySelectorAll(selector)
+    const promises = Array.from(elements).map((element, index) => {
+      if (!(element instanceof HTMLElement)) return Promise.resolve()
+      const totalDelay = delay + index * staggerDelay
+      switch (animationType) {
+        case "fadeIn": return this.fadeIn(element, { delay: totalDelay })
+        case "slideUp": return this.slideUp(element, { delay: totalDelay })
+        case "scaleIn": return this.scaleIn(element, { delay: totalDelay })
+        default: return Promise.resolve()
+      }
+    })
+    return Promise.all(promises)
+  }
+
+  // Page Entry Animation
+  static pageTransitionIn(container: HTMLElement) {
+    if (!this.isClient) return Promise.resolve()
+    return this.fadeIn(container, { duration: 600 })
+  }
+
+  // Page Exit Animation
+  static pageTransitionOut(container: HTMLElement, options: { complete?: () => void } = {}) {
+    if (!this.isClient) return Promise.resolve()
+    const { complete } = options
+    return this.isAnimationSupported 
+      ? container.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: "forwards" }).finished.then(() => complete?.())
+      : Promise.resolve().then(() => complete?.())
+  }
 }
 
 // Export default and named exports
@@ -251,4 +418,9 @@ export const animationUtils = {
   shake: AnimationUtils.shake.bind(AnimationUtils),
   fadeIn: AnimationUtils.fadeIn.bind(AnimationUtils),
   slideUp: AnimationUtils.slideUp.bind(AnimationUtils),
+  slideInLeft: AnimationUtils.slideInLeft.bind(AnimationUtils),
+  slideInRight: AnimationUtils.slideInRight.bind(AnimationUtils),
+  scaleIn: AnimationUtils.scaleIn.bind(AnimationUtils),
+  textReveal: AnimationUtils.textReveal.bind(AnimationUtils),
+  staggered: AnimationUtils.staggered.bind(AnimationUtils),
 }

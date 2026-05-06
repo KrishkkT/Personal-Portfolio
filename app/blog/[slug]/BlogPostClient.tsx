@@ -43,28 +43,28 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
   const formatContent = (content: string) => {
     // Convert markdown-like syntax to HTML
     return content
-      .replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold text-white mb-6 leading-tight">$1</h1>')
-      .replace(/^## (.*$)/gim, '<h2 class="text-3xl font-semibold text-white mb-5 mt-8 leading-tight">$1</h2>')
-      .replace(/^### (.*$)/gim, '<h3 class="text-2xl font-semibold text-white mb-4 mt-6 leading-tight">$1</h3>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-yellow-400">$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em class="italic text-gray-300">$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-gray-800 text-yellow-400 px-2 py-1 rounded text-sm font-mono">$1</code>')
-      .replace(/\n\n/g, '</p><p class="text-gray-300 leading-relaxed mb-6 text-lg">')
+      .replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold text-textPrimary mb-6 leading-tight font-heading uppercase tracking-tight">$1</h1>')
+      .replace(/^## (.*$)/gim, '<h2 class="text-3xl font-bold text-textPrimary mb-5 mt-12 leading-tight font-heading uppercase tracking-tight border-l-4 border-accent pl-6">$1</h2>')
+      .replace(/^### (.*$)/gim, '<h3 class="text-2xl font-bold text-textPrimary mb-4 mt-8 leading-tight font-heading">$1</h3>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-accent">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-textSecondary opacity-80">$1</em>')
+      .replace(/`(.*?)`/g, '<code class="bg-surface/80 border border-border/30 text-accent px-2 py-1 rounded text-sm font-mono">$1</code>')
+      .replace(/\n\n/g, '</p><p class="text-textSecondary leading-[1.8] mb-6 text-lg font-light tracking-wide">')
       .replace(/\n/g, "<br>")
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto">
             <div className="text-center py-20">
               <motion.div
                 animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full mx-auto mb-6"
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full mx-auto mb-6"
               />
-              <p className="text-gray-300 text-lg">Loading article...</p>
+              <p className="text-textSecondary text-lg font-medium">Decrypting article...</p>
             </div>
           </div>
         </div>
@@ -74,15 +74,15 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
 
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-4xl font-bold text-white mb-6">Post Not Found</h1>
-            <p className="text-gray-300 mb-8 text-lg">{error || "The requested blog post could not be found."}</p>
+            <h1 className="text-4xl font-bold text-textPrimary mb-6">Article Not Found</h1>
+            <p className="text-textSecondary mb-8 text-lg">{error || "The requested blog post could not be found."}</p>
             <Link href="/blog">
-              <Button className="bg-yellow-400 text-gray-900 hover:bg-yellow-300 font-semibold">
+              <Button className="bg-accent text-white hover:bg-accent/90 font-bold h-12 px-8 rounded-xl uppercase tracking-widest text-[10px]">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Blog
+                Return to Library
               </Button>
             </Link>
           </div>
@@ -92,7 +92,7 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-yellow-400/5 rounded-full blur-3xl"></div>
@@ -135,17 +135,17 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
               )}
 
               {/* Title */}
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">{post.title}</h1>
+              <h1 className="text-4xl md:text-6xl font-bold text-textPrimary mb-6 leading-tight font-heading">{post.title}</h1>
 
               {/* Intro */}
-              {post.intro && <p className="text-xl text-gray-300 mb-8 leading-relaxed font-light">{post.intro}</p>}
+              {post.intro && <p className="text-xl text-textSecondary mb-8 leading-relaxed font-light">{post.intro}</p>}
 
               {/* Meta Information */}
-              <div className="flex flex-wrap items-center gap-6 text-gray-400 mb-8">
+              <div className="flex flex-wrap items-center gap-6 text-textTertiary mb-8">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-yellow-400" />
-                  <span className="text-base">
-                    {new Date(post.createdAt).toLocaleDateString("en-US", {
+                  <Calendar className="h-5 w-5 text-accent" />
+                  <span className="text-sm font-bold uppercase tracking-widest">
+                    {new Date(post.createdAt || "").toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
@@ -153,12 +153,12 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-yellow-400" />
-                  <span className="text-base">{Math.ceil(post.content.split(" ").length / 200)} min read</span>
+                  <Clock className="h-5 w-5 text-accent" />
+                  <span className="text-sm font-bold uppercase tracking-widest">{Math.ceil(post.content.split(" ").length / 200)} min read</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-yellow-400" />
-                  <span className="text-base">Article</span>
+                  <BookOpen className="h-5 w-5 text-accent" />
+                  <span className="text-sm font-bold uppercase tracking-widest">Article</span>
                 </div>
               </div>
 
@@ -168,10 +168,9 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
                   {post.tags.map((tag) => (
                     <Badge
                       key={tag}
-                      variant="outline"
-                      className="border-yellow-400/30 text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20 transition-colors px-3 py-1 text-sm"
+                      className="border-accent/30 text-accent bg-accent/5 hover:bg-accent/10 transition-colors px-4 py-1.5 text-[10px] uppercase tracking-widest font-black rounded-full"
                     >
-                      <Tag className="h-3 w-3 mr-1" />
+                      <Tag className="h-3 w-3 mr-1.5" />
                       {tag}
                     </Badge>
                   ))}
@@ -185,11 +184,11 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <Card className="bg-gray-800/30 border-gray-700/50 backdrop-blur-sm p-8 md:p-12 rounded-2xl shadow-2xl">
+              <Card className="bg-surface/30 border-border/50 backdrop-blur-3xl p-8 md:p-12 rounded-[2rem] shadow-2xl">
                 <div
                   className="prose prose-lg max-w-none"
                   dangerouslySetInnerHTML={{
-                    __html: `<p class="text-gray-300 leading-relaxed mb-6 text-lg">${formatContent(post.content)}</p>`,
+                    __html: `<p class="text-textSecondary leading-[1.8] mb-6 text-lg font-light tracking-wide">${formatContent(post.content)}</p>`,
                   }}
                 />
               </Card>
@@ -202,9 +201,9 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="mt-12 text-center"
             >
-              <Card className="bg-gray-800/30 border-gray-700/50 backdrop-blur-sm p-8 rounded-2xl">
-                <h3 className="text-2xl font-semibold text-white mb-4">Share this article</h3>
-                <p className="text-gray-300 mb-6">Found this helpful? Share it with others!</p>
+              <Card className="bg-surface/30 border-border/50 backdrop-blur-3xl p-8 rounded-[2rem]">
+                <h3 className="text-2xl font-bold text-textPrimary mb-4 font-heading uppercase tracking-widest">Transmit Knowledge</h3>
+                <p className="text-textSecondary mb-8 opacity-70">Synchronize this intelligence with your professional network.</p>
                 <Button
                   onClick={() => {
                     if (navigator.share) {
@@ -218,10 +217,10 @@ export default function BlogPostClient({ slug }: BlogPostClientProps) {
                       alert("Link copied to clipboard!")
                     }
                   }}
-                  className="bg-yellow-400 text-gray-900 hover:bg-yellow-300 font-semibold px-6 py-3"
+                  className="bg-accent text-white hover:bg-accent/90 font-black px-10 py-4 h-auto rounded-xl uppercase tracking-[0.2em] text-[10px]"
                 >
-                  <Share2 className="h-5 w-5 mr-2" />
-                  Share Article
+                  <Share2 className="h-4 w-4 mr-3" />
+                  Broaden Horizon
                 </Button>
               </Card>
             </motion.div>

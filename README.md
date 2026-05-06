@@ -72,7 +72,7 @@ Welcome aboard Krish's Personal Portfolio — a meticulously engineered webspace
 
 ## 📬 Contact
 
-Feel free to reach out via [LinkedIn](https://www.linkedin.com/in/krishthakker08) or [Email](mailto:kjthakker8@gmail.com). Always open to collaboration and meaningful connections.
+Feel free to reach out via [LinkedIn](https://www.linkedin.com/in/krishthakker08) or [Email](mailto:contact@krishthakker.in). Always open to collaboration and meaningful connections.
 
 ---
 

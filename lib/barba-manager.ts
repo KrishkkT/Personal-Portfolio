@@ -23,8 +23,8 @@ export class BarbaManager {
       transitions: [
         {
           name: "default-transition",
-          leave: (data) => {
-            const done = data.trigger()
+          leave: (data: any) => {
+            const done = data.async()
 
             // Exit animation
             AnimationUtils.pageTransitionOut(data.current.container, {
@@ -33,9 +33,8 @@ export class BarbaManager {
               },
             })
 
-            return () => {}
           },
-          enter: (data) => {
+          enter: (data: any) => {
             // Scroll to top
             window.scrollTo(0, 0)
 
@@ -158,22 +157,22 @@ export class BarbaManager {
 
             switch (animation) {
               case "fadeIn":
-                AnimationUtils.fadeIn(element)
+                AnimationUtils.fadeIn(element as HTMLElement)
                 break
               case "slideUp":
-                AnimationUtils.slideUp(element)
+                AnimationUtils.slideUp(element as HTMLElement)
                 break
               case "slideInLeft":
-                AnimationUtils.slideInLeft(element)
+                AnimationUtils.slideInLeft(element as HTMLElement)
                 break
               case "slideInRight":
-                AnimationUtils.slideInRight(element)
+                AnimationUtils.slideInRight(element as HTMLElement)
                 break
               case "scaleIn":
-                AnimationUtils.scaleIn(element)
+                AnimationUtils.scaleIn(element as HTMLElement)
                 break
               default:
-                AnimationUtils.fadeIn(element)
+                AnimationUtils.fadeIn(element as HTMLElement)
             }
 
             // Unobserve after animation

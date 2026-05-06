@@ -3,15 +3,20 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 // Singleton pattern for Supabase client
 let supabaseInstance: SupabaseClient | null = null
 
-export function getSupabaseClient(): SupabaseClient {
-  if (!supabaseInstance) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+export function getSupabaseClient(): SupabaseClient | null {
+  if (supabaseInstance) return supabaseInstance
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error("Missing Supabase environment variables")
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    if (typeof window !== "undefined") {
+        console.warn("Supabase environment variables are missing. Some features may not work.")
     }
+    return null
+  }
 
+  try {
     supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,
@@ -19,39 +24,52 @@ export function getSupabaseClient(): SupabaseClient {
         detectSessionInUrl: false,
       },
     })
+    return supabaseInstance
+  } catch (error) {
+    console.error("Failed to initialize Supabase client:", error)
+    return null
   }
-
-  return supabaseInstance
 }
 
 // Server-side Supabase client
-export function getServerSupabaseClient(): SupabaseClient {
+export function getServerSupabaseClient(): SupabaseClient | null {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error("Missing Supabase server environment variables")
+    console.warn("Missing Supabase server environment variables")
+    return null
   }
 
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  })
+  try {
+      return createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      })
+  } catch (error) {
+    console.error("Failed to initialize Server Supabase client:", error)
+    return null
+  }
 }
 
 // Test Supabase connection
-export async function testSupabaseConnection(): Promise<boolean> {
+export async function testSupabaseConnection(): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = getSupabaseClient()
-    const { error } = await supabase.from("blog_posts").select("count").limit(1)
-    return !error
-  } catch (error) {
-    return false
+    if (!supabase) return { success: false, error: "Environment variables missing" }
+    const { error } = await supabase.from("_connection_test").select("*").limit(0)
+    // We ignore error if it's just 'table not found' as long as we reached Supabase
+    if (error && error.code !== "PGRST116" && error.code !== "42P01") {
+        return { success: false, error: error.message }
+    }
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
 }
 
-// Export default client for backward compatibility
-export default getSupabaseClient()
+// Export a getter to prevent top-level execution crash
+export const supabase = getSupabaseClient();
