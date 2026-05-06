@@ -1,8 +1,6 @@
 # 🚀 Krish Thakker | Engineering & Security Portfolio
 
 <div align="center">
-  <img src="https://images.unsplash.com/photo-1749239435698-30b2421eb128?w=1200&auto=format&fit=crop&q=80" alt="Portfolio Header" width="100%" style="border-radius: 20px; margin-bottom: 20px;" />
-  
   <p align="center">
     <b>A high-performance, dark-themed portfolio meticulously engineered to showcase the intersection of Cybersecurity, Cloud Engineering, and Full-Stack Development.</b>
   </p>
@@ -63,37 +61,6 @@ This portfolio isn't just a static resume; it's a dynamic ecosystem built on the
 
 ---
 
-## 🚀 Getting Started
-
-### 1. Prerequisites
-- **Node.js**: v18.x or higher
-- **pnpm**: v9.x or higher (Recommended)
-
-### 2. Installation
-```bash
-# Clone the repository
-git clone https://github.com/KrishkkT/Personal-Portfolio.git
-
-# Install dependencies
-pnpm install
-```
-
-### 3. Environment Setup
-Create a `.env.local` file in the root directory:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-ADMIN_PASSWORD=your_dashboard_password
-```
-
-### 4. Development
-```bash
-pnpm dev
-```
-
----
-
 ## 🔐 Security Standards
 
 As a portfolio focused on cybersecurity, this site implements:
@@ -112,8 +79,3 @@ I'm always open to collaborating on secure infrastructure, cloud-native apps, or
 - **Website**: [krishthakker.in](https://krishthakker.in)
 
 ---
-
-<div align="center">
-  <p>Built with ⚡ by <b>Krish Thakker</b></p>
-  <p><i>Code-driven. Cyber-bound. Always shipping.</i></p>
-</div>
